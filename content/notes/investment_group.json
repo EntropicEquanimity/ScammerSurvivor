@@ -1,0 +1,34 @@
+{
+  "id": "investment-group",
+  "country": "*",
+  "category": "B",
+  "catalogueEntry": 8,
+  "app": "blue-chat",
+  "setup": "[the player is added to a group where a mentor shares tips and many members post profit screenshots] [the tips appear to win for a while and the mentor offers a private session]",
+  "ask": "[the mentor, pointing to the group's profit screenshots, asks the player to deposit a starting amount on a new trading app, then more to reach the next tier, saying the window closes today and the group should stay private from family]",
+  "tells": [
+    "trust_building",
+    "escalation",
+    "urgency",
+    "isolation"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "tell_someone",
+    "ask_reference"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "install",
+    "keep_secret"
+  ],
+  "usualEnding": "The balance on the app rises on screen but a fee or tax blocks every withdrawal. The deposits were never invested.",
+  "realTwin": "A friend shares a link to a public talk about saving in a group the player joined themselves, with no app to install and no deposit.",
+  "confidence": "high",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

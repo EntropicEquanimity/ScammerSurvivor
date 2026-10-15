@@ -1,0 +1,32 @@
+{
+  "id": "listing-leaver",
+  "country": "*",
+  "category": "D",
+  "catalogueEntry": 28,
+  "app": "green-chat",
+  "setup": "[a buyer on a marketplace listing wants to finish the deal on [chat app name] instead of the marketplace] [the buyer sends a screenshot as proof that payment was made]",
+  "ask": "[the buyer, now on [chat app name] and pointing to the payment screenshot, asks the player to ship the item today, or to refund an overpayment to a different account, before the money shows in the player's account]",
+  "tells": [
+    "platform_migration",
+    "trust_building",
+    "urgency",
+    "payment_substitution"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "verify_known_number"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "open_link"
+  ],
+  "usualEnding": "The screenshot was edited. The item ships, or the refund goes out, and no payment ever lands.",
+  "realTwin": "A real buyer asks a question about the item inside the marketplace chat, pays through the marketplace, and the payment shows in the player's own account before anything ships.",
+  "confidence": "high",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

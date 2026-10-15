@@ -4,10 +4,10 @@ A practice phone for spotting scams, for anyone in the JAPAC region, any age, bu
 
 ## Rules that never bend
 
-1. The practice label "Practice. Not a real message." is in the DOM of every screen for assistive technology (`PhoneShell` renders it visually hidden) and shows as a "Practice" tag on every message surface: each notification card and each app header. The non-affiliation sentence from `shared/strings.ts` is shown once per visit as a notice the player dismisses, and in full on the Privacy page. Calls say "Practice call". Decided 11 Oct 2026 by the Builder (the fixed strip broke the phone look).
+1. The practice label "Practice. Not a real message." is in the DOM of every screen for assistive technology (`PhoneShell` renders it visually hidden) and shows as a "Practice" tag in each app header and on the lock screen, not on each notification card. The non-affiliation sentence from `shared/strings.ts` is shown once per visit as a notice the player dismisses, and in full on the Privacy page. Calls say "Practice call". Decided 11 Oct 2026 by the Builder (the fixed strip broke the phone look); amended 16 Oct 2026 (the tag came off the notification cards, the lock screen carries it instead).
 2. Made-up apps only, from `shared/brands.ts`: layout conventions of the real app, an invented name, an original mark, and none of the real brand's colours, typefaces or icons. No real brand name, logo or sound-alike in any mock. Real brands appear only as plain text in lesson copy.
 3. No typed input anywhere in the app. No `<input>` or `<textarea>`. No field for a password, PIN, one-time code, card, account or phone number; the code moment is a button. On practice calls the player speaks: audio is never stored, the transcript is deleted once the lesson is shown, and speech is never scored.
-4. Cards are generated on the server from approved pattern notes, ahead of time, reviewed, cached. No route lets a player ask for scam text. No export, copy button, share control or fake receipt. Fake links are plain text spans, never anchors.
+4. Cards are generated on the server from approved pattern notes, and from nothing else: nothing is generated from a player's typed text because there is none. Human approval sits at the pattern-note level. The Guard checks every card; the Director repairs once with the Guard's reasons; a card that still fails is dropped and a reviewed cached day is the fallback. The quick day and under 18 are cache-only. No route takes free text; the Judge Lab generates only from approved notes and chips. No export, copy button, share control or fake receipt. Fake links are plain text spans, never anchors. Amended 16 Oct 2026.
 5. If a model refuses, errors or returns nothing, serve a cached card or the scripted call. Never rephrase a prompt to get around a refusal.
 6. The repo holds the tell taxonomy and pattern notes, never ready-to-send scam messages. That covers docs, fixtures and wireframes too: bracketed placeholders only. Generated cards live only in Firestore.
 7. Gemini never decides a score. `shared/score.ts` does, as a pure function with tests: actions against the card's safe and unsafe replies, tell taps against the planted tells, the call meter per delivered beat. Scored actions come only from buttons and taps.
@@ -19,14 +19,15 @@ A practice phone for spotting scams, for anyone in the JAPAC region, any age, bu
 ## Cup gates in short
 
 - Live URL on Cloud Run, public GitHub repo, video under 3 minutes, 7-section PDF deck, all in English.
-- Deadline Oct 18 2026. Internal code freeze Oct 16.
+- Deadline Oct 18 2026, hour not public. Internal code freeze at midnight on Oct 17; only fixes after that.
 - Scoring: Technical and Gen AI 40, Impact 25, Innovation 25, UX 10.
 
 ## Stack
 
-- One Cloud Run service in asia-southeast1: Node, Express, serving a Vite React app and `/api`. Secret Manager for the Gemini and Maps keys. Tier 1 key only.
-- Firestore: decks, pattern notes, card cache, translations, days, progress. Firebase Authentication (Google provider) for sign-in. Google Maps Geocoding for the optional location, discarded after use. Cloud Scheduler for the weekly Scout run.
-- Six agents, one job each: Scout, Director, Guard (code), Translator, Caller, Coach. Models: `gemini-3.8-flash` (Scout with Search grounding, Director with structured output, Translator, Coach), `gemini-3.8-live` (Caller), `gemini-3.8-flash-tts` (scripted call). Model names live in `server/gemini.ts` only. A 503 tries `gemini-3.6-flash` once through the same Guard, then cache.
+- One Cloud Run service in asia-southeast1: Node, Express, serving a Vite React app and `/api`. Secret Manager for the Gemini key. Tier 1 key only, from the Cup project.
+- Model routing: Vertex AI by default on Cloud Run, through the enterprise mode of `@google/genai` (`new GoogleGenAI({ enterprise: true, project, location })` on the service account's default credentials). `GEMINI_ROUTE=developer` is the fallback flag: it switches to the Developer API with `GEMINI_API_KEY`; set it locally to use the key, leave it unset for Vertex.
+- Firestore: pattern notes, card cache, days, progress, rooms. Google sign-in is cut (no Firebase Authentication). Maps Geocoding and Cloud Scheduler are cut with the location option and Scout.
+- Agents in this build, one job each: Director (`gemini-3.8-flash`, structured output, generate, Guard, one repair turn), Guard (code), Coach (`gemini-3.8-flash`, streamed), Caller (`gemini-3.8-flash-tts` beats generated before the call; `gemini-3.8-live` only after kill test A passes). Model names live in `server/gemini.ts` only. A 503 tries `gemini-3.6-flash` once through the same Guard, then the reviewed cache. Scout and Translator are designed, not in this build; ADK is cut.
 
 ## Layout
 

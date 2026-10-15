@@ -1,0 +1,32 @@
+{
+  "id": "code-or-account",
+  "country": "*",
+  "category": "C",
+  "catalogueEntry": 17,
+  "app": "green-chat",
+  "setup": "[a message from a contact's account says a verification code was sent to the player's phone by mistake and the sender needs it back right away] [another version offers money for scanning a code that links the player's chat account to a new device]",
+  "ask": "[the sender, writing from the contact's account, asks the player to forward the code that just arrived, or to scan the linking code, within the next few minutes before it expires]",
+  "tells": [
+    "synthetic_identity",
+    "credential_theft",
+    "urgency"
+  ],
+  "safeReplies": [
+    "refuse_code",
+    "block_report",
+    "verify_known_number",
+    "tell_someone"
+  ],
+  "unsafeReplies": [
+    "share_code",
+    "read_code"
+  ],
+  "usualEnding": "The chat account is taken over and every contact gets the same message in the player's name. An account rented for pay becomes a mule account.",
+  "realTwin": "A code arrives from [chat app name] because the player themselves is signing in on a new phone, and nobody else asks to see it.",
+  "confidence": "high",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

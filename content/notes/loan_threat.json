@@ -1,0 +1,31 @@
+{
+  "id": "loan-threat",
+  "country": "*",
+  "category": "B",
+  "catalogueEntry": 16,
+  "app": "green-chat",
+  "setup": "[an offer says a loan is approved with no checks and can be paid out today] [another version says the player owes a debt they do not recognise]",
+  "ask": "[the sender asks the player to install the lender's app and pay a release fee to a personal account before the money arrives today; the debt version threatens to message the player's contacts with their photos unless a payment is made now, with more to follow]",
+  "tells": [
+    "urgency",
+    "escalation",
+    "payment_substitution"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "tell_someone"
+  ],
+  "unsafeReplies": [
+    "pay",
+    "install"
+  ],
+  "usualEnding": "The fee is lost and no loan arrives, or the first payment is followed by a bigger demand and the threats continue.",
+  "realTwin": "A real statement from [institution] for a loan the player took out shows the due date and the amount in the official app, with no threats and no fee to release anything.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

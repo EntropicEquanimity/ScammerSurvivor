@@ -12,6 +12,8 @@ export const ACTION_LABELS: Record<Action, string> = {
   share_code: 'Share the code',
   install: 'Install',
   keep_secret: 'Keep it secret',
+  tell_someone: 'Tell someone you trust',
+  freeze_account: 'Freeze the account',
   ask_reference: 'Ask for a reference number',
   call_back: 'I will call you back',
   refuse_code: 'Refuse the code',

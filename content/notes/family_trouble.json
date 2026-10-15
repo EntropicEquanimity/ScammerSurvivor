@@ -1,0 +1,33 @@
+{
+  "id": "family-trouble",
+  "country": "*",
+  "category": "E",
+  "catalogueEntry": 38,
+  "app": "green-chat",
+  "setup": "[a message from a new number claims to be a close relative whose phone is broken or lost] [the sender says they cannot get into their bank app and are in a spot of trouble]",
+  "ask": "[the sender, still on the new number and claiming to be the relative, asks for money to be sent within the hour to an account the player has never paid, and asks the player not to call or tell the rest of the family because the borrowed phone cannot take calls]",
+  "tells": [
+    "synthetic_identity",
+    "urgency",
+    "payment_substitution",
+    "isolation"
+  ],
+  "safeReplies": [
+    "verify_known_number",
+    "block_report",
+    "ignore",
+    "tell_someone"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "keep_secret"
+  ],
+  "usualEnding": "The transfer reaches a stranger and the new number stops answering. The real relative still has their phone and never asked.",
+  "realTwin": "A relative messages from their usual number with everyday news and a small favour that involves no money and no new account.",
+  "confidence": "high",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

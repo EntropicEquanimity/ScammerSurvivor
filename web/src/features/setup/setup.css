@@ -1,0 +1,64 @@
+/* "Make it your phone": the title and lead sit bare on the wallpaper (on-wall tokens), then one
+   glass block per role holding six name chips. The page frame (.page-full, .page-body, .page-end)
+   comes from features/day.css; everything here is scoped under .setup. */
+.setup .setup-lead {
+  flex: none;
+  color: var(--on-wall);
+  font-size: var(--t18);
+  letter-spacing: var(--track-18);
+  text-shadow: var(--on-wall-shadow);
+}
+
+.setup .setup-row {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.875rem;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+
+.setup .setup-role {
+  font-size: var(--t15);
+  font-weight: 600;
+  letter-spacing: var(--track-15);
+  color: var(--ink-2);
+}
+
+/* Six chips wrap into two or three lines at 390px; 8px between targets, 48px tall. */
+.setup .setup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.setup .setup-chip {
+  padding: 0 1rem;
+  border-color: var(--line);
+  background: var(--surface);
+  font-size: var(--t16);
+  font-weight: 500;
+  color: var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Radio chips carry aria-checked, not aria-pressed, so the pressed look is restated here. */
+.setup .setup-chip[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+/* .page-end .btn:not(.btn-primary) in day.css (0,3,0) would turn Skip into a surface pill; this
+   selector is (0,4,0) so it wins regardless of bundle order. */
+.setup .page-end .btn.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent);
+}

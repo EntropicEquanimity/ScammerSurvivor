@@ -1,0 +1,33 @@
+{
+  "id": "bank-check",
+  "country": "*",
+  "category": "C",
+  "catalogueEntry": 20,
+  "app": "sms",
+  "setup": "[a message that looks like it comes from the player's bank or wallet app says the account will be blocked today unless identity details are updated]",
+  "ask": "[the message, in the bank's name, asks the player to open a link, log in, and read back a code to confirm the update before the account is blocked tonight]",
+  "tells": [
+    "authority",
+    "urgency",
+    "credential_theft"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "verify_known_number",
+    "refuse_code"
+  ],
+  "unsafeReplies": [
+    "open_link",
+    "share_code",
+    "read_code"
+  ],
+  "usualEnding": "The login and the code empty the account, or a loan is opened in the player's name. The real check lives inside the official app, opened by the player.",
+  "realTwin": "A real alert from [institution] confirms a purchase the player just made, with no link and no code to read back, and the detail matches the official app.",
+  "confidence": "high",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

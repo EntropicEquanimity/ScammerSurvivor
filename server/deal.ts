@@ -119,6 +119,16 @@ export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: D
   };
 }
 
+// One slot re-dealt with a new card: the slot id, the clock label and the
+// scam-or-twin choice stay; the message, buttons and answer key come from the card.
+export const redealSlot = (slot: DealtSlot, card: Card): DealtSlot => ({
+  slotId: slot.slotId,
+  card,
+  isTwin: slot.isTwin,
+  public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt),
+  key: toKey(card, slot.isTwin),
+});
+
 export function lessonFor(card: Card, hotline: CountryPack['hotline']): SlotResult['lesson'] {
   return {
     tells: card.plantedTells.map((id) => ({ id, ...TELLS[id] })),

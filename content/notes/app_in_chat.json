@@ -1,0 +1,31 @@
+{
+  "id": "app-in-chat",
+  "country": "*",
+  "category": "J",
+  "catalogueEntry": 66,
+  "app": "green-chat",
+  "setup": "[a message brings an invoice, a security tool, or a job app as a file in the chat, with a familiar looking logo] [the sender says it must be installed from the chat because the store version is not ready]",
+  "ask": "[the sender, in the name of [institution], asks the player to install the file before the offer closes and grant it screen and message access so the document can open]",
+  "tells": [
+    "authority",
+    "urgency",
+    "credential_theft"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "verify_known_number"
+  ],
+  "unsafeReplies": [
+    "install",
+    "open_link"
+  ],
+  "usualEnding": "The app reads codes and banking screens and money moves with no further story. No real invoice or tool needs an install from a chat.",
+  "realTwin": "A colleague sends a plain agenda file through the chat for a meeting already in the player's calendar, and nothing needs installing.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

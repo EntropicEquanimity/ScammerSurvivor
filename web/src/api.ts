@@ -1,4 +1,5 @@
-import type { ActBody, AgeGroup, CountryPack, DayPayload, DayScore, Layout, SlotResult, TapBody } from '../../shared/types.ts';
+import type { ActBody, AgeGroup, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TapBody, TraceEvent } from '../../shared/types.ts';
+import { getPeople } from './features/setup/storage.ts';
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`request failed: ${response.status}`);
@@ -29,8 +30,29 @@ export interface PackSummary {
 export const fetchPacks = async (): Promise<PackSummary[]> =>
   (await readJson<{ packs: PackSummary[] }>(await fetch('/api/packs'))).packs;
 
+// The people picked on the setup screen ride along as a JSON query param; none picked, none sent.
+const peopleParam = (): string => {
+  const people = getPeople();
+  return Object.keys(people).length > 0 ? `&people=${encodeURIComponent(JSON.stringify(people))}` : '';
+};
+
 export const fetchDay = async (country: string, age: AgeGroup, quick: boolean): Promise<DayPayload> =>
-  readJson(await fetch(`/api/day?country=${encodeURIComponent(country)}&age=${age}&quick=${quick ? 1 : 0}`));
+  readJson(await fetch(`/api/day?country=${encodeURIComponent(country)}&age=${age}&quick=${quick ? 1 : 0}${peopleParam()}`));
+
+export interface DayCards {
+  ready: boolean; // every background personalisation finished or was skipped
+  cards: PublicCard[];
+}
+
+export const fetchCards = async (dayId: string): Promise<DayCards> =>
+  readJson(await fetch(`/api/day/${encodeURIComponent(dayId)}/cards`));
+
+export const fetchTrace = async (dayId: string): Promise<TraceEvent[]> =>
+  readJson(await fetch(`/api/day/${encodeURIComponent(dayId)}/trace`));
+
+// Marks the slot as seen so a late personalised card never replaces it; returns the card the server holds.
+export const postOpen = (dayId: string, body: { slotId: string }): Promise<PublicCard> =>
+  postJson(`/api/day/${encodeURIComponent(dayId)}/open`, body);
 
 export const postAct = (dayId: string, body: ActBody): Promise<{ ok: true }> =>
   postJson(`/api/day/${encodeURIComponent(dayId)}/act`, body);

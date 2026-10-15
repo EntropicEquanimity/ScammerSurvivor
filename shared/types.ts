@@ -39,6 +39,8 @@ export const ACTIONS = [
   'share_code',
   'install',
   'keep_secret',
+  'tell_someone',
+  'freeze_account',
   'ask_reference',
   'call_back',
   'refuse_code',
@@ -169,6 +171,23 @@ export interface Progress {
 }
 
 export type AgeGroup = 'adult' | 'younger';
+
+// "Make it your phone": the people in the player's life, picked from chips, never typed.
+// Names come from the chip lists in shared/people.ts; the Director's allowed-names list
+// and the real twins are built from these.
+export const PEOPLE_ROLES = ['mom', 'dad', 'brother', 'sister', 'best_friend', 'boss', 'landlord'] as const;
+export type PeopleRole = (typeof PEOPLE_ROLES)[number];
+export type People = Partial<Record<PeopleRole, string>>;
+
+// One agent step as the trace drawer shows it: ids, verdicts and numbers only, never text.
+export interface TraceEvent {
+  agent: 'director' | 'guard' | 'coach' | 'caller';
+  model?: string;
+  ms: number;
+  tokens?: { input: number; output: number };
+  outcome: 'ok' | 'repaired' | 'rejected' | 'fallback' | 'cache';
+  reasons?: string[]; // guard rule ids that failed
+}
 
 // The standard four buttons every card shows, in this order.
 export const STANDARD_ACTIONS: readonly Action[] = ['reply', 'ignore', 'block_report', 'verify_known_number'];

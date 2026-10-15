@@ -1,0 +1,33 @@
+{
+  "id": "payment-change",
+  "country": "*",
+  "category": "I",
+  "catalogueEntry": 58,
+  "app": "blue-chat",
+  "setup": "[a message claiming to be the player's manager or a supplier says a deal is confidential and cannot go through the normal channel] [a short video call shows a face that looks like the boss but keeps the camera low]",
+  "ask": "[the person on the video call, speaking as the boss with the camera kept low, asks the player to pay the company invoice to a new account or in gift cards, and to skip the usual approval and keep it from colleagues because of the confidentiality]",
+  "tells": [
+    "authority",
+    "synthetic_identity",
+    "isolation",
+    "payment_substitution"
+  ],
+  "safeReplies": [
+    "verify_known_number",
+    "call_back",
+    "tell_someone",
+    "block_report"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "keep_secret"
+  ],
+  "usualEnding": "The company payment lands in a mule account and the faked video cannot be traced back to the boss. The real boss learns of it from the bank.",
+  "realTwin": "The real manager asks in the team chat for an invoice to be raised through the usual system, with the normal approver copied in.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

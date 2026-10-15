@@ -2,6 +2,7 @@ import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { join } from 'node:path';
 import { dayRouter } from './routes/day.ts';
+import { lessonRouter } from './routes/lesson.ts';
 import { packsRouter } from './routes/packs.ts';
 
 const DEFAULT_PORT = 8080;
@@ -28,6 +29,7 @@ app.use('/api', express.json({ limit: JSON_LIMIT }), (_req, res, next) => {
 });
 app.use('/api', packsRouter);
 app.use('/api', dayRouter);
+app.use('/api', lessonRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'not_found' });
 });

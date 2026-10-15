@@ -1,71 +1,87 @@
-# Cup runbook: 8 Oct to 18 Oct 2026
+# Cup runbook: 16 to 18 Oct 2026
 
-The one list to work from until submission. Dates here are the Cup's own. Slice checks are copied from `docs/build-plan.md` section 12; that file stays the source for what each slice contains. People by role: Builder, Deck lead, Content lead, Playtest lead.
+The one list to work from until submission. Dates here are the Cup's own: deadline 18 Oct, hour not public. People by role: Builder, Deck lead, Content lead, Playtest lead. All four are on the organizer dashboard team. The product is for all of JAPAC: eight country packs carry equal weight, no pack goes first, English only everywhere.
 
-Cut now, before anything else: slices 9 (live call), 10 (Scout and approval page) and 11 (email layout, cloud-chat polish, video-call variant). They show as "coming soon". The scripted call (slice 8) is the call that ships.
+Decided 16 Oct: the hybrid direction (the own-phone solo day as the core, room mode on top). Cut: Translator, Scout, Google sign-in, ADK. Their hours fund the proofs that the AI is live (trace drawer, Judge Lab, reliability report) and the room. The turn-based call with pregenerated TTS beats is the call that ships; the live caller comes only if kill test A passes.
 
-## A. Disqualifiers (Builder only, this week)
+## A. Disqualifiers (Builder)
+
+Done, each verified with a tool on 16 Oct:
+
+| Done | Item |
+|---|---|
+| [x] | First commit pushed 16 Oct from the building window. Public repo, Discord poster on `main` posts every push. Fresh code only |
+| [x] | Docker image builds locally from the Dockerfile (343 MB) |
+| [x] | Cup key confirmed: the Cup project's Tier 1 key, 14 of 14 Director calls completed, no 503. Every earlier 503 ran on a free-tier key from another project. Stored long-term as `GEMINI_API_KEY_CUP`, never in the repo |
+| [x] | 22 tests and `npm run check` passed at Run 0, 16 Oct morning; later runs add their own tests |
+| [x] | Rules read: weights 40 / 25 / 25 / 10, team formation closed 14 Oct, fresh projects only, Cloud Run or GCP or Firebase deployment, Vertex not required |
+
+Remaining:
 
 | Done | Item | By |
 |---|---|---|
-| [ ] | Every teammate has their own Cup account and has joined the team on the organizer dashboard. Solo entries are prohibited; one account cannot register the others. The FAQ closes team formation on 11 Oct; the terms say 4 Oct. Ask on Discord or the support email which date binds, today | 8 Oct |
-| [ ] | Eligibility answered. The rule is working professionals, entrepreneurs or founders, 21 plus, living in JAPAC, no students. The draft email in the Cup research folder was never sent. Send it or ask on Discord today | 8 Oct |
-| [ ] | Google setup, steps 1 to 10 of `docs/google-setup.md`: project, budget alert, credits, key, APIs, Firestore, Secret Manager, gcloud login | 11 Oct |
-| [ ] | Buy API credits on the Cup project. The AI Studio banner says calls fail after 12 Oct until credits are bought. Set a budget alert | 11 Oct |
-| [ ] | Stay active on the organizer dashboard and Discord. Leaving the dashboard is a disqualifier | weekly |
-| [ ] | First commit. The repo has no commits yet. Fresh-code proof is the commit history inside the building window | 8 Oct |
-| [ ] | Public GitHub repo created and pushed (say go) | 14 Oct |
-| [ ] | Docker image builds and runs locally from the Dockerfile. Build-plan section 13 says it has never been built | 13 Oct |
-| [ ] | Cloud Run deploy in asia-southeast1 from the repo, public URL (say go) | 14 Oct |
+| [ ] | Deploy. `gcloud` is broken on the Builder's machine; Cloud Shell runs `docs/google-setup.md` step 18. Before it: enable Vertex AI, Cloud Run, Cloud Build, Artifact Registry, Firestore, Secret Manager; Firestore Native in asia-southeast1 and the secret through the Cloud console (never the Firebase console). Check: the public URL plays a quick day on a real phone; Cloud Run logs show ids only | 16 Oct noon |
+| [ ] | Deadline hour. Ask on the Cup Discord. Until answered, the internal deadline is noon UTC+8 on 18 Oct | 16 Oct |
+| [ ] | `.gitignore` covers the whole `output/` folder (today only `output/playwright/`) before any generation script writes there. Nothing generated goes into a tracked file | 16 Oct |
+| [ ] | Stay active on the organizer dashboard and Discord. Leaving the dashboard is a disqualifier | daily |
+| [ ] | `cup-reviewer` audit before every push and before the submission | every push |
 
 ## B. Kill tests (decide what ships)
 
-| Done | Test | Result goes in |
+| Test | Result 16 Oct | Decision |
 |---|---|---|
-| [ ] | B, play Be Scam Ready to the end on a phone and a laptop | `docs/kill-test.md` table; pass needs three rows ours does that theirs does not |
-| [ ] | A2, Director writes a card, three runs on the Tier 1 key | ticks only, never generated text |
-| [ ] | A3, translation keeps the tells, three languages | ticks only |
-| [ ] | A, voice caller | skipped for the Cup: slice 9 is cut, the scripted call ships regardless |
+| A2, Director writes a card, Cup key | Original prompt 0 of 4: isolation and payment_substitution never tagged, US-style numbers, one 22-digit run. Stricter prompt fixed masking but copied the example number. Generate, Guard, one repair turn quoting the Guard's reasons, Guard again: 6 of 6 pass, about 34 s per card | Pass. The Director ships with the repair loop; the Guard is the gate; the reviewed cache is the floor. Ticks in `docs/kill-test.md`, never generated text |
+| Capacity, Cup key | 14 of 14 calls, 10 to 13 s each, zero 503 | Earlier 503s were the wrong key, not the model |
+| TTS voice | One `gemini-3.8-flash-tts` sample of a practice fraud-desk call: 26.7 s of audio, 9.6 s to generate | Beats are generated before the call, never during it. The Builder listens and says whether the voice carries the call; the turn-based call ships either way |
+| A, voice caller | Not run | Runs in AI Studio with one person on the microphone only when the live caller is on the table (Run 4). Pass: live caller ships. Fail: "coming soon" |
+| A3, translation | Not run | Translator cut; English only. The row stays for the record |
+| B, play the comparison game | Not played yet | Deck lead plays to the end on a phone and a laptop on 17 Oct; pass needs three rows ours does that theirs does not |
 
-## C. Build order (Builder with Claude Code; one slice at a time; run the check before the next)
+## C. Build runs 0 to 4 (Builder with the coding agent)
 
-| Done | Slice | Check |
-|---|---|---|
-| [x] | 1 Walking skeleton | 13 tests pass; `npm run check` passes (verified 8 Oct) |
-| [x] | 2 Country and age | Clock set to Asia/Singapore gives Singapore; Japan shows the sticker-chat first; under 18 sees no sign-in (verified 11 Oct in a headless phone-width browser; the sticker-chat is first in the Japan pack and home widget, its own look lands in slice 5; no sign-in exists until slice 7, re-check then) |
-| [x] | 3 Day engine on fixture cards | A perfect day gives 100% on both rates and full wallet; blocking a real twin costs one person; the "friend or family" card appears on day one (verified 11 Oct: server tests cover all three; one card played end to end at 390px) |
-| [ ] | 5 Chat component with five looks, text messages, e-wallet | Philippines day shows purple-chat first; Japan shows sticker-chat; no hex from the avoid list in CSS |
-| [ ] | 4 Director, Guard, Coach, pregeneration; Translator for two languages | 20 generated cards, at least 18 pass the Guard; a hostile note yields a cached card; client payload has no answer key; a translation keeps every part id |
-| [ ] | 8 Scripted call: TTS beats, meter, six buttons, scoring | Three pushbacks each drop the meter; "Read the code" fills it; block the microphone and the call still scores |
-| [ ] | 6 Language picker, "translated by AI" note, "This reads wrong" | Switch language mid-day and the next card is translated; the button increments flags |
-| [ ] | 7 Google sign-in after day one, guest progress linked, "Delete my data" | Sign in on one device, open on another, progress matches; delete removes days, progress, id and email |
-| [ ] | Freeze 16 Oct. After this only fixes | |
+One Workflow run per phase: build, review, verify, one agent per file. Every brief carries the pinned strings: model ids with the `gemini-3.6-flash` fallback, the nine tell ids, the reply ids from `shared/types.ts`, rules 1 to 11 as amended, the files allowed, the check. Each run ends with the `cup-reviewer` audit; a failed gate flips to "coming soon" in the app, the deck and the README in the same commit.
 
-Submittable line sits after slice 8. If 16 Oct arrives earlier in the list, ship what passed and mark the rest "coming soon".
+| Done | Run | Contents | Check |
+|---|---|---|---|
+| [ ] | 0, 16 Oct morning, sequential | Repo wired without a force-push, tests and policy check, one commit, push. Cup key into the long-term env. Model-name fix across the docs. This runbook. Cloud Shell deploy of the current build | `npm test` and `npm run check` pass; the live URL plays a quick day on a real phone; logs show ids only |
+| [ ] | 1, 16 Oct afternoon, core agents | `server/gemini.ts` (Vertex route by default, `GEMINI_ROUTE=developer` fallback), `server/agents/director.ts` with the repair loop, `server/guard/` as tests first, `server/agents/coach.ts` streamed, `server/store.ts` to Firestore, `scripts/pregenerate.ts` (reviewed cache for all eight packs), `features/setup/` chips, background personalization, `content/notes/` for the 16 tricks | 20 cards, at least 18 pass after one repair; a hostile note yields the cache; the client payload has no answer key; a 503 tries `gemini-3.6-flash` once through the same Guard, then the cache; under 18 and the quick day never call a model; A2 ticks in `docs/kill-test.md` |
+| [ ] | 2, 17 Oct morning, the phone | Lesson only on scams, buttons on the card (no sheet), tiles open threads, per-sender ledger, follow-up consequence messages, recovery sequence, e-wallet protections, trace drawer, Judge Lab, turn-based call with pregenerated beats, the synthetic-voice variant disclosed as practice, chat looks per pack | A real message gets one line, a scam gets the lesson; a home tile opens that thread; pay drains the wallet, then freeze and the official number recover part of it; the trace drawer shows model id, latency, verdicts and ids only; Judge Lab generates a card live; three pushbacks drop the meter, "Read the code" fills it, microphone blocked still scores |
+| [ ] | 2b, 17 Oct midday, the UI | One agent per staged moment: lock-screen cold open, app zoom, tell stamp, consequence scenes, full-screen call, ledger reveal; design review of screenshots at 390 and 1440 and on a real phone; two type options for the Builder to pick | axe in Playwright: zero violations; reduced motion honoured with cross-fades; the practice tag in each app header and on the lock screen; no hex from the avoid list; no typeface from the ban list |
+| [ ] | 3, 17 Oct afternoon, room, proofs, words | Room links and facilitator heatmap, learning delta cards, reliability report script and About panel, aggregate counter, generated art inspected before `web/public/art/`, deck draft with live screenshots, video script, README, Social Choice post, hotline verification for all eight countries | Two phones in one room and the heatmap shows both; no message text in Firestore room docs; the learning delta appears on the ledger; the report's numbers come from the script run (first-try pass rate, after-repair pass rate, latency, fallback rate); every pack's hotline is verified at an official page or absent |
+| [ ] | 4, 17 Oct evening, gates | Live caller only if kill test A passed; kill test B played; Content lead reviews the full cache; playtest round two; freeze at midnight | `cup-reviewer` clean; `npm test` and `npm run check` pass; "coming soon" reads the same in the app, the deck and the README; after midnight only fixes |
 
 ## D. Content (Content lead, Playtest lead)
 
 | Done | Item | By |
 |---|---|---|
-| [ ] | Pattern notes for the 16 common cards, Philippines and Singapore first, in the `PatternNote` shape. Drafted with the scenario-author agent, approved by the Content lead, second look by the Playtest lead | 11 Oct |
-| [ ] | Every generated card in the cache reviewed before the freeze | 15 Oct |
-| [ ] | Hotline numbers per country confirmed on an official page | 13 Oct |
-| [ ] | Playtest: five players, three days each, the two rates at day one and day three, written in their words | 15 Oct |
+| [ ] | 16 pattern notes in the `PatternNote` shape, country-neutral patterns; the pack supplies the apps, the currency and the hotline. Drafted with the scenario-author agent, every note approved by the Content lead | 16 Oct |
+| [ ] | Hotlines for all eight countries: verified at an official page, or absent. No number ships unverified | 17 Oct |
+| [ ] | Every cached card in all eight packs reviewed by the Content lead before the freeze | 17 Oct |
+| [ ] | Playtest round one: the team plays day one with their own people; the before and after cards give the first learning delta | 16 Oct evening |
+| [ ] | Playtest round two: same players plus two outside the team, in at least two packs; the two rates and the delta in their words | 17 Oct |
 
-## E. Submission (Deck lead, Playtest lead)
+## E. Submission (Deck lead, Playtest lead, Builder)
 
 | Done | Item | By |
 |---|---|---|
-| [ ] | Name chosen; identifiers stay neutral until then | 10 Oct |
-| [ ] | Video under 3 minutes, English voice-over and subtitles, public on YouTube or Drive. Script from `docs/submission-deck-outline.md` | 16 Oct |
-| [ ] | PDF deck, seven sections: problem, solution vision, community benefit, feasibility, scalability, architecture, business case | 16 Oct |
-| [ ] | README in English with the live URL, the video link, the contact email | 16 Oct |
-| [ ] | Submit on the dashboard. Confirm the deadline time zone on Discord first | 17 Oct |
+| [ ] | Deck skeleton, the mark, the Social Choice post | 16 Oct |
+| [ ] | App marks, playtest sheet | 16 Oct |
+| [ ] | Video script locked. Opening: the phone buzzes on a table, the thumb hovers over Send money, the voice-over names Gemini on Vertex AI and the code Guard by 0:10, the trace drawer by 0:12, a real verify call, the pressure call by 0:27, title and URL by 0:30 | 17 Oct |
+| [ ] | Record on a real phone from the lock screen, under 2:50, a visible generation moment by 0:30, the agent graph by 1:30, a backup take of the call. Public on YouTube or Drive | 18 Oct |
+| [ ] | PDF deck, seven sections: problem, solution vision, community benefit, feasibility, scalability, architecture, business case. Numbers only with sources; practice label in every screenshot; examples rotate across packs | 18 Oct |
+| [ ] | README in English with the live URL, the video link, the contact email | 18 Oct |
+| [ ] | Submit on the dashboard by noon UTC+8 unless Discord gave a later hour. Open the video link in a private window | 18 Oct |
 
 ## F. Automations already in place, and what runs them
 
-- `npm test` and `npm run check` are the gate before any commit and any deploy. Claude Code runs both before calling a slice done.
+- `npm test` and `npm run check` are the gate before any commit and any deploy. The coding agent runs both before calling a run done.
 - The `policy-reviewer` agent runs on every diff under `content/`, `server/agents/`, `server/guard/` or `web/`.
-- The `scenario-author` agent drafts pattern notes; a person approves each one.
-- The `cup-reviewer` agent audits the tree against sections A and E before every commit, push, deploy and the submission. It reports the gates it can see from code and lists the rest as reminders.
-- Cloud Scheduler for the weekly Scout run is cut with slice 10.
+- The `scenario-author` agent drafts pattern notes; the Content lead approves each one.
+- The `cup-reviewer` agent audits the tree against sections A and E before every push and the submission. It reports the gates it can see from code and lists the rest as reminders.
+- The Discord poster on `main` posts every push to the team channel.
+- Workflow runs carry the pinned strings in every brief; a reviewer agent checks each slice against its check.
+- Cloud Scheduler is cut with Scout.
+
+## Not verified, said as such
+
+The deadline hour; TTS and live quality against other vendors; live API behaviour under pushback (kill test A); money-lock and cooling-off specifics at bank pages; most hotlines; the effect sizes cited for inoculation games; the availability of the Deck lead and the Playtest lead on 18 Oct (if neither, the Builder records the screen and the deck is the outline filled with live screenshots).

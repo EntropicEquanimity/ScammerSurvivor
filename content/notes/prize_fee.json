@@ -1,0 +1,31 @@
+{
+  "id": "prize-fee",
+  "country": "*",
+  "category": "H",
+  "catalogueEntry": 55,
+  "app": "sms",
+  "setup": "[a text says the player has won a draw from [institution] that they never entered]",
+  "ask": "[the message, in the name of [institution], asks for a tax or processing fee to be paid first, and a copy of an ID, before the prize can be released this week]",
+  "tells": [
+    "authority",
+    "escalation",
+    "credential_theft",
+    "urgency"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report"
+  ],
+  "unsafeReplies": [
+    "pay",
+    "open_link"
+  ],
+  "usualEnding": "The fee is paid and a second fee follows. The prize never arrives, and the ID copy is used elsewhere.",
+  "realTwin": "A real reward notice from a loyalty programme the player signed up for appears inside that programme's own app, with nothing to pay first.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

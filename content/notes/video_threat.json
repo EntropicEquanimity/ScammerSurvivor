@@ -1,0 +1,31 @@
+{
+  "id": "video-threat",
+  "country": "*",
+  "category": "E",
+  "catalogueEntry": 36,
+  "app": "green-chat",
+  "setup": "[a new contact flirts and moves straight to a video call] [afterwards the contact says the call was recorded and lists the player's friends and family]",
+  "ask": "[the contact demands money within minutes, by a method that cannot be reversed, calls it only the first payment, or the recording goes to everyone in the list]",
+  "tells": [
+    "urgency",
+    "payment_substitution",
+    "escalation"
+  ],
+  "safeReplies": [
+    "block_report",
+    "tell_someone",
+    "ignore"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "keep_secret"
+  ],
+  "usualEnding": "The first payment is followed by a bigger demand. Paying never ends it; reporting and telling someone does.",
+  "realTwin": "A friend sends a clip from a group call everyone was on and asks if they should share it with the group, with no demand attached.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

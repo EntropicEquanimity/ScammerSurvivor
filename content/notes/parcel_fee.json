@@ -1,0 +1,33 @@
+{
+  "id": "parcel-fee",
+  "country": "*",
+  "category": "D",
+  "catalogueEntry": 26,
+  "app": "sms",
+  "setup": "[a text from a courier says a parcel could not be delivered because of a missing fee or a wrong address]",
+  "ask": "[the courier message asks the player to open a link today, pay a small fee and then enter card details and a code to release the parcel]",
+  "tells": [
+    "authority",
+    "urgency",
+    "escalation",
+    "credential_theft"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "verify_known_number"
+  ],
+  "unsafeReplies": [
+    "open_link",
+    "pay",
+    "share_code"
+  ],
+  "usualEnding": "The card and the code are taken, the card is added to a stranger's phone wallet, and there was never a parcel.",
+  "realTwin": "A real delivery update from [institution] names an order the player placed, gives a time window, and asks for no payment and no card.",
+  "confidence": "high",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

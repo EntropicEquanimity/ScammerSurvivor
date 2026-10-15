@@ -1,0 +1,33 @@
+{
+  "id": "overseas-job",
+  "country": "*",
+  "category": "A",
+  "catalogueEntry": 1,
+  "app": "cloud-chat",
+  "setup": "[a recruiter offers high pay abroad, arranged entirely in the chat, for a job the player did not apply for] [the employer has no office number the player can find on their own]",
+  "ask": "[the recruiter, for an employer that exists only in the chat, asks the player to send passport details, pay a processing fee, and travel within days, keeping the plan from family until they land]",
+  "tells": [
+    "synthetic_identity",
+    "credential_theft",
+    "urgency",
+    "isolation"
+  ],
+  "safeReplies": [
+    "ask_reference",
+    "verify_known_number",
+    "tell_someone",
+    "block_report"
+  ],
+  "unsafeReplies": [
+    "pay",
+    "keep_secret"
+  ],
+  "usualEnding": "On arrival the passport is taken and the person is held and put to work. The family is then asked to pay for release.",
+  "realTwin": "A real recruiter from an agency the player applied to confirms an interview at a listed office, gives a licence to check, and asks for no fee and no passport before the offer is signed.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
+    "date": "2026-10-16"
+  },
+  "approved": true
+}

@@ -15,5 +15,6 @@ COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY shared ./shared
 COPY content ./content
+COPY scripts ./scripts
 USER node
 CMD ["node", "server/index.ts"]

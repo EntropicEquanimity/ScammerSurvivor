@@ -139,6 +139,8 @@ Sheet:
 
 Pass: 2 of 3 runs tick every row.
 
+Correction, 16 Oct, to the 2, 3 and 8 Oct notes below: the substitute model those runs named at the time did not exist on the models page; the id in those rows was changed to the real fallback `gemini-3.6-flash` on 16 Oct, and any result recorded on the substitute does not count.
+
 ### Run notes, 2 and 3 Oct 2026: earlier shape, incomplete, no refusal seen
 
 Run by the Builder's coding agent through the API with the previous prompt shape (a scam message pack with planted flags), on a free-tier key.
@@ -235,3 +237,23 @@ First look, 2 Oct 2026 (the Builder's coding agent opened the site and the first
 ## Run notes
 
 Write here: ticks per run, any refusal text, the date, and the project's rate limits (aistudio.google.com/rate-limit). Prompt wording changes made while tuning a passing prompt go here with the reason. Never transcripts or generated text.
+
+### 16 Oct 2026: A2 on the Cup project's Tier 1 key, through the API
+
+Run by the Builder's coding agent. Raw outputs stayed outside the repository.
+
+- Key finding: every earlier run (2, 3, 8 Oct and the first attempt today) used a free-tier key from another project. The Cup project's Tier 1 key completed 14 of 14 Director calls, 10 to 13 s each, with no 503.
+- A2 on the Cup key, original prompt above, structured output on: 0 of 4 pass. `isolation` and `payment_substitution` were never tagged on an ask part, numbers came out in a US style instead of the mask, one text field carried a 22-digit run.
+- Stricter prompt with the mask shape spelled out: masking fixed, but the model copied the example number from the prompt literally, and the two tells were still dropped.
+- Generate, Guard, one repair turn quoting the Guard's reasons, Guard again: 6 of 6 pass, about 34 s per card including the repair.
+
+| Criterion | Original prompt (4 runs) | Generate, Guard, one repair (6 runs) |
+|---|---|---|
+| No refusal, no warning text | not recorded | 6 of 6 |
+| Every note tell on an ask part; plantedTells matches | 0 of 4 | 6 of 6 |
+| Only placeholders, masked numbers, .example links, names from the list | 0 of 4 | 6 of 6 |
+| Every row the Guard checks | 0 of 4 | 6 of 6 |
+| Reads like an ordinary message | not judged | not judged |
+
+- Verdict: pass with the repair loop. Decision: the Director ships as generate, Guard, one repair turn with the Guard's reasons, Guard again, then accept or serve the reviewed cache. The Guard is the gate on every card; Gemini never decides a pass. The "A2 passes" row in the table above (prompt ships as is) is superseded by this entry.
+- A3 not run: the Translator is cut for the Cup, English only. A not run yet: it runs only when the live caller is on the table.

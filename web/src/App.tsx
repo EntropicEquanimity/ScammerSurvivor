@@ -3,6 +3,8 @@ import type { AgeGroup } from '../../shared/types.ts';
 import { fetchPacks } from './api.ts';
 import type { PackSummary } from './api.ts';
 import { DayScreen } from './features/day/DayScreen.tsx';
+import { SetupScreen } from './features/setup/SetupScreen.tsx';
+import { peopleAsked } from './features/setup/storage.ts';
 import { FirstOpen } from './shell/FirstOpen.tsx';
 import { HomeScreen } from './shell/HomeScreen.tsx';
 import { PracticeProgress } from './shell/PhoneTools.tsx';
@@ -67,6 +69,8 @@ export function App() {
   // The lock screen stays until the swipe up, every visit, the way the phone does. #/day has its own lock.
   const [unlocked, setUnlocked] = useState(false);
   const [quick, setQuick] = useState(false);
+  // "Make it your phone" shows once per device, before the first day; Skip counts as asked.
+  const [asked, setAsked] = useState(peopleAsked);
   const route = useHashRoute();
   const packs = usePacks();
 
@@ -105,6 +109,8 @@ export function App() {
     if (!age || !country || choosing) return lock();
     if (route === '#/progress') return <PracticeProgress />;
     if (route === '#/day') {
+      // Only an adult day is personalised, so younger players are never asked to pick people.
+      if (!asked && age === 'adult') return <SetupScreen onDone={() => setAsked(true)} />;
       return <DayScreen country={country} age={age} quick={quick} onDone={() => { window.location.hash = '#/'; }} />;
     }
     if (!unlocked) return lock();
