@@ -1,0 +1,217 @@
+/* Home: two square widgets, the app grid, the search pill and the dock, all over the wallpaper.
+   Pitch follows the home screen at 393pt (HIG widgets: small 158, medium 338, so a 27.5px side
+   inset and a 22px gap), 4 columns of 60px icons on the same edges, row pitch about 97px, 13px
+   labels (the size rule's floor for chrome). Icons pop in with the shared stagger on mount. */
+
+.home {
+  --home-inset: 27.5px;
+  flex: 1 0 auto;
+  gap: 1.25rem;
+  padding: 0.5rem var(--home-inset) 0.75rem;
+}
+
+.widgets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.widget-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0.85rem;
+  border-radius: var(--radius);
+}
+
+.widget-title {
+  font-size: var(--t15);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: var(--track-15);
+}
+
+.widget-apps {
+  --art: 40px;
+  display: flex;
+  gap: 0.4rem;
+  margin-top: auto;
+}
+
+.widget-confidence {
+  color: var(--muted);
+  font-size: var(--t13);
+  line-height: 1.2;
+}
+
+.widget-play {
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.widget-play .btn {
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-height: var(--tap);
+  padding-inline: 0.5rem;
+  font-size: var(--t16);
+  line-height: 1.15;
+}
+
+.widget-sub {
+  font-size: var(--t13);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.widget-label,
+.app-tile {
+  color: var(--on-wall);
+  font-size: var(--t13);
+  font-weight: 500;
+  letter-spacing: var(--track-13);
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: var(--on-wall-shadow);
+}
+
+/* The squircle: a rounded clip with the app colour behind the art. */
+.app-art {
+  display: block;
+  flex: none;
+  width: var(--art, 60px);
+  height: var(--art, 60px);
+  border-radius: var(--icon-radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(20, 30, 50, 0.18);
+}
+
+.app-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Four 60px columns on the widget edges; the row gap makes the pitch about 97px with a one-line label. */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, var(--art, 60px));
+  justify-content: space-between;
+  gap: 1rem 0;
+  padding: 0.25rem 0;
+}
+
+.app-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Labels sit on one line like the phone's, spill past the icon, and never run past two. */
+.app-tile > span:last-child {
+  display: -webkit-box;
+  width: calc(var(--art, 60px) + 24px);
+  margin-inline: -12px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.app-tile-soon .app-art {
+  opacity: 0.55;
+}
+
+/* The search pill sits where the home screen puts it, above the dock; here it changes the country.
+   The capsule is 34px like the phone's; a transparent halo keeps the 48px target. */
+.search-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: center;
+  min-height: 34px;
+  margin-top: auto;
+  padding: 0 0.875rem;
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-size: var(--t15);
+  font-weight: 500;
+  letter-spacing: var(--track-15);
+  cursor: pointer;
+}
+
+.search-pill.glass-strong {
+  background: var(--glass);
+}
+
+.search-pill::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+.search-pill svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.search-change {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.dock {
+  position: sticky;
+  bottom: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 calc(10px - var(--home-inset));
+  padding: 18px 0.5rem;
+  border-radius: 38px;
+}
+
+.dock > * {
+  --art: 60px;
+  display: grid;
+  place-items: center;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+@media (max-width: 359px) {
+  .home {
+    --home-inset: 0.75rem;
+  }
+
+  .app-tile,
+  .dock > * {
+    --art: 52px;
+  }
+}

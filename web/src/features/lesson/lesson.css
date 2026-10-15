@@ -1,0 +1,71 @@
+/* The lesson as a Settings page: the large title over the wallpaper, then inset groups (Real, Scam,
+   the tells, the ending, the hotline) and Next pinned at the bottom. The group and row classes are
+   the shared ones from shell.css; this file sets what goes inside a row. Marked parts get a soft
+   accent underline, never red. */
+
+/* Rows that hold a sentence or more use the shared .inset-body (18px) and stack their lines. */
+.lesson-sender {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+}
+
+.lesson-sender span {
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+.lesson-tell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lesson-value {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.lesson-detail {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lesson-link {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.part-marked-text {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-decoration-thickness: 0.2em;
+  text-underline-offset: 0.15em;
+}
+
+.part-labels {
+  display: block;
+  font-size: var(--t15);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.tell-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+
+.tell-tag {
+  padding: 0 0.625rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: var(--t15);
+}
+
+.lesson-line {
+  font-weight: 700;
+}

@@ -1,0 +1,37 @@
+{
+  "code": "HK",
+  "layouts": [
+    "green-chat",
+    "blue-chat",
+    "wallet"
+  ],
+  "confidence": "high",
+  "hotline": {
+    "label": "Anti-Scam Helpline",
+    "number": "18222",
+    "reportUrl": "https://cyberdefender.hk/"
+  },
+  "numberMask": "+852 XXXX dddd",
+  "currency": "HKD",
+  "walletStart": 20000,
+  "deckOrder": [
+    "family_trouble",
+    "paid_task",
+    "investment_group",
+    "digital_arrest",
+    "listing_leaver",
+    "payment_change",
+    "code_or_account",
+    "parcel_fee",
+    "bank_check",
+    "fast_romance",
+    "video_threat",
+    "app_in_chat",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job",
+    "refund_payment"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}

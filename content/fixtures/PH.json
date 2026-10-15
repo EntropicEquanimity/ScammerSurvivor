@@ -1,0 +1,554 @@
+[
+  {
+    "id": "ph-family-trouble",
+    "trickId": "family_trouble",
+    "layout": "purple-chat",
+    "difficulty": 1,
+    "stake": 8000,
+    "sender": {
+      "displayName": "Family member",
+      "institutionId": "relative",
+      "maskedNumber": "09XX XXX 2210"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[someone claiming to be your child says this is their new number because the old phone broke]",
+        "tellIds": [
+          "synthetic_identity"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[they say they are in trouble and need money sent within the hour to a friend's account]",
+        "tellIds": [
+          "urgency",
+          "payment_substitution"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[they ask you not to tell the rest of the family yet]",
+        "tellIds": [
+          "isolation"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "send_money",
+      "keep_secret"
+    ],
+    "usualEnding": "The money lands in a stranger's account and the new number goes quiet. Your child never changed numbers.",
+    "neverAsks": "A real relative can take a call on the number you already have, and never asks you to keep a money request secret.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Family member",
+        "institutionId": "relative",
+        "maskedNumber": "09XX XXX 4821"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Ma, my phone is at 5 percent, charging at the office.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Can you send me the dentist's address? I will call you after the meeting.",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "No rush, just when you see this.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "synthetic_identity",
+      "urgency",
+      "payment_substitution",
+      "isolation"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "ph-paid-task",
+    "trickId": "paid_task",
+    "layout": "green-chat",
+    "difficulty": 1,
+    "stake": 3000,
+    "sender": {
+      "displayName": "Hiring team",
+      "institutionId": "recruiter",
+      "maskedNumber": "09XX XXX 7731"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a recruiter offers part-time work rating products from home, paid per task]",
+        "tellIds": [
+          "trust_building"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[the first tasks pay a small amount at once, then the next batch needs a deposit to unlock]",
+        "tellIds": [
+          "escalation"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to a private group for the paid tasks]",
+        "tellIds": [
+          "platform_migration"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "ignore",
+      "block_report"
+    ],
+    "unsafeReplies": [
+      "pay",
+      "open_link"
+    ],
+    "usualEnding": "The first small payout is real. The deposit to unlock the next batch is never returned, and the group disappears.",
+    "neverAsks": "A real employer never asks you to pay a deposit to get paid.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Hiring team",
+        "institutionId": "recruiter",
+        "maskedNumber": "09XX XXX 5520"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Hello, this is the hiring team for the weekend inventory shift you applied for.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Your interview is Thursday at 2 pm at the branch. Bring one valid ID.",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "Reply yes to confirm or tell us a better day.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "trust_building",
+      "escalation",
+      "platform_migration"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "ph-code-wallet",
+    "trickId": "code_or_account",
+    "layout": "wallet",
+    "difficulty": 2,
+    "stake": 6000,
+    "sender": {
+      "displayName": "Wallet app",
+      "institutionId": "wallet",
+      "maskedNumber": "09XX XXX 0001"
+    },
+    "setup": [],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[a message styled as the wallet app says a login was blocked and the account will be frozen tonight]",
+        "tellIds": [
+          "authority",
+          "urgency"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[it asks you to read back the one-time code that just arrived to keep the account open]",
+        "tellIds": [
+          "credential_theft"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "share_code"
+    ],
+    "usualEnding": "The code lets someone finish logging in as you. The wallet is emptied within minutes.",
+    "neverAsks": "A wallet app never asks you to share a one-time code, by message or by call.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Wallet app",
+        "institutionId": "wallet",
+        "maskedNumber": "09XX XXX 0001"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "A payment request of 1,500.00 came from a saved contact for the group gift.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Open the app to approve or decline it. Nothing is sent until you choose.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "authority",
+      "urgency",
+      "credential_theft"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "ph-parcel-fee",
+    "trickId": "parcel_fee",
+    "layout": "green-chat",
+    "difficulty": 1,
+    "stake": 1500,
+    "sender": {
+      "displayName": "Courier",
+      "institutionId": "courier",
+      "maskedNumber": "09XX XXX 3390"
+    },
+    "setup": [],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[a courier says a parcel is held until a small customs fee is paid today]",
+        "tellIds": [
+          "authority",
+          "urgency"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to a payment page]",
+        "tellIds": [
+          "payment_substitution"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "open_link",
+      "pay"
+    ],
+    "usualEnding": "The payment page takes the card details. A larger charge follows, and there was never a parcel.",
+    "neverAsks": "A courier never asks for a fee through a link in a message to release a parcel.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Courier",
+        "institutionId": "courier",
+        "maskedNumber": "09XX XXX 6612"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Your parcel is out for delivery today between 1 and 5 pm.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Which gate should the rider use, front or side?",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "authority",
+      "urgency",
+      "payment_substitution"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "ph-bank-check",
+    "trickId": "bank_check",
+    "layout": "wallet",
+    "difficulty": 2,
+    "stake": 10000,
+    "sender": {
+      "displayName": "Your bank",
+      "institutionId": "bank",
+      "maskedNumber": "09XX XXX 0002"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a message styled as your bank says your account needs a yearly identity check]",
+        "tellIds": [
+          "authority"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[it says the account will be locked at midnight unless the check is done now]",
+        "tellIds": [
+          "urgency"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to a page asking for your login and card details]",
+        "tellIds": [
+          "credential_theft"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "open_link",
+      "share_code"
+    ],
+    "usualEnding": "The page copies the login and card details. The account is drained before the bank opens.",
+    "neverAsks": "A bank never asks for a login, PIN, card details or a one-time code through a link in a message.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Your bank",
+        "institutionId": "bank",
+        "maskedNumber": "09XX XXX 0002"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "A card payment of 2,340.00 at a grocery was approved today at 6:12 pm.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Your updated balance is in the app.",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "If this was not you, call the number on the back of your card.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "authority",
+      "urgency",
+      "credential_theft"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "ph-listing-leaver",
+    "trickId": "listing_leaver",
+    "layout": "green-chat",
+    "difficulty": 2,
+    "stake": 4000,
+    "sender": {
+      "displayName": "Buyer",
+      "institutionId": "buyer",
+      "maskedNumber": "09XX XXX 9087"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a buyer on a marketplace wants the item you listed and offers to pay in full today]",
+        "tellIds": [
+          "trust_building"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[they ask to continue outside the marketplace app so there is no fee]",
+        "tellIds": [
+          "platform_migration"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to a page that says a payment is waiting and asks for your card to receive it]",
+        "tellIds": [
+          "credential_theft",
+          "payment_substitution"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "ignore",
+      "block_report"
+    ],
+    "unsafeReplies": [
+      "open_link"
+    ],
+    "usualEnding": "Nothing is waiting. The page takes the card details and the buyer is gone by morning.",
+    "neverAsks": "A real buyer pays inside the marketplace and never asks for your card details to send you money.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Buyer",
+        "institutionId": "buyer",
+        "maskedNumber": "09XX XXX 2244"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Hi, I saw your listing for the study table. Is it still available?",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "I can pick it up Saturday morning and pay in the app on handover.",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "Is the scratch on the leg visible in the second photo?",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "trust_building",
+      "platform_migration",
+      "credential_theft",
+      "payment_substitution"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "ph-prize-fee",
+    "trickId": "prize_fee",
+    "layout": "purple-chat",
+    "difficulty": 1,
+    "stake": 2000,
+    "sender": {
+      "displayName": "Prize office",
+      "institutionId": "prize_office",
+      "maskedNumber": "09XX XXX 8800"
+    },
+    "setup": [],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[a message says your number won a raffle you did not enter and the prize expires tonight]",
+        "tellIds": [
+          "trust_building",
+          "urgency"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[to release it, a small processing fee must be sent to a personal account]",
+        "tellIds": [
+          "escalation",
+          "payment_substitution"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "ignore",
+      "block_report"
+    ],
+    "unsafeReplies": [
+      "send_money",
+      "pay"
+    ],
+    "usualEnding": "The fee is paid, then a tax, then a release charge. The prize never existed.",
+    "neverAsks": "A real prize never needs a fee, a tax or a code before it is paid out.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Prize office",
+        "institutionId": "prize_office",
+        "maskedNumber": "09XX XXX 1200"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "You entered the anniversary raffle at the mall on 2 October.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "The draw is on 15 October at the atrium. Bring your stub. There is no fee of any kind.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "PH",
+    "plantedTells": [
+      "trust_building",
+      "urgency",
+      "escalation",
+      "payment_substitution"
+    ],
+    "language": "en",
+    "approved": true
+  }
+]

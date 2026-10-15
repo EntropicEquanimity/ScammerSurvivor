@@ -1,0 +1,30 @@
+{
+  "name": "practice-phone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scam-awareness practice phone: a training simulation. Working title, rename pending.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --watch-path=server --watch-path=shared server/index.ts --dev",
+    "build": "tsc --noEmit && vite build",
+    "start": "node server/index.ts",
+    "test": "node --test \"shared/**/*.test.ts\" \"server/**/*.test.ts\"",
+    "check": "node scripts/run-check.mjs"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}

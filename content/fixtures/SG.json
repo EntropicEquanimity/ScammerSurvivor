@@ -1,0 +1,586 @@
+[
+  {
+    "id": "sg-family-trouble",
+    "trickId": "family_trouble",
+    "layout": "green-chat",
+    "difficulty": 1,
+    "stake": 2000,
+    "sender": {
+      "displayName": "Family member",
+      "institutionId": "relative",
+      "maskedNumber": "+65 XXXX 2210"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[someone claiming to be your daughter says she dropped her phone in water and this is a borrowed number]",
+        "tellIds": [
+          "synthetic_identity"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[she says she cannot get into her banking and needs a bill paid in the next hour]",
+        "tellIds": [
+          "urgency"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[she gives a stranger's account to transfer to and asks you not to call, since the borrowed phone cannot take calls]",
+        "tellIds": [
+          "payment_substitution",
+          "isolation"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "send_money",
+      "keep_secret"
+    ],
+    "usualEnding": "The transfer reaches a stranger and the borrowed number stops answering. Your daughter still has her phone.",
+    "neverAsks": "A real relative can take a call on the number you already have, and never asks you to keep a money request secret.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Family member",
+        "institutionId": "relative",
+        "maskedNumber": "+65 XXXX 4821"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Pa, I landed. The taxi queue is long.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Can you check if I left my charger on the kitchen table?",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "Will call once I am home.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "synthetic_identity",
+      "urgency",
+      "payment_substitution",
+      "isolation"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "sg-paid-task",
+    "trickId": "paid_task",
+    "layout": "green-chat",
+    "difficulty": 1,
+    "stake": 1500,
+    "sender": {
+      "displayName": "Hiring team",
+      "institutionId": "recruiter",
+      "maskedNumber": "+65 XXXX 7731"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a recruiter offers flexible work liking videos and rating hotels, paid daily]",
+        "tellIds": [
+          "trust_building"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[after two small payouts, the next set of tasks needs a top-up to unlock a bigger commission]",
+        "tellIds": [
+          "escalation"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to a private task group]",
+        "tellIds": [
+          "platform_migration"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "ignore",
+      "block_report"
+    ],
+    "unsafeReplies": [
+      "pay",
+      "open_link"
+    ],
+    "usualEnding": "The two small payouts are real. The top-up is not returned, and the next task needs a bigger one.",
+    "neverAsks": "A real employer never asks you to pay a top-up to get paid.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Hiring team",
+        "institutionId": "recruiter",
+        "maskedNumber": "+65 XXXX 5520"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Thanks for applying for the weekend retail role.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Can you come for a short interview on Thursday at 2 pm at the store?",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "Reply with a yes or suggest another day.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "trust_building",
+      "escalation",
+      "platform_migration"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "sg-investment-group",
+    "trickId": "investment_group",
+    "layout": "green-chat",
+    "difficulty": 2,
+    "stake": 3000,
+    "sender": {
+      "displayName": "Trading group",
+      "institutionId": "mentor",
+      "maskedNumber": "+65 XXXX 6160"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a mentor adds you to a group where members post screenshots of daily gains]",
+        "tellIds": [
+          "trust_building"
+        ]
+      },
+      {
+        "id": "s2",
+        "text": "[the mentor shares a professional-looking profile and a licence number to look up]",
+        "tellIds": [
+          "synthetic_identity"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[a limited slot in this week's trade closes tonight; the first deposit is small]",
+        "tellIds": [
+          "urgency",
+          "escalation"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[the deposit goes to a personal account, not a brokerage]",
+        "tellIds": [
+          "payment_substitution"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "send_money",
+      "pay"
+    ],
+    "usualEnding": "The dashboard shows gains that cannot be withdrawn without a fee. The fee is paid, and the group vanishes.",
+    "neverAsks": "A licensed adviser never promises fixed returns, never recruits through a private group and never asks for a fee to withdraw.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Friend",
+        "institutionId": "friend",
+        "maskedNumber": "+65 XXXX 1188"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "The personal finance talk at the community centre is this Saturday, 10 am.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "It is free and run by the national financial education programme.",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "I signed us both up. No payment, just bring a notebook.",
+          "tellIds": []
+        },
+        {
+          "id": "r4",
+          "text": "Want to have breakfast before?",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "trust_building",
+      "synthetic_identity",
+      "urgency",
+      "escalation",
+      "payment_substitution"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "sg-digital-arrest",
+    "trickId": "digital_arrest",
+    "layout": "sms",
+    "difficulty": 2,
+    "stake": 4000,
+    "sender": {
+      "displayName": "Police",
+      "institutionId": "police",
+      "maskedNumber": "+65 XXXX 0000"
+    },
+    "setup": [],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[a text says a parcel in your name held suspicious items and a case has been opened by the police]",
+        "tellIds": [
+          "authority"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[it says you must call back within two hours and keep the matter confidential while the investigation runs]",
+        "tellIds": [
+          "urgency",
+          "isolation"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "call_back",
+      "keep_secret"
+    ],
+    "usualEnding": "The call back leads to an officer who asks you to move your savings to a safe account. The account is theirs.",
+    "neverAsks": "The police never ask for money, bank details or a code by message or call, and never tell you to keep an investigation secret.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Police",
+        "institutionId": "police",
+        "maskedNumber": "+65 XXXX 0000"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Your neighbourhood police post is holding a scam awareness talk on Sunday at 10 am.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Reply to reserve a seat for you and a family member.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "authority",
+      "urgency",
+      "isolation"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "sg-parcel-fee",
+    "trickId": "parcel_fee",
+    "layout": "sms",
+    "difficulty": 1,
+    "stake": 300,
+    "sender": {
+      "displayName": "Courier",
+      "institutionId": "courier",
+      "maskedNumber": "+65 XXXX 3390"
+    },
+    "setup": [],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[a courier text says a parcel could not be delivered because the address is incomplete]",
+        "tellIds": [
+          "authority"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to update the address and pay a small redelivery fee before the parcel is returned tonight]",
+        "tellIds": [
+          "urgency",
+          "payment_substitution"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "open_link",
+      "pay"
+    ],
+    "usualEnding": "The page takes the card details for the small fee. A much larger charge follows.",
+    "neverAsks": "A courier never asks for a fee through a link in a message to release or redeliver a parcel.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Courier",
+        "institutionId": "courier",
+        "maskedNumber": "+65 XXXX 6612"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Your parcel will arrive today between 2 and 6 pm.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Reply 1 to leave it at the door or 2 to hand it over in person.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "authority",
+      "urgency",
+      "payment_substitution"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "sg-bank-check",
+    "trickId": "bank_check",
+    "layout": "wallet",
+    "difficulty": 2,
+    "stake": 5000,
+    "sender": {
+      "displayName": "Your bank",
+      "institutionId": "bank",
+      "maskedNumber": "+65 XXXX 0002"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a message styled as your bank says unusual activity was found on your account]",
+        "tellIds": [
+          "authority"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[it says the account will be suspended in 30 minutes unless you confirm your identity]",
+        "tellIds": [
+          "urgency"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[a link to a page that asks for your login and the one-time code sent to your phone]",
+        "tellIds": [
+          "credential_theft"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "open_link",
+      "share_code"
+    ],
+    "usualEnding": "The login and the code let someone log in as you. The account is emptied before the bank opens.",
+    "neverAsks": "A bank never asks for a login, PIN or one-time code through a link in a message.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Your bank",
+        "institutionId": "bank",
+        "maskedNumber": "+65 XXXX 0002"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "A card payment of 86.40 at a supermarket was approved at 6:12 pm.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Your updated balance is in the app.",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "If this was not you, call the number on the back of your card.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "authority",
+      "urgency",
+      "credential_theft"
+    ],
+    "language": "en",
+    "approved": true
+  },
+  {
+    "id": "sg-payment-change",
+    "trickId": "payment_change",
+    "layout": "green-chat",
+    "difficulty": 3,
+    "stake": 4500,
+    "sender": {
+      "displayName": "Manager",
+      "institutionId": "boss",
+      "maskedNumber": "+65 XXXX 9900"
+    },
+    "setup": [
+      {
+        "id": "s1",
+        "text": "[a message from someone using your manager's name says they are in a meeting and cannot talk]",
+        "tellIds": [
+          "authority",
+          "synthetic_identity"
+        ]
+      }
+    ],
+    "ask": [
+      {
+        "id": "a1",
+        "text": "[they ask you to pay a supplier invoice today to a new bank account because the old one is under audit]",
+        "tellIds": [
+          "urgency",
+          "payment_substitution"
+        ]
+      },
+      {
+        "id": "a2",
+        "text": "[they ask you to handle it quietly and confirm when done]",
+        "tellIds": [
+          "isolation"
+        ]
+      }
+    ],
+    "safeReplies": [
+      "verify_known_number",
+      "block_report",
+      "ignore"
+    ],
+    "unsafeReplies": [
+      "send_money",
+      "pay",
+      "keep_secret"
+    ],
+    "usualEnding": "The invoice is paid to the new account. The real supplier chases the unpaid invoice a week later.",
+    "neverAsks": "A real manager or supplier never changes a bank account by message alone, and can confirm on the number you already have.",
+    "realTwin": {
+      "sender": {
+        "displayName": "Manager",
+        "institutionId": "boss",
+        "maskedNumber": "+65 XXXX 9900"
+      },
+      "parts": [
+        {
+          "id": "r1",
+          "text": "Hi, the client moved the demo to 3 pm tomorrow.",
+          "tellIds": []
+        },
+        {
+          "id": "r2",
+          "text": "Can you book the small meeting room and send the invite?",
+          "tellIds": []
+        },
+        {
+          "id": "r3",
+          "text": "Call me if the room is taken.",
+          "tellIds": []
+        }
+      ],
+      "acceptable": [
+        "reply",
+        "verify_known_number"
+      ]
+    },
+    "country": "SG",
+    "plantedTells": [
+      "authority",
+      "synthetic_identity",
+      "urgency",
+      "payment_substitution",
+      "isolation"
+    ],
+    "language": "en",
+    "approved": true
+  }
+]

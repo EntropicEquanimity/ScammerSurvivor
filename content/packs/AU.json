@@ -1,0 +1,37 @@
+{
+  "code": "AU",
+  "layouts": [
+    "green-chat",
+    "sms",
+    "email"
+  ],
+  "confidence": "high",
+  "hotline": {
+    "label": "Scamwatch (report) and IDCARE",
+    "number": "1800 595 160",
+    "reportUrl": "https://www.scamwatch.gov.au/report-a-scam"
+  },
+  "numberMask": "04XX XXd ddd",
+  "currency": "AUD",
+  "walletStart": 4000,
+  "deckOrder": [
+    "family_trouble",
+    "paid_task",
+    "investment_group",
+    "parcel_fee",
+    "listing_leaver",
+    "fast_romance",
+    "video_threat",
+    "payment_change",
+    "digital_arrest",
+    "code_or_account",
+    "bank_check",
+    "app_in_chat",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job",
+    "refund_payment"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}

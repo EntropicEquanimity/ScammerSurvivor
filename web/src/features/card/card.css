@@ -1,0 +1,218 @@
+/* The made-up app, full screen: its own header strip in the app's colour, the message area that
+   scrolls, the trigger bar pinned under it, and the iOS action sheet over everything. Also the
+   select-mode rows of the tell picker. The sheet classes (.action-sheet and friends, .nav, .inset)
+   are Agent S's in shell.css; only their placement is here. */
+
+.app {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 1rem;
+}
+
+/* The app header strip, tinted with the made-up app's own colour. Not an iOS nav bar. */
+.app-header {
+  display: flex;
+  flex: none;
+  gap: 0.75rem;
+  align-items: center;
+  position: relative;
+  padding: 0.875rem 1rem;
+  background: color-mix(in srgb, var(--app-colour) 14%, var(--surface));
+}
+
+/* One-device-pixel hairlines: under the app header, over the trigger bar. */
+.app-header::after,
+.choose-bar::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--separator);
+  transform: scaleY(var(--hairline-w));
+}
+
+.app-header::after {
+  bottom: 0;
+  transform-origin: bottom;
+}
+
+.choose-bar::before {
+  top: 0;
+  transform-origin: top;
+}
+
+.app-header-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.app-header-name,
+.app-header-meta {
+  font-size: var(--t13);
+  color: var(--ink-2);
+}
+
+.app-header-meta {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* The trigger bar: one full-width glass button, 48px, pinned at the bottom of the app. */
+.choose-bar {
+  position: relative;
+  flex: none;
+  padding: 0.5rem 1rem 0.75rem;
+  background: var(--glass-strong);
+}
+
+.choose-btn {
+  width: 100%;
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--accent);
+}
+
+.choose-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The scrim under the action sheet dims the screen; the sheet sits at the bottom. */
+.action-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(28, 32, 39, 0.4);
+}
+
+/* The message. Text cannot be selected: no copying practice messages out of the app. */
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.msg-sender {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+}
+
+.msg-sender span {
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+/* Setup and ask are two incoming bubbles, grey on white, never a blue and green pair.
+   A bubble is a button when it opens the actions; it keeps the bubble's look. */
+.bubble-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 92%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: var(--bubble-radius);
+  border-bottom-left-radius: 6px;
+  background: var(--paper);
+  font-size: var(--t19);
+  text-align: left;
+  cursor: default;
+}
+
+button.bubble-group {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bubble-ask {
+  border-color: var(--ink-2);
+  background: var(--surface);
+}
+
+.part {
+  display: block;
+}
+
+/* A fake link looks like a link and goes nowhere. It is a span, never an anchor. */
+.fake-link {
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Select mode. The rows are the shared .inset-row; only the check circle and the pressed look are here. */
+.nav > button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tells-hint {
+  padding: 0 0.25rem;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.part-tap {
+  align-items: flex-start;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.part-tap[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.part-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.1rem;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  color: var(--surface);
+}
+
+.part-tap[aria-pressed='true'] .part-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.part-mark .icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.on-wall {
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+}

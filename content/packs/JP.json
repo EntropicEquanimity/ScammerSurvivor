@@ -1,0 +1,37 @@
+{
+  "code": "JP",
+  "layouts": [
+    "sticker-chat",
+    "sms",
+    "wallet"
+  ],
+  "confidence": "high",
+  "hotline": {
+    "label": "Police consultation line",
+    "number": "#9110",
+    "reportUrl": "https://www.npa.go.jp/"
+  },
+  "numberMask": "0X0-XXXX-dddd",
+  "currency": "JPY",
+  "walletStart": 300000,
+  "deckOrder": [
+    "family_trouble",
+    "paid_task",
+    "investment_group",
+    "digital_arrest",
+    "code_or_account",
+    "parcel_fee",
+    "bank_check",
+    "listing_leaver",
+    "fast_romance",
+    "video_threat",
+    "app_in_chat",
+    "payment_change",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job",
+    "refund_payment"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}

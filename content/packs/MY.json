@@ -1,0 +1,37 @@
+{
+  "code": "MY",
+  "layouts": [
+    "green-chat",
+    "sms",
+    "wallet"
+  ],
+  "confidence": "high",
+  "hotline": {
+    "label": "National Scam Response Centre",
+    "number": "997",
+    "reportUrl": "https://www.nsrc.gov.my/"
+  },
+  "numberMask": "01X-XXX dddd",
+  "currency": "MYR",
+  "walletStart": 8000,
+  "deckOrder": [
+    "paid_task",
+    "investment_group",
+    "digital_arrest",
+    "code_or_account",
+    "parcel_fee",
+    "listing_leaver",
+    "fast_romance",
+    "video_threat",
+    "payment_change",
+    "refund_payment",
+    "family_trouble",
+    "bank_check",
+    "app_in_chat",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}

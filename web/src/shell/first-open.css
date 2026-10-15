@@ -1,0 +1,155 @@
+/* First open as the real lock screen, plus the country picker. Frame tokens from base.css only.
+   Shared iOS classes (.nav, .inset, .alert) live in shell.css; nothing here redefines them.
+   Every lock rule is scoped under .lock so the day's lock screen (features/day.css) keeps its own copy.
+   Text straight on the wallpaper uses --on-wall and --on-wall-shadow; the glass card keeps ink. */
+
+/* The lock screen fills the screen; the gesture layer owns touch so a swipe never scrolls.
+   Not positioned, so the alert scrim (absolute, shell.css) covers the whole phone. */
+.lock {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 0.5rem 1rem 0;
+  color: var(--ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lock-away {
+  animation: lock-away var(--dur-sheet) var(--spring) both;
+}
+
+/* sheet-up in reverse: the lock lifts off the top of the screen. */
+@keyframes lock-away {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-100%); opacity: 0; }
+}
+
+/* Clock: the on-wallpaper colour and shadow from base.css, so it follows whichever wallpaper the phone wears. */
+.lock .lock-head {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  min-height: 0;
+  padding: 2.25rem 0 1rem;
+  color: var(--on-wall);
+  text-align: center;
+  text-shadow: var(--on-wall-shadow);
+}
+
+.lock .lock-date {
+  font-size: var(--t17);
+  font-weight: 600;
+  letter-spacing: var(--track-17);
+  line-height: 1.3;
+}
+
+/* Tracking 0 (HIG: SF at 96pt and up tracks 0). The phone's fluid clock is a condensed display cut the
+   device font cannot give, so this is the widest the system font fits: about 150px at 393 wide. */
+.lock .lock-clock {
+  font-size: var(--clock-size);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The compliance card: body copy at 18px, pinned above the round buttons. */
+.lock-card {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0.25rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  font-size: var(--t18);
+  letter-spacing: var(--track-18);
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.lock-card p {
+  overflow-wrap: anywhere;
+}
+
+/* Two 50px round glass buttons, the way the lock screen places them. */
+.lock-buttons {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.25rem;
+}
+
+.lock-btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  box-shadow: var(--shadow);
+  color: var(--surface);
+  cursor: pointer;
+}
+
+.lock-btn .lock-glyph {
+  width: 24px;
+  height: 24px;
+}
+
+.lock-glyph {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The swipe hint sits over the home indicator: 13px chrome text in the on-wallpaper colour. */
+.lock-swipe {
+  display: block;
+  flex: none;
+  width: 100%;
+  min-height: var(--tap);
+  margin-top: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--on-wall);
+  font-size: var(--t13);
+  font-weight: 600;
+  letter-spacing: var(--track-13);
+  text-align: center;
+  text-shadow: var(--on-wall-shadow);
+  cursor: pointer;
+}
+
+/* Country picker: a Settings page. The nav, large title and inset classes come from shell.css. */
+.country-picker {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--ink);
+}
+
+.country-picker .picker-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 0;
+  padding: 0 1rem 1.5rem;
+}

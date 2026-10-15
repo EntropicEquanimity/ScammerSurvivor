@@ -1,0 +1,75 @@
+/* End of day: four figures in a two-by-two block inside one inset, each a number and a fraction,
+   then the most-missed tell as a row. The inset and row classes are shared from shell.css. */
+.figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: var(--tap);
+  padding: 0.75rem 1rem;
+}
+
+/* Hairlines between the four cells, one device pixel: the right column draws the vertical, the bottom row the horizontal. */
+.figure {
+  position: relative;
+}
+
+.figure::before,
+.figure::after {
+  position: absolute;
+  background: var(--separator);
+}
+
+.figure:nth-child(even)::before {
+  content: '';
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  transform: scaleX(var(--hairline-w));
+  transform-origin: left;
+}
+
+.figure:nth-child(n + 3)::after {
+  content: '';
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  transform: scaleY(var(--hairline-w));
+  transform-origin: top;
+}
+
+.figure dt {
+  font-size: var(--t13);
+  color: var(--ink-2);
+}
+
+.figure dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.375rem;
+  align-items: baseline;
+}
+
+.figure-lead {
+  font-size: var(--t30);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.figure-of {
+  font-size: var(--t15);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.end-row {
+  flex-direction: column;
+  gap: 0.375rem;
+  align-items: flex-start;
+}

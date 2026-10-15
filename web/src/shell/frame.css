@@ -1,0 +1,140 @@
+/* Frame chrome: status bar with the island, the non-affiliation footer, the home indicator.
+   The practice strip and the shared iOS components live in shell.css; tokens in base.css. */
+
+/* Status bar: three columns, the island in the middle one; the time centres in the left ear and the
+   glyphs in the right ear, the way an island phone places them. Decorative, so aria-hidden. */
+.status-bar {
+  position: relative;
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 126px 1fr;
+  align-items: center;
+  justify-items: center;
+  min-height: 54px;
+  padding: 0;
+  color: var(--on-wall);
+  font-size: var(--t17);
+  font-weight: 600;
+  letter-spacing: var(--track-17);
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--on-wall-shadow);
+}
+
+.island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 126px;
+  height: 37px;
+  border-radius: var(--radius-pill);
+  background: #000000;
+  transform: translateX(-50%);
+  transition: width var(--dur-sheet) var(--spring);
+}
+
+/* Agent N toggles this on the html element while a notification arrives. */
+:root.island-live .island {
+  width: 160px;
+}
+
+.status-symbols {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  grid-column: 3;
+}
+
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.signal i {
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.signal i:nth-child(1) { height: 35%; }
+.signal i:nth-child(2) { height: 55%; }
+.signal i:nth-child(3) { height: 80%; }
+.signal i:nth-child(4) { height: 100%; }
+
+.icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.status-bar .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.4;
+}
+
+.battery {
+  position: relative;
+  width: 27px;
+  height: 13px;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.9;
+}
+
+.battery::before {
+  content: '';
+  display: block;
+  width: 80%;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.battery::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: -4px;
+  width: 2px;
+  height: 4px;
+  border-radius: 0 1px 1px 0;
+  background: currentColor;
+}
+
+.screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* A route's root. Structure only: each screen paints its own sheet over the wallpaper. */
+.page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The bar sits 8px above the bottom edge, as on the phone; the 48px target stays. */
+.home-indicator {
+  display: grid;
+  flex: none;
+  align-items: end;
+  justify-items: center;
+  min-height: var(--tap);
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  background: var(--glass-strong);
+}
+
+.home-indicator span {
+  width: 134px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+}

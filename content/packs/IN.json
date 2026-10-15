@@ -1,0 +1,37 @@
+{
+  "code": "IN",
+  "layouts": [
+    "green-chat",
+    "sms",
+    "wallet"
+  ],
+  "confidence": "medium",
+  "hotline": {
+    "label": "National cyber crime helpline",
+    "number": "1930",
+    "reportUrl": "https://cybercrime.gov.in/"
+  },
+  "numberMask": "+91 XXXXX Xdddd",
+  "currency": "INR",
+  "walletStart": 100000,
+  "deckOrder": [
+    "family_trouble",
+    "paid_task",
+    "investment_group",
+    "digital_arrest",
+    "code_or_account",
+    "parcel_fee",
+    "bank_check",
+    "listing_leaver",
+    "fast_romance",
+    "video_threat",
+    "app_in_chat",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job",
+    "refund_payment",
+    "payment_change"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}

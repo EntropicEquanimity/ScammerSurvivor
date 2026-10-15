@@ -1,0 +1,249 @@
+/* Frame tokens. The frame follows iPhone layout conventions with the device's own system font;
+   nothing here is an Apple asset. The only saturated colours belong to the made-up apps. */
+:root {
+  --ink: #1c2027;
+  --ink-2: #4a505a;
+  --muted: #6b7280;
+  --paper: #eef0f3;
+  --surface: #ffffff;
+  --line: #d9dde3;
+  --accent: #2f6bd6;
+  --notice: #9a5b13;
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-dark: rgba(28, 32, 39, 0.55);
+  --glass-line: rgba(255, 255, 255, 0.7);
+  --glass-blur: 22px;
+  --shadow: 0 10px 30px -14px rgba(20, 30, 50, 0.35);
+  --radius: 22px;
+  --radius-sm: 14px;
+  --radius-pill: 999px;
+  --bubble-radius: 20px;
+  --icon-radius: 22.37%;
+  --font-body: -apple-system, system-ui, 'Segoe UI Variable', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-head: var(--font-body);
+  /* Type scale in rem so the phone's own text-size setting is respected. */
+  --t13: 0.8125rem;
+  --t15: 0.9375rem;
+  --t16: 1rem;
+  --t18: 1.125rem;
+  --t19: 1.1875rem;
+  --t24: 1.5rem;
+  --t30: 1.875rem;
+  --t64: 4rem;
+  --tap: 3rem;
+  --gap: 0.5rem;
+  /* iOS tracking per size (HIG typography, SF Pro table) and the 1/3pt hairline. Additive tokens. */
+  --track-13: -0.08px;
+  --track-15: -0.23px;
+  --track-17: -0.43px;
+  --track-18: -0.44px;
+  --track-34: 0.4px;
+  --hairline-w: 0.34; /* a 1px line scaled to one device pixel at 3x; widths under 1px snap to a full pixel */
+  --separator: rgba(60, 60, 67, 0.29);
+  --wallpaper: url('/art/wallpaper.jpg');
+  --on-wall: #ffffff;
+  --on-wall-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* On WebKit the system font already applies SF's own tracking at every size (HIG typography), so the
+   mockup values above would double it. The keyword below exists only in WebKit. Not verified on a device. */
+@supports (font: -apple-system-body) {
+  :root {
+    --track-13: 0;
+    --track-15: 0;
+    --track-17: 0;
+    --track-18: 0;
+    --track-34: 0;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--t18) / 1.45 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: var(--t30);
+}
+
+h2 {
+  font-size: var(--t24);
+}
+
+h3 {
+  font-size: var(--t18);
+}
+
+p,
+dl,
+dd,
+ul,
+ol {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+/* A link in running text still gets a 48px tap target. */
+p > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* One glass recipe for every translucent surface: sheet, widget, dock, pill, notification. */
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  border: 1px solid var(--glass-line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--shadow);
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+  padding: 0 1.25rem;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-pill);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  font-size: var(--t18);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-primary,
+.btn[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+}
+
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Motion primitives: the phone's own springs. Every agent uses these, never a private curve.
+   The reduced-motion block above collapses all of it to instant cuts. */
+:root {
+  --spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --spring-out: cubic-bezier(0.2, 0.9, 0.3, 1.05);
+  --dur-press: 120ms;
+  --dur-sheet: 420ms;
+  --dur-pop: 360ms;
+}
+
+.pressable {
+  transition: transform var(--dur-press) ease-out, opacity var(--dur-press) ease-out;
+}
+
+.pressable:active {
+  transform: scale(0.96);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes zoom-in {
+  from { transform: scale(0.86); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes drop-in {
+  from { transform: translateY(-120%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.anim-sheet { animation: sheet-up var(--dur-sheet) var(--spring) both; }
+.anim-zoom { animation: zoom-in var(--dur-sheet) var(--spring) both; transform-origin: var(--tap-x, 50%) var(--tap-y, 50%); }
+.anim-pop { animation: pop-in var(--dur-pop) var(--spring-out) both; animation-delay: calc(var(--i, 0) * 28ms); }
+.anim-drop { animation: drop-in var(--dur-sheet) var(--spring) both; }
+
+/* iOS-style scrolling: momentum, rubber band inside the screen, never the page. */
+.scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

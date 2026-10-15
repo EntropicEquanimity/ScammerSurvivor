@@ -1,0 +1,37 @@
+{
+  "code": "PH",
+  "layouts": [
+    "purple-chat",
+    "green-chat",
+    "wallet"
+  ],
+  "confidence": "medium",
+  "hotline": {
+    "label": "Cybercrime hotline (CICC)",
+    "number": "1326",
+    "reportUrl": "https://www.cicc.gov.ph/"
+  },
+  "numberMask": "09XX XXX dddd",
+  "currency": "PHP",
+  "walletStart": 20000,
+  "deckOrder": [
+    "family_trouble",
+    "paid_task",
+    "code_or_account",
+    "parcel_fee",
+    "bank_check",
+    "listing_leaver",
+    "fast_romance",
+    "video_threat",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job",
+    "investment_group",
+    "digital_arrest",
+    "app_in_chat",
+    "payment_change",
+    "refund_payment"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}

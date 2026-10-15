@@ -1,0 +1,53 @@
+/* Desktop only: a true-scale phone body around the 393x852 screen. A two-tone band (outer
+   #8d8a85, inner #3a3a3c), outer radius 62px, screen radius 55px, keys drawn as thin rounded rects.
+   On a phone the device is the phone, so none of this applies below 56rem. */
+
+@media (min-width: 56rem) {
+  .stage {
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: #1a1c20;
+  }
+
+  .device {
+    position: relative;
+    flex: none;
+    padding: 5px;
+    border: 2px solid #8d8a85;
+    border-radius: 62px;
+    background: #3a3a3c;
+    box-shadow:
+      0 40px 80px -30px rgba(0, 0, 0, 0.8),
+      0 0 0 1px rgba(0, 0, 0, 0.6),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
+  .phone {
+    width: 393px;
+    height: 852px;
+    border-radius: 55px;
+    overflow: hidden;
+  }
+
+  /* Keys: action and two volume keys on the left, side key and camera control on the right. */
+  .device-keys {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .device-keys i {
+    position: absolute;
+    width: 3px;
+    border-radius: 2px;
+    background: #8d8a85;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.25);
+  }
+
+  .device-keys i:nth-child(1) { top: 148px; left: -5px; height: 30px; }
+  .device-keys i:nth-child(2) { top: 206px; left: -5px; height: 62px; }
+  .device-keys i:nth-child(3) { top: 282px; left: -5px; height: 62px; }
+  .device-keys i:nth-child(4) { top: 232px; right: -5px; height: 100px; }
+  .device-keys i:nth-child(5) { top: 400px; right: -5px; height: 60px; }
+}

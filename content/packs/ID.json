@@ -1,0 +1,37 @@
+{
+  "code": "ID",
+  "layouts": [
+    "green-chat",
+    "cloud-chat",
+    "wallet"
+  ],
+  "confidence": "medium",
+  "hotline": {
+    "label": "Indonesia Anti-Scam Centre (OJK)",
+    "number": "157",
+    "reportUrl": "https://iasc.ojk.go.id/"
+  },
+  "numberMask": "08XX-XXXX-dddd",
+  "currency": "IDR",
+  "walletStart": 15000000,
+  "deckOrder": [
+    "family_trouble",
+    "paid_task",
+    "code_or_account",
+    "parcel_fee",
+    "bank_check",
+    "listing_leaver",
+    "video_threat",
+    "app_in_chat",
+    "prize_fee",
+    "loan_threat",
+    "overseas_job",
+    "investment_group",
+    "digital_arrest",
+    "fast_romance",
+    "payment_change",
+    "refund_payment"
+  ],
+  "hotlineVerified": false,
+  "sources": []
+}
