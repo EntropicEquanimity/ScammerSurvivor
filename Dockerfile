@@ -14,5 +14,6 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY shared ./shared
+COPY content ./content
 USER node
 CMD ["node", "server/index.ts"]
