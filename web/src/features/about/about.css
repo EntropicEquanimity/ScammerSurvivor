@@ -1,0 +1,158 @@
+/* How it works. Tokens from base.css only; the page carries its own frame so it never
+   depends on the shell's class names. Phone width first, nothing wider than the screen. */
+
+.about {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 0;
+  padding: 0.75rem 1rem 2rem;
+  color: var(--ink);
+}
+
+.about-back {
+  align-self: flex-start;
+  padding-left: 0;
+}
+
+.about-title {
+  font-size: var(--t30);
+  letter-spacing: var(--track-34);
+}
+
+.about-lead,
+.about-note {
+  color: var(--ink-2);
+  font-size: var(--t16);
+  line-height: 1.45;
+}
+
+.about-section {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.about-heading {
+  font-size: var(--t15);
+  font-weight: 600;
+  letter-spacing: var(--track-15);
+  color: var(--ink-2);
+  text-transform: none;
+}
+
+.about-list {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+
+.about-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.75rem 1rem;
+  font-size: var(--t16);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.about-row + .about-row {
+  border-top: 1px solid var(--line);
+}
+
+.about-row strong {
+  font-weight: 600;
+}
+
+.about-meta {
+  color: var(--muted);
+  font-size: var(--t13);
+  letter-spacing: var(--track-13);
+}
+
+.about-tag {
+  display: inline-block;
+  margin-left: 0.375rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: var(--t13);
+  font-weight: 600;
+  letter-spacing: var(--track-13);
+  vertical-align: middle;
+}
+
+.about-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  font-size: var(--t16);
+  line-height: 1.4;
+}
+
+.about-stat strong {
+  font-size: var(--t19);
+  font-weight: 700;
+}
+
+.about-stat span {
+  color: var(--ink-2);
+}
+
+.about-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  font-size: var(--t15);
+  letter-spacing: var(--track-15);
+}
+
+.about-table th,
+.about-table td {
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.about-table th {
+  width: 60%;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.about-table td {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.about-table tr + tr th,
+.about-table tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+.about-cta {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  text-align: center;
+  white-space: normal;
+}
+
+.about-source {
+  font-weight: 600;
+  text-decoration: underline;
+}

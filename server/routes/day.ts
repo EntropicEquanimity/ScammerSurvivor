@@ -9,6 +9,7 @@ import { resolveCountry } from '../country.ts';
 import { PEOPLE_START, collectedFrom, dealDay, followUpFor, lessonFor } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState, StoredSlot } from '../store.ts';
+import { recordDay, statsRouter } from './stats.ts';
 import { loadNote, planJobs, readPersonalState, runJobs, traceRouter } from './trace.ts';
 import type { PersonalState, Writer } from './trace.ts';
 
@@ -244,6 +245,10 @@ export function recoverSlot(dayId: string, body: unknown, now = Date.now()): Rep
   return ok({ slotId: slot.slotId, recovered, walletAfter, windowSeconds: RECOVERY_WINDOW_SECONDS, tooLate: secondsSince > RECOVERY_WINDOW_SECONDS });
 }
 
+// Days already counted in the live aggregate: a second finish (a refresh, a retry) adds nothing.
+// ponytail: a Set in server memory next to the day Map; it empties with the days on restart.
+const finished = new Set<string>();
+
 export function finishDay(dayId: string): Reply<DayScore> {
   const state = readDay(dayId);
   if (!state) return fail(404, 'unknown_day');
@@ -253,7 +258,12 @@ export function finishDay(dayId: string): Reply<DayScore> {
   const day = scoreDay(items, { wallet: state.walletStart, people: state.peopleStart });
   // The wallet is the running total the player watched: scoreDay clamps once over the summed
   // losses, so it diverges from the per-slot clamps once a recovery lands mid-sequence.
-  return ok({ ...day, wallet: runningTotals(state).wallet, collected: collectedFrom(state.slots, results) });
+  const score: DayScore = { ...day, wallet: runningTotals(state).wallet, collected: collectedFrom(state.slots, results) };
+  if (!finished.has(dayId)) {
+    finished.add(dayId);
+    recordDay(score, state.country);
+  }
+  return ok(score);
 }
 
 export const dayRouter = Router();
@@ -273,3 +283,5 @@ dayRouter.post('/day/:dayId/tap', (req, res) => send(res, scoreTap(String(req.pa
 dayRouter.post('/day/:dayId/finish', (req, res) => send(res, finishDay(String(req.params.dayId))));
 dayRouter.post('/day/:dayId/recover', (req, res) => send(res, recoverSlot(String(req.params.dayId), req.body)));
 dayRouter.use(traceRouter);
+// GET /api/stats rides on the day router: the day route is the only writer of the aggregate.
+dayRouter.use(statsRouter);

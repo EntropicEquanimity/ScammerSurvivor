@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-10-15T18:38:18.375Z",
+  "n": 20,
+  "model": "gemini-3.8-flash",
+  "route": "developer",
+  "passFirstTry": 20,
+  "passAfterRepair": 0,
+  "rejected": 0,
+  "fallbacks": 0,
+  "meanMs": 17226,
+  "p95Ms": 23780,
+  "meanTokens": 1313,
+  "failReasons": {
+    "tells_missing_on_ask": 0,
+    "planted_mismatch": 0,
+    "digit_run": 0,
+    "mask_format": 0,
+    "same_last_four": 0,
+    "twin_has_tells": 0,
+    "twin_no_acceptable": 0,
+    "reply_not_allowed": 0,
+    "link_not_example": 0,
+    "brand_name": 0,
+    "name_not_allowed": 0,
+    "empty_ask": 0,
+    "unknown_tell": 0
+  },
+  "costEstimateUsd": 0.0468
+}

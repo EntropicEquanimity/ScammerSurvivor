@@ -1,0 +1,219 @@
+/* Room mode. The page frame (.page, .settings) comes from shell/shell.css; the chip rows follow
+   features/lab/lab.css. Bars are plain widths, no chart library. Everything is scoped under .room
+   except the join banner, which sits above the day. */
+
+.room .room-row {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.875rem;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+
+.room .room-role {
+  font-size: var(--t15);
+  font-weight: 600;
+  letter-spacing: var(--track-15);
+  color: var(--ink-2);
+}
+
+.room .room-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.room .room-chip {
+  padding: 0 1rem;
+  border-color: var(--line);
+  background: var(--surface);
+  font-size: var(--t16);
+  font-weight: 500;
+  color: var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.room .room-chip[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.room .room-actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.room .room-actions .btn,
+.room .room-select {
+  width: 100%;
+}
+
+.room .btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.room .room-honest {
+  color: var(--on-wall);
+  font-size: var(--t15);
+  text-shadow: var(--on-wall-shadow);
+}
+
+.room .room-row .room-honest {
+  color: var(--ink-2);
+  text-shadow: none;
+}
+
+/* The code, read across a table: big, tabular, spaced. */
+.room .room-code {
+  flex: none;
+  margin: 0;
+  color: var(--on-wall);
+  font-size: var(--t64);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: var(--on-wall-shadow);
+}
+
+.room .room-link {
+  display: block;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--t15);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.room .room-select {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.room .room-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 0.5rem;
+}
+
+.room .room-counts p {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.room .room-counts strong {
+  font-size: var(--t24);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-18);
+}
+
+.room .room-counts span {
+  color: var(--ink-2);
+  font-size: var(--t13);
+}
+
+.room .room-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room .room-bars li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+
+.room .room-bar-label {
+  font-size: var(--t15);
+  font-weight: 500;
+}
+
+.room .room-bar-note {
+  color: var(--ink-2);
+  font-size: var(--t13);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.room .room-bar-track {
+  grid-column: 1 / -1;
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.room .room-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transition: width var(--dur-sheet) var(--spring);
+}
+
+.room .room-debrief-text {
+  margin: 0;
+  font-size: var(--t16);
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+/* The one line above the day for a joined phone. 48px tall, the Leave button is the target. */
+.join-banner {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: var(--tap);
+  padding: 0 0.5rem 0 1rem;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--line);
+}
+
+.join-banner p {
+  margin: 0;
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+.join-banner .join-code {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+}
+
+.join-banner .join-leave {
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  font-size: var(--t15);
+}

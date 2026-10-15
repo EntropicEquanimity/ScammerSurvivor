@@ -4,12 +4,16 @@ import type { AgeGroup } from '../../shared/types.ts';
 import { fetchPacks } from './api.ts';
 import type { PackSummary } from './api.ts';
 import { DayScreen } from './features/day/DayScreen.tsx';
+import AboutPage from './features/about/About.tsx';
 import { JudgeLab } from './features/lab/JudgeLab.tsx';
+import { JoinBanner } from './features/room/JoinBanner.tsx';
+import { RoomPage } from './features/room/RoomPage.tsx';
+import { getRoom, joinCodeOf, setRoom } from './features/room/api.ts';
 import { SetupScreen } from './features/setup/SetupScreen.tsx';
 import { peopleAsked } from './features/setup/storage.ts';
 import { FirstOpen } from './shell/FirstOpen.tsx';
 import { HomeScreen } from './shell/HomeScreen.tsx';
-import { NavBar, PracticeProgress } from './shell/PhoneTools.tsx';
+import { PracticeProgress } from './shell/PhoneTools.tsx';
 import { haptic } from './shell/feel.ts';
 import { PhoneShell } from './shell/PhoneShell.tsx';
 import { PrivacyNotice } from './shell/PrivacyNotice.tsx';
@@ -55,16 +59,23 @@ function useHashRoute(): string {
 // Both spellings open the lab, so a judge who types #lab lands there too.
 const isLabRoute = (hash: string): boolean => hash === '#/lab' || hash === '#lab';
 
+// #room and #/room start a room; #room=ABCDEF is the facilitator view of one.
+const ROOM_ROUTE = /^#\/?room(?:=([A-Za-z]{6}))?$/;
+const roomRouteOf = (hash: string): { roomId: string | null } | null => {
+  const match = ROOM_ROUTE.exec(hash);
+  return match ? { roomId: match[1] ? match[1].toUpperCase() : null } : null;
+};
+
 // About: the one place that explains the AI and links to it. Later agents add rows here.
 function About() {
   const rows = [
     { href: '#/lab', title: 'Judge Lab', note: 'Watch Gemini write a card and code check it, answer key open.' },
+    { href: '#room', title: 'Start a room', note: 'A family, an office or a group plays the same day; you see the tells they missed.' },
     { href: '#/privacy', title: 'Privacy notice', note: 'What this phone stores and what it never does.' },
   ];
   return (
     <section className="page settings">
-      <NavBar title="About" />
-      <p className="settings-lead">A practice phone for spotting scams. Gemini writes the day; code checks every card and keeps every score.</p>
+      <AboutPage />
       <ul className="inset">
         {rows.map((row) => (
           <li key={row.href}>
@@ -111,11 +122,19 @@ function Screen({ route, age, country, choosing, asked, unlocked, quick, packs, 
   if (route === '#/about') return <About />;
   if (!age || !country || choosing) return lock;
   if (isLabRoute(route)) return <JudgeLab country={country} age={age} />;
+  const room = roomRouteOf(route);
+  if (room) return <RoomPage country={country} age={age} roomId={room.roomId} />;
   if (route === '#/progress') return <PracticeProgress />;
   if (route === '#/day') {
     // Only an adult day is personalised, so younger players are never asked to pick people.
-    if (!asked && age === 'adult') return <SetupScreen onDone={onAsked} />;
-    return <DayScreen country={country} age={age} quick={quick} onDone={() => { window.location.hash = '#/'; }} />;
+    // A room day is the room's day, not personalised, so the picker is skipped there too.
+    if (!asked && age === 'adult' && !getRoom()) return <SetupScreen onDone={onAsked} />;
+    return (
+      <>
+        <JoinBanner />
+        <DayScreen country={country} age={age} quick={quick} onDone={() => { window.location.hash = '#/'; }} />
+      </>
+    );
   }
   if (!unlocked) return lock;
   const pack = packs.find((row) => row.code === country);
@@ -152,6 +171,14 @@ export function App() {
   useEffect(() => {
     document.documentElement.lang = 'en';
   }, []);
+
+  // A join link remembers the room on this phone, then lands on the home screen like any visit.
+  useEffect(() => {
+    const code = joinCodeOf(route);
+    if (!code) return;
+    setRoom(code);
+    window.location.replace('#/');
+  }, [route]);
 
   const play = (isQuick: boolean) => {
     setQuick(isQuick);

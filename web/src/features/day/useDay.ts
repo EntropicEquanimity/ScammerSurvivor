@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId } from '../../../../shared/types.ts';
 import { fetchDay, postAct, postFinish, postOpen, postTap } from '../../api.ts';
 import { usePersonalised } from './useArrival.ts';
+import { getRoom, reportDay, startRoomDay } from '../room/api.ts';
 
 export type Phase =
   | { kind: 'loading' }
@@ -43,7 +44,9 @@ function useLoadDay(country: string, age: AgeGroup, quick: boolean, tries: numbe
   useEffect(() => {
     let current = true;
     setState(INITIAL);
-    fetchDay(country, age, quick).then(
+    // A room deals the same day to everyone in it; a solo player gets their own.
+    const room = getRoom();
+    (room && !quick ? startRoomDay(room, age) : fetchDay(country, age, quick)).then(
       (loaded) => current && setState((s) => ({ ...s, day: loaded, phase: { kind: 'notifications' } })),
       () => current && setState((s) => ({ ...s, phase: { kind: 'load-failed' } })),
     );
@@ -96,7 +99,12 @@ function request<T>(setState: SetState, call: () => Promise<T>, onOk: (value: T,
 function endTransitions(day: DayPayload | null, phase: Phase, remaining: number, options: DayOptions, setState: SetState) {
   const finish = () => {
     if (!day) return;
-    request(setState, () => postFinish(day.dayId), (score, s) => ({ ...s, phase: { kind: 'end', score } }));
+    request(setState, () => postFinish(day.dayId), (score, s) => {
+      const room = getRoom();
+      // The room board gets verdicts and tell ids only; a failed report never blocks the end screen.
+      if (room && !day.quick) void reportDay(room, day.dayId).catch(() => undefined);
+      return { ...s, phase: { kind: 'end', score } };
+    });
   };
   const next = () => {
     if (!day) return;
