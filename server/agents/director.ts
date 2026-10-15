@@ -167,7 +167,9 @@ export function toCard(draft: Draft, note: PatternNote, pack: CountryPack): Card
     neverAsks: NEVER_ASKS[note.category],
     stake: stakeFor(pack.walletStart),
     language: 'en',
-    approved: false,
+    // Rule 4 as amended on Oct 16: a person approves the pattern note, the Guard
+    // checks every card. A card from an approved note that passed the Guard is approved.
+    approved: note.approved === true,
   };
 }
 

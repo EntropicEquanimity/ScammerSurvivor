@@ -21,6 +21,13 @@ export const readCards = async (country: string): Promise<Card[]> => {
   return all.filter((card) => card.approved);
 };
 
+// Every card for a country, approved or not. For review scripts only; the day
+// route reads readCards so an unapproved card never reaches a player.
+export const readAllCards = async (country: string): Promise<Card[]> => {
+  const code = country.toUpperCase();
+  return cacheBackend() === 'firestore' ? readFirestore(code) : readFile_(code);
+};
+
 export const writeCards = async (cards: Card[]): Promise<number> => {
   const normalised = cards.map((card) => ({ ...card, country: card.country.toUpperCase() }));
   return cacheBackend() === 'firestore' ? writeFirestore(normalised) : writeFile_(normalised);

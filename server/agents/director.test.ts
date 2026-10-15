@@ -174,7 +174,7 @@ test('the mapped card satisfies the Card shape and carries no tell ids in its te
   assert.equal(card.difficulty, 1);
   assert.equal(card.stake, 500);
   assert.equal(card.language, 'en');
-  assert.equal(card.approved, false);
+  assert.equal(card.approved, true); // the note is approved, the Guard passed (rule 4 as amended)
   assert.ok(card.neverAsks.startsWith('A real relative or friend'));
   assert.deepEqual(card.setup.map((part) => part.id), ['s1']);
   assert.deepEqual(card.ask.map((part) => part.id), ['a1', 'a2']);
