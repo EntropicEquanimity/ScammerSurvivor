@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
-import { CONTACT_EMAIL } from '../strings.ts';
+import { NON_AFFILIATION } from '../../../shared/strings.ts';
 import type { AgeGroup } from '../../../shared/types.ts';
 import { fetchPacks } from '../api.ts';
 import type { PackSummary } from '../api.ts';
@@ -16,25 +16,43 @@ export interface FirstOpenProps {
   onUnlock: () => void;               // the swipe up or the hint tap; App mounts the home screen
 }
 
-const AGE_KEY = 'ageConfirmed'; // same key App.tsx writes; present means the alert was answered before
+const AGE_KEY = 'ageConfirmed';     // same key App.tsx writes; a valid value means the age question was answered
+const NOTICE_KEY = 'noticeSeen';    // same sessionStorage key PhoneShell used: the notice shows once per visit (rule 1)
 const SWIPE_PX = 60;
 
-const COMPLIANCE = [
-  'This is practice only. No real money or accounts.',
-  'Not affiliated with any brand. Every app shown here is made up.',
-  'Practice messages may be AI-generated.',
-  `Contact: ${CONTACT_EMAIL}`,
+// The non-affiliation sentence verbatim (shared/strings.ts, rule 1), then the under-18 line. The first open
+// carries both inside the age question; every later visit carries the sentence alone with a single OK.
+const ALERT_LINES = [
+  NON_AFFILIATION,
+  'Under 18 gets prepared practice: no sign-in, microphone or AI conversation.',
 ];
 
-function ageAlreadyAsked(): boolean {
+// Mirrors App.tsx readAge: only these values count, so a stray stored value still gets the question.
+function ageKnown(): boolean {
   try {
-    return localStorage.getItem(AGE_KEY) !== null;
+    const stored = localStorage.getItem(AGE_KEY);
+    return stored === 'adult' || stored === 'yes' || stored === 'younger';
   } catch {
     return false;
   }
 }
 
-const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Storage can be blocked (private mode). Then the notice shows again next visit, which is fine.
+function noticeSeen(): boolean {
+  try {
+    return sessionStorage.getItem(NOTICE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markNoticeSeen(): void {
+  try {
+    sessionStorage.setItem(NOTICE_KEY, '1');
+  } catch {
+    // The in-memory state still hides it for this render.
+  }
+}
 
 // The packs list only decides which countries say "deck ready". A failed fetch still lets the player choose.
 function usePacks(): PackSummary[] {
@@ -87,21 +105,37 @@ function Glyph({ name }: { name: keyof typeof GLYPHS }) {
   );
 }
 
-// The iOS alert over the lock screen. Classes come from shell.css; this file adds only the preferred weight.
-function AgeAlert({ onAnswer }: { onAnswer: (age: AgeGroup) => void }) {
+// The one alert of the first open: the age question carries the non-affiliation notice, so no second
+// notice follows it. On a return visit (age known) the same box shows the notice with one OK button.
+// Classes come from sheets.css; first-open.css adds the reduced-motion fade.
+function AgeAlert({ askAge, onAnswer, onDismiss }: {
+  askAge: boolean; onAnswer: (age: AgeGroup) => void; onDismiss: () => void;
+}) {
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => title.current?.focus({ preventScroll: true }), []);
   const answer = (age: AgeGroup) => {
     haptic();
     onAnswer(age);
   };
+  const ok = () => {
+    haptic();
+    onDismiss();
+  };
   return (
     <div className="alert-scrim">
       <div className="alert anim-zoom" role="alertdialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-msg">
-        <h2 ref={title} tabIndex={-1} id="age-title" className="alert-title">Are you 18 or older?</h2>
-        <p id="age-msg" className="alert-msg">Under 18 uses prepared practice only. No sign-in, microphone or AI conversation.</p>
-        <button type="button" className="alert-btn alert-preferred pressable" onClick={() => answer('adult')}>I am 18 or older</button>
-        <button type="button" className="alert-btn pressable" onClick={() => answer('younger')}>I am under 18</button>
+        <h2 ref={title} tabIndex={-1} id="age-title" className="alert-title">{askAge ? 'Are you 18 or older?' : 'Practice phone'}</h2>
+        <div id="age-msg" className="alert-msg">
+          {(askAge ? ALERT_LINES : [NON_AFFILIATION]).map((line) => <p key={line}>{line}</p>)}
+        </div>
+        {askAge ? (
+          <>
+            <button type="button" className="alert-btn alert-preferred pressable" onClick={() => answer('adult')}>I am 18 or older</button>
+            <button type="button" className="alert-btn pressable" onClick={() => answer('younger')}>I am under 18</button>
+          </>
+        ) : (
+          <button type="button" className="alert-btn alert-preferred pressable" onClick={ok}>OK</button>
+        )}
       </div>
     </div>
   );
@@ -135,17 +169,18 @@ function useSwipeUp(onSwipe: () => void) {
   return { onPointerDown, onPointerUp, onPointerCancel: () => { startY.current = null; } };
 }
 
-// The lock screen itself: clock, compliance card, two round buttons, the swipe hint, and the lift-off on unlock.
-// The clock remounts when the alert closes so focus lands on the date instead of falling to the body.
-function LockScreen({ asked, onAnswer, onPick, onUnlock }: {
-  asked: boolean; onAnswer: (age: AgeGroup) => void; onPick: (event: ReactMouseEvent<HTMLButtonElement>) => void; onUnlock: () => void;
+// The lock screen itself: clock, the practice tag, two round buttons, the swipe hint, and the lift-off on
+// unlock (a fade under reduced motion, first-open.css, so animationend still fires). The clock remounts
+// when the alert closes so focus lands on the date instead of falling to the body.
+function LockScreen({ cleared, askAge, onAnswer, onDismiss, onPick, onUnlock }: {
+  cleared: boolean; askAge: boolean; onAnswer: (age: AgeGroup) => void; onDismiss: () => void;
+  onPick: (event: ReactMouseEvent<HTMLButtonElement>) => void; onUnlock: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
   const unlock = () => {
-    if (leaving || !asked) return;
+    if (leaving || !cleared) return;
     haptic(20);
-    if (reducedMotion()) onUnlock();
-    else setLeaving(true);
+    setLeaving(true);
   };
   const swipe = useSwipeUp(unlock);
   return (
@@ -154,13 +189,11 @@ function LockScreen({ asked, onAnswer, onPick, onUnlock }: {
       {...swipe}
       onAnimationEnd={(event) => leaving && event.target === event.currentTarget && onUnlock()}
     >
-      <LockClock key={String(asked)} />
-      <div className="lock-card glass glass-strong" role="note" aria-label="Practice notices">
-        {COMPLIANCE.map((line) => <p key={line}>{line}</p>)}
-      </div>
+      <LockClock key={String(cleared)} />
+      <p className="lock-tag-row"><span className="lock-tag">Practice phone</span></p>
       <LockButtons onCountry={onPick} />
       <button type="button" className="lock-swipe pressable" onClick={unlock}>Swipe up to practise</button>
-      {!asked && <AgeAlert onAnswer={onAnswer} />}
+      {!cleared && <AgeAlert askAge={askAge} onAnswer={onAnswer} onDismiss={onDismiss} />}
     </section>
   );
 }
@@ -170,7 +203,9 @@ export function FirstOpen({ country, onCountry, onConfirm, onUnlock }: FirstOpen
   // App keeps passing null while it is in "choosing" mode, so the lock shows the code picked here.
   const [chosen, setChosen] = useState(country);
   const [picking, setPicking] = useState(country === null);
-  const [asked, setAsked] = useState(ageAlreadyAsked);
+  // The alert stays until the age is known and the notice was seen this visit; the swipe waits for it.
+  const [askAge, setAskAge] = useState(() => !ageKnown());
+  const [cleared, setCleared] = useState(() => ageKnown() && noticeSeen());
 
   if (picking) {
     const select = (code: string) => {
@@ -181,14 +216,19 @@ export function FirstOpen({ country, onCountry, onConfirm, onUnlock }: FirstOpen
     const back = chosen === null ? undefined : () => setPicking(false);
     return <CountryPicker packs={packs} selected={chosen} onSelect={select} onBack={back} />;
   }
+  const dismiss = () => {
+    markNoticeSeen();
+    setCleared(true);
+  };
   const answer = (age: AgeGroup) => {
-    setAsked(true);
+    setAskAge(false);
     onConfirm(age);
+    dismiss();
   };
   const pick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     haptic();
     rememberTap(event);
     setPicking(true);
   };
-  return <LockScreen asked={asked} onAnswer={answer} onPick={pick} onUnlock={onUnlock} />;
+  return <LockScreen cleared={cleared} askAge={askAge} onAnswer={answer} onDismiss={dismiss} onPick={pick} onUnlock={onUnlock} />;
 }

@@ -301,3 +301,4 @@ test('a slot the player already acted on is never swapped, and a writer failure 
   if (cards.status === 200) assert.equal(cards.body.ready, true);
   assert.ok(listTrace(failing.payload.dayId)?.every((event) => event.outcome === 'fallback'));
 });
+

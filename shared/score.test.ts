@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mostMissed, scoreDay, scoreSlot } from './score.ts';
+import { RECOVERY_WINDOW_SECONDS, mostMissed, recoveryFor, scoreDay, scoreSlot } from './score.ts';
 import type { SlotKey } from './score.ts';
 import type { Action, MessagePart, TellId } from './types.ts';
 
@@ -100,4 +100,18 @@ test('the wallet never drops below zero and the most-missed tell is reported', (
   assert.equal(day.scamsCaught.handled, 0);
   assert.equal(day.tellMostMissed, 'urgency');
   assert.equal(mostMissed([]), null);
+});
+
+test('recovery inside 90 seconds: freeze 60 percent, official call 40 percent, report nothing', () => {
+  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 10, action: 'freeze_account' }), 300);
+  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 10, action: 'hang_up_call_official' }), 200);
+  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 10, action: 'block_report' }), 0);
+  assert.equal(recoveryFor({ stakeLost: 125, secondsSince: 0, action: 'freeze_account' }), 75);
+});
+
+test('recovery at the window edge counts, after it nothing, and only the three actions recover', () => {
+  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: RECOVERY_WINDOW_SECONDS, action: 'freeze_account' }), 300);
+  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: RECOVERY_WINDOW_SECONDS + 1, action: 'freeze_account' }), 0);
+  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 5, action: 'send_money' }), 0);
+  assert.equal(recoveryFor({ stakeLost: 0, secondsSince: 5, action: 'freeze_account' }), 0);
 });

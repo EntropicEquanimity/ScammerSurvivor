@@ -30,7 +30,7 @@ function NotifCard({ card, onOpen }: CardProps) {
       <AppIcon layout={card.layout} size={38} />
       <span className="notif-body">
         <span className="notif-top">
-          <span>{appNameFor(card.layout)}<span className="practice-tag">Practice</span></span>
+          <span>{appNameFor(card.layout)}</span>
           <span>{card.arrivesAt}</span>
         </span>
         <span className="notif-sender">{card.sender.displayName}</span>
@@ -42,7 +42,8 @@ function NotifCard({ card, onOpen }: CardProps) {
 
 // The lock screen of the day: the same anatomy as the real one. The heading doubles as the date
 // line, the clock is the next message's time, the stakes sit under it, the stack sits low.
-// The newest message drops in as a banner first, then settles at the top of the stack.
+// The newest message drops in as a banner first, then settles at the top of the stack. The practice
+// tag sits on the date line, the lock screen's one (rule 1); the cards themselves carry none.
 export function Notifications({ cards, wallet, people, onOpen }: Props) {
   const live = useArrival(cards.length > 0);
   const [next, ...rest] = cards;
@@ -55,7 +56,10 @@ export function Notifications({ cards, wallet, people, onOpen }: Props) {
           <NotifCard card={next} onOpen={onOpen} />
         </div>
       )}
-      <ScreenTitle className="day-lock-date">{title}</ScreenTitle>
+      <ScreenTitle className="day-lock-date">
+        {title}
+        <span className="practice-tag">Practice</span>
+      </ScreenTitle>
       <p className="day-lock-clock" aria-hidden="true">
         {next?.arrivesAt ?? ''}
       </p>

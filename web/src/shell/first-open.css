@@ -1,5 +1,5 @@
 /* First open as the real lock screen, plus the country picker. Frame tokens from base.css only.
-   Shared iOS classes (.nav, .inset, .alert) live in shell.css; nothing here redefines them.
+   Shared iOS classes (.nav, .inset in shell.css; .alert in sheets.css) are only placed here, never redefined.
    Every lock rule is scoped under .lock so the day's lock screen (features/day.css) keeps its own copy.
    Text straight on the wallpaper uses --on-wall and --on-wall-shadow; the glass card keeps ink. */
 
@@ -59,23 +59,60 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The compliance card: body copy at 18px, pinned above the round buttons. */
-.lock-card {
-  display: flex;
+/* The practice tag the lock screen carries (rule 1): one pill above the round buttons, same recipe
+   as the app headers' tag. */
+.lock-tag-row {
   flex: none;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin: 0 0.25rem 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: var(--radius);
-  font-size: var(--t18);
-  letter-spacing: var(--track-18);
-  line-height: 1.35;
-  color: var(--ink);
+  margin: 0 0 1rem;
+  text-align: center;
 }
 
-.lock-card p {
-  overflow-wrap: anywhere;
+.lock-tag {
+  display: inline-block;
+  padding: 0.1rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--surface);
+  font-size: var(--t15);
+  font-weight: 600;
+  letter-spacing: var(--track-15);
+  line-height: 1.5;
+}
+
+/* The title takes programmatic focus so it is read first; the ring would clip to a stray line. */
+.lock .alert-title:focus {
+  outline: none;
+}
+
+/* The alert body is two short lines with air between them. */
+.lock .alert-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Reduced motion: the lift-off, the alert zoom and the country picker's slide become fades. Important beats
+   base.css's global animation: none, which is also important, on class specificity; the lock still gets
+   animationend. */
+@keyframes lock-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes lock-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lock-away {
+    animation: lock-fade-out var(--dur-press) ease-out both !important;
+  }
+
+  .lock .alert,
+  .country-picker.anim-sheet {
+    animation: lock-fade-in var(--dur-press) ease-out both !important;
+  }
 }
 
 /* Two 50px round glass buttons, the way the lock screen places them. */

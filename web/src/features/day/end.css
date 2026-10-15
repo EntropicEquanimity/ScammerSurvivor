@@ -1,75 +1,100 @@
-/* End of day: four figures in a two-by-two block inside one inset, each a number and a fraction,
-   then the most-missed tell as a row. The inset and row classes are shared from shell.css. */
-.figures {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
+/* End of day: a ledger of senders, one row each, sliding in one by one; the two rates as a
+   footnote; the hotline; the result card; the install nudge. The inset and row classes are
+   shared from shell.css. */
 
-.figure {
+.ledger-row {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  min-height: var(--tap);
-  padding: 0.75rem 1rem;
+  align-items: flex-start;
+  animation: ledger-in var(--dur-pop) var(--spring) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
 }
 
-/* Hairlines between the four cells, one device pixel: the right column draws the vertical, the bottom row the horizontal. */
-.figure {
-  position: relative;
+/* Rows start visible in their base style; only the keyframe carries the offset, so a browser that
+   drops animations shows a full ledger. */
+@keyframes ledger-in {
+  from { transform: translateX(-1.5rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
-.figure::before,
-.figure::after {
-  position: absolute;
-  background: var(--separator);
+/* The cross-fade twin: base.css cancels every animation under this query, so the fade wins on
+   specificity and keeps the one-by-one rhythm without the slide. */
+@media (prefers-reduced-motion: reduce) {
+  .ledger-row {
+    animation: ledger-fade 200ms ease-out both !important;
+    animation-delay: calc(var(--i, 0) * 90ms) !important;
+  }
+
+  @keyframes ledger-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 }
 
-.figure:nth-child(even)::before {
-  content: '';
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  transform: scaleX(var(--hairline-w));
-  transform-origin: left;
+.ledger-verdict {
+  font-weight: 600;
 }
 
-.figure:nth-child(n + 3)::after {
-  content: '';
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  transform: scaleY(var(--hairline-w));
-  transform-origin: top;
-}
-
-.figure dt {
-  font-size: var(--t13);
-  color: var(--ink-2);
-}
-
-.figure dd {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.375rem;
-  align-items: baseline;
-}
-
-.figure-lead {
-  font-size: var(--t30);
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.figure-of {
+.end-note {
+  padding: 0 1rem;
+  color: var(--on-wall);
   font-size: var(--t15);
-  color: var(--ink-2);
-  white-space: nowrap;
+  line-height: 1.4;
+  text-shadow: var(--on-wall-shadow);
 }
 
 .end-row {
   flex-direction: column;
   gap: 0.375rem;
   align-items: flex-start;
+}
+
+.result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.result-card img,
+.result-card-blank {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.result-card figcaption {
+  padding: 0 1rem;
+  color: var(--on-wall);
+  font-size: var(--t15);
+  text-shadow: var(--on-wall-shadow);
+}
+
+.install-nudge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  padding: 0 1rem;
+  color: var(--on-wall);
+  font-size: var(--t15);
+  text-shadow: var(--on-wall-shadow);
+}
+
+.install-nudge .btn-quiet {
+  min-height: var(--tap);
+  padding: 0;
+  color: var(--on-wall);
+  font-size: var(--t18);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }

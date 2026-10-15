@@ -1,0 +1,267 @@
+/* The Judge Lab and the trace drawer. The page frame (.page, .settings, .inset) comes from
+   shell/shell.css; the chip rows follow features/setup/setup.css; the stamped parts reuse
+   lesson/lesson.css. Nothing red: fail reads as the warm notice colour, pass as the accent. */
+
+.lab .lab-row {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.875rem;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+
+.lab .lab-role {
+  font-size: var(--t15);
+  font-weight: 600;
+  letter-spacing: var(--track-15);
+  color: var(--ink-2);
+}
+
+.lab .lab-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lab .lab-chip {
+  padding: 0 1rem;
+  border-color: var(--line);
+  background: var(--surface);
+  font-size: var(--t16);
+  font-weight: 500;
+  color: var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lab .lab-chip[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.lab .lab-actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lab .lab-actions .btn {
+  width: 100%;
+}
+
+.lab .lab-actions .btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.lab .lab-elapsed {
+  color: var(--on-wall);
+  font-size: var(--t15);
+  font-weight: 600;
+  text-align: center;
+  text-shadow: var(--on-wall-shadow);
+}
+
+.lab .lab-honest {
+  font-size: var(--t15);
+}
+
+.lab .lab-verdict,
+.lab .lab-rule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lab .lab-verdict span {
+  color: var(--ink-2);
+  font-size: var(--t15);
+}
+
+.lab .lab-rule-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+
+.lab .lab-rule-head strong {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+  font-size: var(--t15);
+}
+
+/* The pass or fail tag beside a rule id: a bordered pill, the word carries the state. */
+.lab .lab-tag {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--t13);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.lab .lab-pass {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lab .lab-fail {
+  border-color: var(--notice);
+  color: var(--notice);
+}
+
+/* The revealed message: sender row, then parts; a stamped part gets the soft accent underline
+   and its tells named under it. Never red. */
+.lab .lab-sender {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+}
+
+.lab .lab-sender span {
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+.lab .lab-sender .practice-tag {
+  color: var(--surface);
+}
+
+.lab .lab-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lab .lab-stamped {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-decoration-thickness: 0.2em;
+  text-underline-offset: 0.15em;
+}
+
+.lab .lab-never {
+  font-weight: 700;
+}
+
+.lab .lab-part-tells {
+  font-size: var(--t15);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Trace rows: shared by the lab page and the drawer. No coloured rule: the outcome word carries the state. */
+.trace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+.trace-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.trace-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+  font-size: var(--t16);
+}
+
+.trace-model {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+  font-size: var(--t13);
+  color: var(--ink-2);
+}
+
+.trace-outcome {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.trace-rejected .trace-outcome,
+.trace-fallback .trace-outcome {
+  color: var(--notice);
+}
+
+.trace-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+.trace-reasons {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+  font-size: var(--t13);
+  color: var(--notice);
+}
+
+.trace-empty,
+.trace-note {
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+/* The drawer: a sheet from the bottom of the phone, two thirds high at most, its own scroll. */
+.trace-drawer {
+  position: absolute;
+  right: 0.5rem;
+  bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  left: 0.5rem;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 66%;
+  padding: 0.75rem 1rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+
+.trace-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trace-drawer-head h2 {
+  font-size: var(--t18);
+}
+
+.trace-drawer-body {
+  min-height: 0;
+}
+
+/* Reduced motion: the sheet cross-fades instead of sliding. base.css cancels every animation
+   under this query with an !important on *, so the twin restates itself at a higher specificity. */
+@keyframes trace-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-drawer.anim-sheet {
+    animation: trace-fade var(--dur-press) ease-out both !important;
+  }
+}
+
+/* A fake link in a revealed part: plain text with the link look, never an anchor. */
+.lab .fake-link {
+  color: var(--accent);
+  text-decoration: underline;
+}

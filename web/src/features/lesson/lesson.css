@@ -1,9 +1,9 @@
-/* The lesson as a Settings page: the large title over the wallpaper, then inset groups (Real, Scam,
-   the tells, the ending, the hotline) and Next pinned at the bottom. The group and row classes are
-   the shared ones from shell.css; this file sets what goes inside a row. Marked parts get a soft
-   accent underline, never red. */
+/* The lesson on one screen: the large title over the wallpaper, then inset groups (the scam with
+   its tells stamped in place, the Coach's note, the real one, the ending and the safest move) and
+   Next pinned at the bottom. The group and row classes are the shared ones from shell.css; this
+   file sets what goes inside a row. A stamp is blue when the player found the tell and the warm
+   notice colour when they missed it; each carries a word. Red appears nowhere. */
 
-/* Rows that hold a sentence or more use the shared .inset-body (18px) and stack their lines. */
 .lesson-sender {
   display: flex;
   flex-wrap: wrap;
@@ -16,10 +16,60 @@
   color: var(--ink-2);
 }
 
-.lesson-tell {
+/* A part of the scam: the text, then its stamps underneath. */
+.lesson-part {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.stamp {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--t15);
+  font-weight: 700;
+  line-height: 1.4;
+  transform: rotate(-1.5deg);
+}
+
+.stamp small {
+  font-size: var(--t13);
+  font-weight: 400;
+}
+
+.stamp-caught {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.stamp-missed {
+  color: var(--notice);
+  background: color-mix(in srgb, var(--notice) 10%, var(--surface));
+  transform: rotate(1.5deg);
+}
+
+/* The Coach's note grows line by line while the stream runs. */
+.lesson-coach {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  white-space: pre-line;
+}
+
+.lesson-line,
+.lesson-safest {
+  font-weight: 700;
 }
 
 .lesson-value {
@@ -36,36 +86,4 @@
 .lesson-link {
   color: var(--accent);
   font-weight: 600;
-}
-
-.part-marked-text {
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  text-decoration-thickness: 0.2em;
-  text-underline-offset: 0.15em;
-}
-
-.part-labels {
-  display: block;
-  font-size: var(--t15);
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.tell-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
-  align-items: center;
-}
-
-.tell-tag {
-  padding: 0 0.625rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  font-size: var(--t15);
-}
-
-.lesson-line {
-  font-weight: 700;
 }

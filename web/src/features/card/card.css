@@ -1,7 +1,8 @@
-/* The made-up app, full screen: its own header strip in the app's colour, the message area that
-   scrolls, the trigger bar pinned under it, and the iOS action sheet over everything. Also the
-   select-mode rows of the tell picker. The sheet classes (.action-sheet and friends, .nav, .inset)
-   are Agent S's in shell.css; only their placement is here. */
+/* The made-up app, full screen: its own header strip in the app's colour, the message in one of
+   eight looks picked by data-look, the action buttons directly under it, and the tell picker's
+   tappable parts. The looks differ in bubble shape, header tint and sender presentation only; the
+   words and the controls are the same on every card. The colours to avoid are in docs/ux-plan.md:
+   nothing here is a real app's colour, the tints all mix from shared/brands.ts. */
 
 .app {
   display: flex;
@@ -32,26 +33,16 @@
   background: color-mix(in srgb, var(--app-colour) 14%, var(--surface));
 }
 
-/* One-device-pixel hairlines: under the app header, over the trigger bar. */
-.app-header::after,
-.choose-bar::before {
+.app-header::after {
   content: '';
   position: absolute;
   right: 0;
+  bottom: 0;
   left: 0;
   height: 1px;
   background: var(--separator);
   transform: scaleY(var(--hairline-w));
-}
-
-.app-header::after {
-  bottom: 0;
   transform-origin: bottom;
-}
-
-.choose-bar::before {
-  top: 0;
-  transform-origin: top;
 }
 
 .app-header-text {
@@ -69,39 +60,48 @@
 
 .app-header-meta {
   display: flex;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
 }
 
-/* The trigger bar: one full-width glass button, 48px, pinned at the bottom of the app. */
-.choose-bar {
-  position: relative;
+/* The sender's avatar: an initial in a circle tinted from the app colour. Decorative. */
+.avatar {
+  display: grid;
   flex: none;
-  padding: 0.5rem 1rem 0.75rem;
-  background: var(--glass-strong);
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-colour) 24%, var(--surface));
+  color: var(--ink);
+  font-size: var(--t19);
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.choose-btn {
-  width: 100%;
-  background: var(--surface);
-  border-color: var(--line);
-  color: var(--accent);
+/* Header tints per look. Solid ones (green-chat, wallet) darken the app colour for contrast. */
+.app-header:is([data-look='green-chat'], [data-look='wallet']) {
+  background: color-mix(in srgb, var(--app-colour) 80%, #000);
+  color: var(--surface);
 }
 
-.choose-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
+.app-header:is([data-look='green-chat'], [data-look='wallet']) :is(.app-header-name, .app-header-meta) {
+  color: rgba(255, 255, 255, 0.85);
 }
 
-/* The scrim under the action sheet dims the screen; the sheet sits at the bottom. */
-.action-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  background: rgba(28, 32, 39, 0.4);
+.app-header[data-look='green-chat'] .avatar {
+  background: rgba(255, 255, 255, 0.92);
 }
+
+.app-header[data-look='blue-chat'] { background: var(--surface); }
+.app-header[data-look='sticker-chat'] { background: color-mix(in srgb, var(--app-colour) 30%, var(--surface)); }
+.app-header[data-look='sms'] { background: color-mix(in srgb, var(--ink-2) 8%, var(--surface)); }
+
+.app-header[data-look='purple-chat'] .avatar,
+.app-header[data-look='sticker-chat'] .avatar {
+  border-radius: 30%;
+}
+
 
 /* The message. Text cannot be selected: no copying practice messages out of the app. */
 .msg {
@@ -124,8 +124,18 @@
   color: var(--ink-2);
 }
 
-/* Setup and ask are two incoming bubbles, grey on white, never a blue and green pair.
-   A bubble is a button when it opens the actions; it keeps the bubble's look. */
+/* The phone's own system strip: thin, grey, nothing to tap. A hint, sometimes wrong, never proof. */
+.sys-banner {
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ink-2) 10%, var(--surface));
+  color: var(--ink-2);
+  font-size: var(--t15);
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* Setup and ask are two incoming bubbles, grey on white, never a blue and green pair. */
 .bubble-group {
   display: flex;
   flex-direction: column;
@@ -138,17 +148,22 @@
   background: var(--paper);
   font-size: var(--t19);
   text-align: left;
-  cursor: default;
-}
-
-button.bubble-group {
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
 .bubble-ask {
   border-color: var(--ink-2);
   background: var(--surface);
+}
+
+.bubble-name {
+  color: var(--accent);
+  font-size: var(--t15);
+}
+
+.msg-read {
+  color: var(--ink-2);
+  font-size: var(--t13);
+  text-align: right;
 }
 
 .part {
@@ -163,7 +178,136 @@ button.bubble-group {
   text-underline-offset: 0.2em;
 }
 
-/* Select mode. The rows are the shared .inset-row; only the check circle and the pressed look are here. */
+/* Looks. green-chat: a tail on every bubble over a tinted wall. blue-chat: pills, no tail.
+   sticker-chat: squarer bubbles with a bright line. cloud-chat: soft corners, the name inside.
+   purple-chat: the roundest bubbles. sms: plain grey, no tail. email: no bubbles, one sheet of text.
+   wallet: a full-width panel, the ask framed like a payment request. */
+.msg[data-look='green-chat'] .bubble-group {
+  border-bottom-left-radius: 4px;
+  border-top-left-radius: 4px;
+}
+
+.msg[data-look='blue-chat'] .bubble-group { border-radius: var(--bubble-radius); }
+.msg[data-look='purple-chat'] .bubble-group { border-radius: 26px; padding-inline: 1rem; }
+.msg[data-look='cloud-chat'] .bubble-group { border-radius: 14px; }
+.msg[data-look='sms'] .bubble-group { border-radius: 18px; }
+
+.msg[data-look='sticker-chat'] .bubble-group {
+  border-radius: 12px;
+  border-bottom-left-radius: 2px;
+}
+
+
+.msg[data-look='email'] .bubble-group,
+.msg[data-look='wallet'] .bubble-group {
+  max-width: 100%;
+  border-radius: 0;
+}
+
+.msg[data-look='email'] .bubble-group {
+  padding: 0.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+}
+
+.msg[data-look='email'] .bubble-group:first-of-type { border-top: 0; }
+
+.msg[data-look='wallet'] .bubble-group {
+  border-radius: var(--radius-sm);
+  padding: 0.875rem 1rem;
+}
+
+.msg[data-look='wallet'] .bubble-ask {
+  border: 2px solid color-mix(in srgb, var(--app-colour) 60%, var(--surface));
+}
+
+.msg[data-look='sticker-chat'] .bubble-ask {
+  border-color: color-mix(in srgb, var(--app-colour) 70%, var(--surface));
+}
+
+/* The action buttons, directly under the message. The message's own buttons first, as that app's
+   call to action; the standard four as a 2 by 2 grid. margin-top auto keeps them at the foot of a
+   short message and lets a long one scroll. Every column is min-width 0, so 320px never overflows. */
+.actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding: 0.5rem 1rem 0.75rem;
+}
+
+.app-body > .actions {
+  padding-inline: 0;
+}
+
+.actions-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.action-std,
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: var(--t16);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.action-std:disabled,
+.cta:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Every offered button is a pill that shares the row. The wallet's pay button and a chat's install
+   button fill with the app's own colour. */
+.cta {
+  flex: 1 1 8rem;
+  border-radius: var(--radius-pill);
+}
+
+.cta-fill {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--app-colour) 80%, #000);
+  color: var(--surface);
+}
+
+/* A link chip: underlined accent text in a pill, the way a tapped link preview looks. */
+.cta-link {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Any other offered button: an outline chip in the app's colour. */
+.cta-chip {
+  border-color: color-mix(in srgb, var(--app-colour) 60%, var(--surface));
+  color: var(--ink);
+}
+
+/* Select mode. Each part is a button inside its bubble; a marked one lifts and shows its stamp. */
 .nav > button:disabled {
   opacity: 0.45;
   cursor: default;
@@ -174,41 +318,77 @@ button.bubble-group {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
+.msg[data-tap] .bubble-group {
+  max-width: 100%;
+  gap: 0.5rem;
+}
+
 .part-tap {
-  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-press) var(--spring-out), box-shadow var(--dur-press) ease-out, background-color var(--dur-press) ease-out;
+}
+
+.part-text {
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .part-tap[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
 }
 
-.part-mark {
-  display: grid;
+.part-stamp {
   flex: none;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-top: 0.1rem;
-  border: 1.5px solid var(--muted);
-  border-radius: 50%;
-  color: var(--surface);
-}
-
-.part-tap[aria-pressed='true'] .part-mark {
-  border-color: var(--accent);
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
   background: var(--accent);
+  color: var(--surface);
+  font-size: var(--t13);
+  font-weight: 700;
+  line-height: 1.5;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--dur-press) ease-out, transform var(--dur-pop) var(--spring-out);
 }
 
-.part-mark .icon {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.part-tap[aria-pressed='true'] .part-stamp {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Reduced motion: the lift and the pop become a cross-fade. These beat the global cut in base.css
+   by specificity, so the state change still reads as a change. */
+@media (prefers-reduced-motion: reduce) {
+  .part-tap,
+  .part-tap[aria-pressed='true'] {
+    transform: none !important;
+    transition: background-color 160ms ease-out, border-color 160ms ease-out !important;
+  }
+
+  .part-stamp,
+  .part-tap[aria-pressed='true'] .part-stamp {
+    transform: none !important;
+    transition: opacity 160ms ease-out !important;
+  }
 }
 
 .on-wall {

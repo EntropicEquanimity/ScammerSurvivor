@@ -57,6 +57,28 @@ export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[])
   };
 }
 
+// Recovery after a slip: how much of the lost stake comes back, by what the player did and how fast.
+// Only these three actions are accepted; block_report recovers nothing but is still the right report.
+export const RECOVERY_WINDOW_SECONDS = 90;
+export const RECOVERY_RATES: Partial<Record<Action, number>> = {
+  freeze_account: 0.6,
+  hang_up_call_official: 0.4,
+  block_report: 0,
+};
+export const RECOVERY_ACTIONS = Object.keys(RECOVERY_RATES) as Action[];
+
+export interface RecoveryInput {
+  stakeLost: number;
+  secondsSince: number;
+  action: Action;
+}
+
+export function recoveryFor({ stakeLost, secondsSince, action }: RecoveryInput): number {
+  const rate = RECOVERY_RATES[action] ?? 0;
+  if (secondsSince > RECOVERY_WINDOW_SECONDS || stakeLost <= 0) return 0;
+  return Math.round(stakeLost * rate);
+}
+
 const tally = (items: SlotScore[]): Tally => ({
   handled: items.filter((item) => item.actionCorrect).length,
   total: items.length,

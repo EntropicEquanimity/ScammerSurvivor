@@ -48,7 +48,14 @@ export const offeredFor = (card: Card): Action[] =>
 
 const strip = (parts: Card['setup']) => parts.map(({ id, text }) => ({ id, text }));
 
-function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string): PublicCard {
+// The phone's own "likely scam" banner: a hint, sometimes wrong. Drawn once per slot from the day
+// seed, so it is stable across re-deals and never follows the answer key.
+const HINT_ODDS = { scam: 1 / 3, twin: 1 / 6 };
+
+const drawHint = (isTwin: boolean, random: () => number): PublicCard['bannerHint'] =>
+  random() < (isTwin ? HINT_ODDS.twin : HINT_ODDS.scam) ? 'likely_scam' : null;
+
+function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string, bannerHint: PublicCard['bannerHint']): PublicCard {
   const cut = card.setup.length;
   const setup = isTwin ? card.realTwin.parts.slice(0, cut) : card.setup;
   const ask = isTwin ? card.realTwin.parts.slice(cut) : card.ask;
@@ -61,6 +68,7 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     offered: offeredFor(card),
     stake: card.stake,
     arrivesAt,
+    bannerHint,
   };
 }
 
@@ -103,7 +111,8 @@ export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: D
   const slots = ordered.map((card, index): DealtSlot => {
     const isTwin = twinIds.has(card.id);
     const slotId = `slot-${index + 1}`;
-    return { slotId, card, isTwin, public: toPublic(card, isTwin, slotId, CLOCK[index] ?? CLOCK[CLOCK.length - 1]), key: toKey(card, isTwin) };
+    const arrivesAt = CLOCK[index] ?? CLOCK[CLOCK.length - 1];
+    return { slotId, card, isTwin, public: toPublic(card, isTwin, slotId, arrivesAt, drawHint(isTwin, random)), key: toKey(card, isTwin) };
   });
   return {
     payload: {
@@ -125,9 +134,27 @@ export const redealSlot = (slot: DealtSlot, card: Card): DealtSlot => ({
   slotId: slot.slotId,
   card,
   isTwin: slot.isTwin,
-  public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt),
+  public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt, slot.public.bannerHint ?? null),
   key: toKey(card, slot.isTwin),
 });
+
+// The wronged person's later message after a real twin was blocked or ignored. A fixed line per
+// sender role, templated with the display name; never a model call.
+const FOLLOW_UP_BY_ROLE: Record<string, string> = {
+  relative: 'did you see my message?',
+  friend: 'did you see my message?',
+  boss: 'ok, I will ask someone else',
+  buyer: 'ok, I will ask someone else',
+  courier: 'we will try again tomorrow',
+  bank: 'your request is still waiting',
+  wallet: 'your request is still waiting',
+};
+const FOLLOW_UP_DEFAULT = 'did you see my message?';
+
+export function followUpFor(sender: Card['sender']): NonNullable<SlotResult['followUp']> {
+  const line = (sender.institutionId && FOLLOW_UP_BY_ROLE[sender.institutionId]) || FOLLOW_UP_DEFAULT;
+  return { sender: sender.displayName, text: `${sender.displayName}: ${line}` };
+}
 
 export function lessonFor(card: Card, hotline: CountryPack['hotline']): SlotResult['lesson'] {
   return {

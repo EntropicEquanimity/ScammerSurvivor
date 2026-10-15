@@ -1,7 +1,9 @@
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { join } from 'node:path';
+import { callRouter } from './routes/call.ts';
 import { dayRouter } from './routes/day.ts';
+import { labRouter } from './routes/lab.ts';
 import { lessonRouter } from './routes/lesson.ts';
 import { packsRouter } from './routes/packs.ts';
 
@@ -30,6 +32,8 @@ app.use('/api', express.json({ limit: JSON_LIMIT }), (_req, res, next) => {
 app.use('/api', packsRouter);
 app.use('/api', dayRouter);
 app.use('/api', lessonRouter);
+app.use('/api', labRouter);
+app.use('/api', callRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'not_found' });
 });

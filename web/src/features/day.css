@@ -223,7 +223,37 @@
   color: var(--notice);
 }
 
-/* The practice tag: the label every message surface carries now that the strip is gone. */
+/* After a real message: one quiet line in the thread, the way a chat shows "Delivered". */
+.thread-note {
+  padding: 0 0.25rem;
+  font-size: var(--t15);
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* The wronged person's later message: the same incoming bubble, landing a few seconds on. */
+.bubble-later {
+  align-self: flex-start;
+}
+
+/* Reduced motion: every day motion (sheet, zoom, pop, drop) becomes a short cross-fade. The
+   global kill in base.css is !important on every element, so these twins are too; the class
+   selectors are more specific and win. */
+@keyframes day-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day .anim-sheet,
+  .day .anim-zoom,
+  .day .anim-pop,
+  .day .anim-drop {
+    animation: day-fade 200ms ease-out both !important;
+  }
+}
+
+/* The practice tag: the label the app header and the lock screen carry; not the notification cards. */
 .practice-tag {
   display: inline-block;
   margin-left: 0.4rem;

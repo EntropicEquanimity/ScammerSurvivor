@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { scoreDay, scoreSlot } from '../../shared/score.ts';
+import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, recoveryFor, scoreDay, scoreSlot } from '../../shared/score.ts';
 import { ACTIONS, PEOPLE_ROLES } from '../../shared/types.ts';
-import type { Action, AgeGroup, Card, CountryPack, DayPayload, DayScore, People, PublicCard, SlotResult } from '../../shared/types.ts';
+import type { Action, AgeGroup, Card, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
 import { isChipName } from '../../shared/people.ts';
 import { readCards } from '../cache.ts';
 import { resolveCountry } from '../country.ts';
-import { PEOPLE_START, collectedFrom, dealDay, lessonFor } from '../deal.ts';
+import { PEOPLE_START, collectedFrom, dealDay, followUpFor, lessonFor } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState, StoredSlot } from '../store.ts';
 import { loadNote, planJobs, readPersonalState, runJobs, traceRouter } from './trace.ts';
@@ -174,7 +174,17 @@ const runningTotals = (state: DayState): { wallet: number; people: number } =>
     { wallet: state.walletStart, people: state.peopleStart },
   );
 
-export function scoreTap(dayId: string, body: unknown): Reply<SlotResult> {
+// What scoring adds to a stored slot: when it was scored and what the wallet really lost
+// (less than the stake when the wallet hit zero). Recovery reads both.
+type ScoredSlot = StoredSlot & { scoredAt?: number; lost?: number };
+
+const scoredFields = (slot: StoredSlot): { scoredAt: number; lost: number } => {
+  const extra = slot as Partial<ScoredSlot>;
+  return { scoredAt: extra.scoredAt ?? 0, lost: extra.lost ?? 0 };
+};
+
+// `now` is injectable so the recovery window can be tested; the route passes nothing.
+export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<SlotResult> {
   const state = readDay(dayId);
   if (!state) return fail(404, 'unknown_day');
   const fields = asRecord(body);
@@ -187,15 +197,51 @@ export function scoreTap(dayId: string, body: unknown): Reply<SlotResult> {
   const score = scoreSlot(slot.key, slot.action, taps);
   const before = runningTotals(state);
   const { walletDelta, peopleDelta, ...rest } = score;
+  const walletAfter = Math.max(0, before.wallet + walletDelta);
   const result: SlotResult = {
     slotId: slot.slotId,
     ...rest,
-    walletAfter: Math.max(0, before.wallet + walletDelta),
+    walletAfter,
     peopleAfter: Math.max(0, before.people + peopleDelta),
+    followUp: score.falseAlarm ? followUpFor(slot.card.realTwin.sender) : null,
     lesson: lessonFor(slot.card, state.hotline),
   };
-  saveDay(withSlot(state, { ...slot, taps, result }));
+  const next: ScoredSlot = { ...slot, taps, result, scoredAt: now, lost: before.wallet - walletAfter };
+  saveDay(withSlot(state, next));
   return ok(result);
+}
+
+const recoverable = (slot: StoredSlot): string | null => {
+  if (!slot.result) return 'not_scored';
+  if (!slot.result.isScam) return 'not_a_scam';
+  if (slot.result.actionCorrect) return 'nothing_to_recover';
+  if (slot.result.recovered !== undefined) return 'already_recovered';
+  // A wrong but not unsafe reply, or a wallet already at zero, lost nothing to claw back.
+  if (scoredFields(slot).lost === 0) return 'nothing_to_recover';
+  return null;
+};
+
+// One try per slip. Too late is not an error: the sheet shows "Too late" and the slot is closed.
+// ponytail: later slots read the wallet from this slot's walletAfter in slot order, so a recovery on
+// a slot played out of order is not seen by a slot scored before it, nor by finishDay, which reads the
+// same running total. Play order is the upgrade; the sheet holds the player today, so it cannot happen.
+export function recoverSlot(dayId: string, body: unknown, now = Date.now()): Reply<RecoverResult> {
+  const state = readDay(dayId);
+  if (!state) return fail(404, 'unknown_day');
+  const fields = asRecord(body);
+  const slot = fields && findSlot(state, fields.slotId);
+  if (!slot) return fail(400, 'unknown_slot');
+  const refusal = recoverable(slot);
+  if (refusal || !slot.result) return fail(400, refusal ?? 'not_scored');
+  const action = fields.action as Action;
+  if (!RECOVERY_ACTIONS.includes(action)) return fail(400, 'unknown_action');
+  const { scoredAt, lost } = scoredFields(slot);
+  const secondsSince = (now - scoredAt) / 1000;
+  const recovered = recoveryFor({ stakeLost: lost, secondsSince, action });
+  const walletAfter = slot.result.walletAfter + recovered;
+  const result: SlotResult = { ...slot.result, walletAfter, recovered };
+  saveDay(withSlot(state, { ...slot, result }));
+  return ok({ slotId: slot.slotId, recovered, walletAfter, windowSeconds: RECOVERY_WINDOW_SECONDS, tooLate: secondsSince > RECOVERY_WINDOW_SECONDS });
 }
 
 export function finishDay(dayId: string): Reply<DayScore> {
@@ -205,7 +251,9 @@ export function finishDay(dayId: string): Reply<DayScore> {
   const results = scored.flatMap((slot) => (slot.result ? [slot.result] : []));
   const items = scored.map((slot) => scoreSlot(slot.key, slot.action as Action, slot.taps ?? []));
   const day = scoreDay(items, { wallet: state.walletStart, people: state.peopleStart });
-  return ok({ ...day, collected: collectedFrom(state.slots, results) });
+  // The wallet is the running total the player watched: scoreDay clamps once over the summed
+  // losses, so it diverges from the per-slot clamps once a recovery lands mid-sequence.
+  return ok({ ...day, wallet: runningTotals(state).wallet, collected: collectedFrom(state.slots, results) });
 }
 
 export const dayRouter = Router();
@@ -223,4 +271,5 @@ dayRouter.post('/day/:dayId/open', (req, res) => send(res, recordOpen(String(req
 dayRouter.post('/day/:dayId/act', (req, res) => send(res, recordAct(String(req.params.dayId), req.body)));
 dayRouter.post('/day/:dayId/tap', (req, res) => send(res, scoreTap(String(req.params.dayId), req.body)));
 dayRouter.post('/day/:dayId/finish', (req, res) => send(res, finishDay(String(req.params.dayId))));
+dayRouter.post('/day/:dayId/recover', (req, res) => send(res, recoverSlot(String(req.params.dayId), req.body)));
 dayRouter.use(traceRouter);

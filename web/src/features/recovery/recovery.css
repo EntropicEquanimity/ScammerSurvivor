@@ -1,0 +1,146 @@
+/* The recovery sheet: the e-wallet look over the whole screen. The header strip and its tint come
+   from card.css (.app-header with --app-colour); the balance card, the ring and the three buttons
+   are here. Tokens from base.css; no colour of its own beyond the wallet app's. */
+
+.recovery-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.recovery-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 0;
+  padding: 1rem 1rem 1.25rem;
+}
+
+.recovery-title {
+  font-size: var(--t24);
+}
+
+/* The wallet's balance card, tinted with the app colour, the amount large. */
+.recovery-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--app-colour) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--app-colour) 30%, var(--line));
+}
+
+.recovery-balance-label {
+  font-size: var(--t15);
+  color: var(--ink-2);
+}
+
+.recovery-balance-amount {
+  font-size: var(--t30);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* The countdown ring: a track and an arc that drains clockwise. The number is always shown, so the
+   ring is never the only carrier of the time. */
+.recovery-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
+  margin: 0 auto;
+}
+
+.recovery-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.recovery-ring-track,
+.recovery-ring-arc {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.recovery-ring-track {
+  stroke: var(--line);
+}
+
+.recovery-ring-arc {
+  stroke: var(--app-colour);
+  transition: stroke-dashoffset 1s linear;
+}
+
+.recovery-ring-count {
+  font-size: var(--t30);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.recovery-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.recovery-btn {
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--accent);
+  text-align: center;
+}
+
+.recovery-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.recovery-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recovery-result {
+  font-size: var(--t24);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.recovery-note {
+  font-size: var(--t16);
+  color: var(--ink-2);
+}
+
+.recovery-outcome .btn {
+  width: 100%;
+}
+
+@keyframes recovery-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Reduced motion: the sheet cross-fades instead of sliding (a class with !important outranks the
+   global reset in base.css), and the ring steps once a second because that reset drops its transition. */
+@media (prefers-reduced-motion: reduce) {
+  .recovery-sheet {
+    animation: recovery-fade 200ms ease-out both !important;
+  }
+}

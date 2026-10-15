@@ -1,14 +1,13 @@
-import { useState } from 'react';
-import type { MouseEvent } from 'react';
-import type { Action, AgeGroup, PublicCard } from '../../../../shared/types.ts';
+import { Suspense, lazy } from 'react';
+import type { ComponentType } from 'react';
+import type { Action, AgeGroup, PublicCard, RecoverResult } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
-import { haptic, rememberTap } from '../../shell/feel.ts';
+import { haptic } from '../../shell/feel.ts';
 import { ActionBar } from '../card/ActionBar.tsx';
-import { ActionSheet } from '../card/ActionSheet.tsx';
 import { AppHeader } from '../card/AppHeader.tsx';
 import { TellPicker } from '../card/TellPicker.tsx';
 import { MessageView } from '../layouts/MessageView.tsx';
-import { Lesson } from '../lesson/Lesson.tsx';
+import { Lesson, RealNote } from '../lesson/Lesson.tsx';
 import { EndOfDay } from './EndOfDay.tsx';
 import { Notifications } from './Notifications.tsx';
 import { useDay } from './useDay.ts';
@@ -20,13 +19,28 @@ interface Props {
   age: AgeGroup;
   quick: boolean;
   onDone: () => void; // "Play tomorrow" was tapped
+  onCall?: (dayId: string) => Promise<unknown>; // the practice call, another agent's screen; resolves when it ends
 }
 
-function Loading() {
+// The recovery screen's contract. Its file belongs to another agent and may not exist yet, so the
+// glob below resolves to nothing until it does and the build never breaks.
+interface RecoveryProps {
+  dayId: string;
+  slotId: string;
+  stake: number;
+  onDone: (result: RecoverResult) => void;
+}
+
+const RECOVERY_PATH = '../recovery/Recovery.tsx';
+const recoveryModules = import.meta.glob<{ Recovery: ComponentType<RecoveryProps> }>('../recovery/Recovery.tsx');
+const loadRecovery = recoveryModules[RECOVERY_PATH];
+const Recovery = loadRecovery ? lazy(() => loadRecovery().then((m) => ({ default: m.Recovery }))) : null;
+
+function Notice({ title, line }: { title: string; line: string }) {
   return (
     <section className="day-notice glass glass-strong anim-zoom">
-      <ScreenTitle>Getting your day ready</ScreenTitle>
-      <p role="status">Your messages are on the way.</p>
+      <ScreenTitle>{title}</ScreenTitle>
+      <p role="status">{line}</p>
     </section>
   );
 }
@@ -54,55 +68,74 @@ interface CardStepProps {
   onAct: (action: Action) => void;
 }
 
-// The made-up app, full screen: its own header, the message, the trigger bar pinned at the bottom.
-// The bubbles and the bar both open the action sheet; one tap in the sheet acts.
+// The made-up app, full screen: its own header, the message in that app's look, the buttons under it.
+// One tap on a button acts.
 function CardStep({ card, busy, failed, onAct }: CardStepProps) {
-  const [open, setOpen] = useState(false);
-  const show = (event: MouseEvent) => {
-    haptic();
-    rememberTap(event);
-    setOpen(true);
-  };
-  const act = (action: Action) => {
-    setOpen(false);
-    onAct(action);
-  };
   return (
     <section className="app anim-zoom">
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} />
       <div className="app-body scroll">
-        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender onPress={show} />
+        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} />
+        <ActionBar card={card} busy={busy} onAct={onAct} />
         {failed && (
           <p className="plain-note" role="alert">
             Your choice did not go through. Tap it again.
           </p>
         )}
       </div>
-      <ActionBar busy={busy} onOpen={show} />
-      {open && <ActionSheet offered={card.offered} busy={busy} onAct={act} onClose={() => setOpen(false)} />}
     </section>
   );
 }
 
-// Owns the whole day: notifications, card, tells, lesson, round again, end. The hook holds the state;
-// this component only picks the screen. The stakes pills live on the lock screen under the clock.
-export function DayScreen({ country, age, quick, onDone }: Props) {
-  const d = useDay(country, age, quick);
+// Owns the whole day: notifications, card, tells, then a lesson, a note or the recovery window,
+// round again, the call, end. The hook holds the state; this component only picks the screen.
+// The stakes pills live on the lock screen under the clock.
+export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
+  const d = useDay(country, age, quick, { canRecover: Recovery !== null, onCall });
   const cardFor = (slotId: string) => d.day?.cards.find((card) => card.slotId === slotId);
+  const step = { busy: d.busy, failed: d.failed, onNext: d.next };
+
+  // The screens that belong to one slot. The last result exists only once that slot is scored.
+  const slotScreen = () => {
+    const { phase, day, lastResult } = d;
+    if (!day || !('slotId' in phase)) return null;
+    const card = cardFor(phase.slotId);
+    if (phase.kind === 'lesson' && lastResult) return <Lesson dayId={day.dayId} result={lastResult} {...step} />;
+    if (phase.kind === 'note' && card && lastResult) return <RealNote card={card} result={lastResult} {...step} />;
+    if (phase.kind === 'recovery' && Recovery && card) {
+      return (
+        <Suspense fallback={<Notice title="One moment" line="Checking what can still be done." />}>
+          <Recovery dayId={day.dayId} slotId={phase.slotId} stake={card.stake} onDone={d.recovered} />
+        </Suspense>
+      );
+    }
+    if (phase.kind === 'card' && card) return <CardStep card={card} busy={d.busy} failed={d.failed} onAct={d.act} />;
+    if (phase.kind === 'tells' && card) return <TellPicker key={card.slotId} card={card} busy={d.busy} failed={d.failed} onDone={d.tap} />;
+    return null;
+  };
 
   const body = () => {
     const { phase } = d;
-    if (phase.kind === 'loading') return <Loading />;
+    if (phase.kind === 'loading') return <Notice title="Getting your day ready" line="Your messages are on the way." />;
     if (phase.kind === 'load-failed') return <LoadFailed onRetry={d.retryLoad} />;
-    if (phase.kind === 'end') return <EndOfDay score={phase.score} age={age} tells={d.tells} onPlayTomorrow={onDone} />;
-    if (phase.kind === 'lesson' && d.lastResult) {
-      return <Lesson result={d.lastResult} busy={d.busy} failed={d.failed} onNext={d.next} />;
+    if (phase.kind === 'call') return <Notice title="A call is coming in" line="Practice call." />;
+    if (phase.kind === 'end') {
+      const senders = Object.fromEntries((d.day?.cards ?? []).map((card) => [card.slotId, card.sender.displayName]));
+      return (
+        <EndOfDay
+          score={phase.score}
+          age={age}
+          tells={d.tells}
+          results={d.results}
+          senders={senders}
+          dayId={d.day?.dayId}
+          hotline={d.day?.pack.hotline}
+          onPlayTomorrow={onDone}
+        />
+      );
     }
-    const card = phase.kind === 'card' || phase.kind === 'tells' ? cardFor(phase.slotId) : undefined;
-    if (phase.kind === 'card' && card) return <CardStep card={card} busy={d.busy} failed={d.failed} onAct={d.act} />;
-    if (phase.kind === 'tells' && card) return <TellPicker key={card.slotId} card={card} busy={d.busy} failed={d.failed} onDone={d.tap} />;
-    return <Notifications cards={d.remaining} wallet={d.wallet} people={d.people} onOpen={d.open} />;
+    return slotScreen() ?? <Notifications cards={d.remaining} wallet={d.wallet} people={d.people} onOpen={d.open} />;
   };
 
   return <div className="day">{body()}</div>;

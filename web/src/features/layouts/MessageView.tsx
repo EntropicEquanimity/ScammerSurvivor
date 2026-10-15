@@ -1,7 +1,7 @@
-import type { MouseEvent } from 'react';
-import type { PublicCard } from '../../../../shared/types.ts';
-import { Icon } from '../../shell/Icon.tsx';
+import type { CSSProperties } from 'react';
+import type { Layout, PublicCard } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
+import { appLookFor } from '../day/appNames.ts';
 
 export interface Part {
   id: string;
@@ -19,9 +19,10 @@ interface Props {
   ask: Part[];
   arrivesAt?: string;
   hideSender?: boolean; // the app header already names the sender
-  tap?: TapMode; // every part becomes a select-mode row
+  tap?: TapMode; // every part becomes a tappable span that lifts and takes a stamp
   marks?: Record<string, string[]>; // part id to the tell labels shown under it (lesson)
-  onPress?: (event: MouseEvent) => void; // the bubbles become buttons that open the actions
+  layout?: Layout; // picks the look; text messages when absent
+  bannerHint?: PublicCard['bannerHint']; // the phone's own "Likely scam" strip, a hint, never proof
 }
 
 // Fixture links use .example or .invalid hosts, or a bracketed placeholder. Nothing here navigates.
@@ -29,10 +30,21 @@ const LINK = /https?:\/\/|www\.|\.(example|invalid)\b|^\[a link\b/i;
 
 const looksLikeLink = (text: string): boolean => LINK.test(text);
 
+// The read line under the last bubble, in words: never a pair of blue ticks (docs/ux-plan.md).
+const READ_LINE: Partial<Record<Layout, string>> = {
+  'green-chat': 'Delivered',
+  'blue-chat': 'Seen',
+  'sticker-chat': 'Read',
+  'cloud-chat': 'Delivered',
+  'purple-chat': 'Seen',
+};
+
 function PartText({ text }: { text: string }) {
   return looksLikeLink(text) ? <span className="fake-link">{text}</span> : <>{text}</>;
 }
 
+// In tap mode a part is a button that lifts when marked and takes a neutral stamp; the tell's name
+// comes back only after scoring, in the lesson, through `labels`.
 export function PartView({ part, tap, labels = [] }: { part: Part; tap?: TapMode; labels?: string[] }) {
   if (tap) {
     const on = tap.pressed.includes(part.id);
@@ -41,12 +53,12 @@ export function PartView({ part, tap, labels = [] }: { part: Part; tap?: TapMode
       tap.onToggle(part.id);
     };
     return (
-      <button type="button" className="inset-row inset-body part-tap pressable" aria-pressed={on} onClick={toggle}>
-        <span className="part-mark" aria-hidden="true">
-          {on && <Icon name="check" />}
-        </span>
-        <span>
+      <button type="button" className="part part-tap pressable" aria-pressed={on} onClick={toggle}>
+        <span className="part-text">
           <PartText text={part.text} />
+        </span>
+        <span className="part-stamp" aria-hidden="true">
+          Marked
         </span>
       </button>
     );
@@ -73,38 +85,29 @@ interface GroupProps {
   ask?: boolean;
   tap?: TapMode;
   marks: Record<string, string[]>;
-  onPress?: (event: MouseEvent) => void;
+  name?: string; // the sender named inside the bubble, the group-chat convention of cloud-chat
 }
 
-// A bubble in the chat; a block of select rows in tap mode; a button when the bubble opens the actions.
-function BubbleGroup({ parts, ask, tap, marks, onPress }: GroupProps) {
-  if (tap) {
-    return (
-      <ul className="inset">
-        {parts.map((part) => (
-          <li key={part.id}>
-            <PartView part={part} tap={tap} />
-          </li>
-        ))}
-      </ul>
-    );
-  }
-  const rows = parts.map((part) => <PartView key={part.id} part={part} labels={marks[part.id]} />);
-  const className = ask ? 'bubble-group bubble-ask' : 'bubble-group';
-  if (onPress) {
-    return (
-      <button type="button" className={`${className} pressable`} onClick={onPress}>
-        {rows}
-      </button>
-    );
-  }
-  return <div className={className}>{rows}</div>;
-}
-
-// ponytail: one plain look for every layout. The five chat looks, text messages, email and wallet are slice 5.
-export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks = {}, onPress }: Props) {
+// One bubble: the parts stacked, each a tappable button in tap mode.
+function BubbleGroup({ parts, ask, tap, marks, name }: GroupProps) {
   return (
-    <div className="msg">
+    <div className={ask ? 'bubble-group bubble-ask' : 'bubble-group'}>
+      {name && <strong className="bubble-name">{name}</strong>}
+      {parts.map((part) => (
+        <PartView key={part.id} part={part} tap={tap} labels={marks[part.id]} />
+      ))}
+    </div>
+  );
+}
+
+// One component, eight looks picked by the layout id through CSS (card.css): the bubble shape,
+// the read line and where the sender name sits differ; the words and the parts never do.
+export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks = {}, layout = 'sms', bannerHint }: Props) {
+  const nameInBubble = layout === 'cloud-chat' ? sender.displayName : undefined;
+  const readLine = READ_LINE[layout];
+  const palette = { '--app-colour': appLookFor(layout).colour } as CSSProperties;
+  return (
+    <div className="msg" data-look={layout} data-tap={tap ? '' : undefined} style={palette}>
       {!hideSender && (
         <p className="msg-sender">
           <strong>{sender.displayName}</strong>
@@ -112,8 +115,14 @@ export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, ma
           {arrivesAt && <span>{arrivesAt}</span>}
         </p>
       )}
-      {setup.length > 0 && <BubbleGroup parts={setup} tap={tap} marks={marks} onPress={onPress} />}
-      {ask.length > 0 && <BubbleGroup parts={ask} ask tap={tap} marks={marks} onPress={onPress} />}
+      {bannerHint === 'likely_scam' && (
+        <p className="sys-banner" role="note">
+          Likely scam. Detection is a hint, not proof.
+        </p>
+      )}
+      {setup.length > 0 && <BubbleGroup parts={setup} tap={tap} marks={marks} name={nameInBubble} />}
+      {ask.length > 0 && <BubbleGroup parts={ask} ask tap={tap} marks={marks} name={setup.length === 0 ? nameInBubble : undefined} />}
+      {readLine && !tap && <p className="msg-read">{readLine}</p>}
     </div>
   );
 }
