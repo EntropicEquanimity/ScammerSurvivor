@@ -68,20 +68,19 @@ def push_range(repo, event, event_name):
 
 def compare(repo, before, after):
     """Commits and every changed file; the API caps one page at 300 files."""
+    # per_page does not reliably split the files list (checked 2026-10-15: per_page=1
+    # still returned every file on page 1), so keep paging while a page adds new names
     first = gh(f"/repos/{repo}/compare/{before}...{after}?per_page={FILES_PER_PAGE}&page=1")
-    files = list(first.get("files", []))
-    page = 2
-    while len(first.get("files", [])) == FILES_PER_PAGE and page <= MAX_PAGES:
-        more = gh(f"/repos/{repo}/compare/{before}...{after}?per_page={FILES_PER_PAGE}&page={page}").get("files", [])
-        files.extend(more)
-        if len(more) < FILES_PER_PAGE:
-            break
-        page += 1
     seen, unique = set(), []
-    for f in files:
-        if f["filename"] not in seen:
-            seen.add(f["filename"])
-            unique.append(f)
+    page, batch = 1, first.get("files", [])
+    while batch and page <= MAX_PAGES:
+        fresh = [f for f in batch if f["filename"] not in seen]
+        if not fresh:
+            break
+        unique.extend(fresh)
+        seen.update(f["filename"] for f in fresh)
+        page += 1
+        batch = gh(f"/repos/{repo}/compare/{before}...{after}?per_page={FILES_PER_PAGE}&page={page}").get("files", [])
     return first["commits"], unique, first["html_url"]
 
 
@@ -198,9 +197,12 @@ def selftest():
         pages = {1: [{"filename": f"a{i}"} for i in range(FILES_PER_PAGE)],
                  2: [{"filename": f"b{i}"} for i in range(FILES_PER_PAGE)],
                  3: [{"filename": "a0"}, {"filename": "c0"}]}
-        gh = lambda path: {"commits": [], "html_url": "u", "files": pages[int(path.rsplit("page=", 1)[1])]}
+        gh = lambda path: {"commits": [], "html_url": "u", "files": pages.get(int(path.rsplit("page=", 1)[1]), [])}
         _, files, _ = compare("o/r", "x", "y")
         assert len(files) == 2 * FILES_PER_PAGE + 1, len(files)
+        # the real API: a short page 1 and an empty page 2
+        pages = {1: [{"filename": "a"}, {"filename": "b"}]}
+        assert [f["filename"] for f in compare("o/r", "x", "y")[1]] == ["a", "b"]
     finally:
         gh = real
     embed = build_embed("main", "j", [{"sha": "abcdef0123", "commit": {"message": "feat: x\n\nbody"}}],
