@@ -204,6 +204,50 @@ export interface PublicCard {
   offered: Action[]; // STANDARD_ACTIONS plus the extras this message offers (same on a scam and its twin)
   stake: number; // wallet amount at risk, shown in the stakes bar
   arrivesAt: string; // day clock label such as '08:10', decorative
+  bannerHint?: 'likely_scam' | null; // a system banner like the ones phones show; a hint, sometimes wrong, never proof
+}
+
+// The practice call. Beats are written by the Director at build time, voiced by TTS,
+// stored outside the repo (Firestore metadata, audio in Cloud Storage). The model
+// picks the next beat from the player's action; code moves the meter.
+export interface CallBeatPublic {
+  id: string;
+  role: 'open' | 'pushback' | 'code' | 'close';
+  caption: string; // what the caller says, shown as a caption
+  audioUrl: string | null; // null when audio is missing; the caption still plays
+}
+
+export interface CallStartResult {
+  callId: string;
+  beat: CallBeatPublic;
+  meter: number; // 0 to 100, pressure on the player; starts at 50
+  offered: Action[]; // six buttons
+}
+
+export interface CallTurnBody {
+  action: Action;
+}
+
+export interface CallTurnResult {
+  beat: CallBeatPublic | null; // null when the call ended
+  meter: number;
+  meterDelta: number;
+  ended: boolean;
+  outcome?: 'hung_up' | 'read_code' | 'timeout'; // set when ended
+}
+
+// Recovery after a slip: only after an unsafe action on a scam slot, inside a short window.
+export interface RecoverBody {
+  slotId: string;
+  action: Action; // freeze_account | hang_up_call_official | block_report
+}
+
+export interface RecoverResult {
+  slotId: string;
+  recovered: number; // wallet amount clawed back, in the pack's currency
+  walletAfter: number;
+  windowSeconds: number; // how long the player had
+  tooLate: boolean;
 }
 
 export interface DayPayload {
@@ -237,6 +281,8 @@ export interface SlotResult {
   falseTaps: string[]; // part ids with no tell
   walletAfter: number;
   peopleAfter: number;
+  recovered?: number; // set by a recovery action after a slip
+  followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model
   lesson: {
     tells: { id: TellId; label: string; why: string }[]; // from shared/taxonomy.ts
     neverAsks: string; // "A courier never asks for ..." style line

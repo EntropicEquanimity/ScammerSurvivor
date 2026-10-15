@@ -206,7 +206,9 @@ export async function writeCard(input: WriteCardInput): Promise<{ card: Card | n
     const repaired = second.reasons.length === 0;
     const trace = [...withOutcome(first.trace, 'rejected'), ...withOutcome(second.trace, repaired ? 'repaired' : 'rejected')];
     return { card: repaired ? toCard(second.draft, note, pack) : null, trace };
-  } catch {
-    return { card: null, trace: [{ agent: 'director', model: MODELS.director, ms: 0, outcome: 'rejected' }] };
+  } catch (err) {
+    // The short GeminiError reason only (status and class), never prompt text.
+    const reason = err instanceof Error ? err.message.slice(0, 120) : 'unknown error';
+    return { card: null, trace: [{ agent: 'director', model: MODELS.director, ms: 0, outcome: 'rejected', reasons: [reason] }] };
   }
 }
