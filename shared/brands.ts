@@ -7,7 +7,7 @@ export interface Brand {
 // Fictional brands only. Every name here is a proposal until the trademark
 // check in docs/ux-plan.md is done. The other skins join when their slices do.
 export const BRANDS = {
-  kwentuhan: { name: 'Kwentuhan', colour: '#CB4936', glyph: 'k' },
+  quillo: { name: 'Quillo', colour: '#CB4936', glyph: 'k' },
   fieldpost: { name: 'Fieldpost', colour: '#C03570', glyph: 'f' },
   fold: { name: 'Fold', colour: '#087A89', glyph: 'f' },
   relay: { name: 'Relay', colour: '#A0522D', glyph: 'r' },

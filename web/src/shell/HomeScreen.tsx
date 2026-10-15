@@ -10,7 +10,7 @@ import { haptic, rememberTap } from './feel.ts';
 // One piece of generated art per made-up app, plus the two phone tools. The colour fills the
 // squircle while the image loads or if it is missing, so the grid still reads.
 const ART = {
-  kwentuhan: { src: '/art/kwentuhan.png', colour: BRANDS.kwentuhan.colour, label: BRANDS.kwentuhan.name },
+  quillo: { src: '/art/quillo.png', colour: BRANDS.quillo.colour, label: BRANDS.quillo.name },
   fieldpost: { src: '/art/fieldpost.png', colour: BRANDS.fieldpost.colour, label: BRANDS.fieldpost.name },
   fold: { src: '/art/fold.png', colour: BRANDS.fold.colour, label: BRANDS.fold.name },
   relay: { src: '/art/relay.png', colour: BRANDS.relay.colour, label: BRANDS.relay.name },
@@ -21,20 +21,35 @@ const ART = {
 
 type ArtId = keyof typeof ART;
 
-const APP_ARTS: ArtId[] = ['kwentuhan', 'sms', 'fold', 'fieldpost', 'relay'];
+const APP_ARTS = ['quillo', 'sms', 'fold', 'fieldpost', 'relay'] as const satisfies readonly ArtId[];
+
+type AppArtId = (typeof APP_ARTS)[number];
 
 // ponytail: every chat look shares the one chat app until shared/brands.ts grows a brand per look.
-const ART_FOR_LAYOUT: Record<Layout, ArtId> = {
-  'green-chat': 'kwentuhan',
-  'blue-chat': 'kwentuhan',
-  'sticker-chat': 'kwentuhan',
-  'cloud-chat': 'kwentuhan',
-  'purple-chat': 'kwentuhan',
+const ART_FOR_LAYOUT: Record<Layout, AppArtId> = {
+  'green-chat': 'quillo',
+  'blue-chat': 'quillo',
+  'sticker-chat': 'quillo',
+  'cloud-chat': 'quillo',
+  'purple-chat': 'quillo',
   email: 'fieldpost',
   wallet: 'fold',
   call: 'relay',
   sms: 'sms',
 };
+
+// The layout a tile opens when the pack deals that app nothing: the app in its plain look, empty.
+const DEFAULT_LAYOUT: Record<AppArtId, Layout> = {
+  quillo: 'green-chat',
+  sms: 'sms',
+  fold: 'wallet',
+  fieldpost: 'email',
+  relay: 'call',
+};
+
+// The pack's own look for that app wins (a dealt card lives there); otherwise the app's default look.
+const layoutForTile = (id: AppArtId, packLayouts: Layout[]): Layout =>
+  packLayouts.find((layout) => ART_FOR_LAYOUT[layout] === id) ?? DEFAULT_LAYOUT[id];
 
 const CONFIDENCE_WORDS: Record<CountryPack['confidence'], string> = {
   high: 'from police statistics',
@@ -97,26 +112,20 @@ function Widgets({ name, pack, onPlay, playRef }: WidgetProps) {
 }
 
 interface GridProps {
-  packArts: ArtId[];
-  onFocusPlay: (event: Tap) => void;
+  packLayouts: Layout[];
+  onOpenApp: (event: Tap, layout: Layout) => void;
 }
 
-// Pack apps first, then the apps other countries use (dimmed, coming to this deck), then the tools.
-// No tile is dead: every app tile leads to the widget's Play button. Stagger continues after the widgets.
-function AppGrid({ packArts, onFocusPlay }: GridProps) {
-  const rest = APP_ARTS.filter((id) => !packArts.includes(id));
-  const apps = [...packArts.map((id) => ({ id, soon: false })), ...rest.map((id) => ({ id, soon: true }))];
+// Pack apps first, then the rest, then the tools. Every app tile opens that app: the day screen routes
+// the layout to its unopened slot, or shows the app empty. Stagger continues after the widgets.
+function AppGrid({ packLayouts, onOpenApp }: GridProps) {
+  const apps = [...new Set<AppArtId>([...packLayouts.map((layout) => ART_FOR_LAYOUT[layout]), ...APP_ARTS])];
   const tools = apps.length;
   return (
     <ul className="app-grid" aria-label="Apps on this phone">
-      {apps.map(({ id, soon }, index) => (
+      {apps.map((id, index) => (
         <li key={id} className="anim-pop" style={stagger(index + 2)}>
-          <button
-            type="button"
-            className={soon ? 'app-tile app-tile-soon pressable' : 'app-tile pressable'}
-            aria-label={soon ? `${ART[id].label}, coming to this country's deck` : undefined}
-            onClick={onFocusPlay}
-          >
+          <button type="button" className="app-tile pressable" onClick={(event) => onOpenApp(event, layoutForTile(id, packLayouts))}>
             <AppArt id={id} /><span>{ART[id].label}</span>
           </button>
         </li>
@@ -134,7 +143,7 @@ function AppGrid({ packArts, onFocusPlay }: GridProps) {
 function Dock({ onPlay, first }: { onPlay: (event: Tap, quick: boolean) => void; first: number }) {
   return (
     <nav className="dock glass anim-pop" aria-label="Phone tools" style={stagger(first)}>
-      <button type="button" className="pressable" aria-label="Play a full day" onClick={(event) => onPlay(event, false)}><AppArt id="kwentuhan" /></button>
+      <button type="button" className="pressable" aria-label="Play a full day" onClick={(event) => onPlay(event, false)}><AppArt id="quillo" /></button>
       <button type="button" className="pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}><AppArt id="sms" /></button>
       <a className="pressable" href="#/progress" aria-label="My practice" onClick={feel}><AppArt id="practice" /></a>
       <a className="pressable" href="#/privacy" aria-label="Privacy notice" onClick={feel}><AppArt id="privacy" /></a>
@@ -147,19 +156,22 @@ interface HomeProps {
   pack: PackSummary | undefined; // undefined while the packs list loads or for a country without a pack
   onPlay: (quick: boolean) => void;
   onChangeCountry: () => void;
+  // An app tile was tapped: open that app's thread (the day routes it to the matching unopened slot,
+  // or shows the app empty). ponytail: optional until App passes it; then make it required and drop the fallback.
+  onOpenApp?: (layout: Layout) => void;
 }
 
-export function HomeScreen({ country, pack, onPlay, onChangeCountry }: HomeProps) {
+export function HomeScreen({ country, pack, onPlay, onChangeCountry, onOpenApp }: HomeProps) {
   const playRef = useRef<HTMLButtonElement>(null);
   const layouts = (pack ?? NO_PACK).layouts.slice(0, 3);
-  const packArts = [...new Set(layouts.map((layout) => ART_FOR_LAYOUT[layout]))];
   const name = countryName(country);
   const play = (event: Tap, quick: boolean) => {
     feel(event);
     onPlay(quick);
   };
-  const focusPlay = (event: Tap) => {
+  const openApp = (event: Tap, layout: Layout) => {
     feel(event);
+    if (onOpenApp) return onOpenApp(layout);
     playRef.current?.scrollIntoView({ block: 'center' });
     playRef.current?.focus();
   };
@@ -171,7 +183,7 @@ export function HomeScreen({ country, pack, onPlay, onChangeCountry }: HomeProps
   return (
     <section className="page home">
       <Widgets name={name} pack={pack ?? NO_PACK} onPlay={play} playRef={playRef} />
-      <AppGrid packArts={packArts} onFocusPlay={focusPlay} />
+      <AppGrid packLayouts={layouts} onOpenApp={openApp} />
       <button type="button" className="search-pill glass glass-strong pressable anim-pop" style={stagger(tiles + 2)} onClick={change}>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13M15.5 15.5L20 20" /></svg>
         <span>{name}</span>

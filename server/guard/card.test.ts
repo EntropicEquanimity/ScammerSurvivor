@@ -111,7 +111,7 @@ test('name_not_allowed: a first name outside the allowed list', () => {
 test('made-up app names and title-case nouns are not names', () => {
   const probes = [
     'Open the Fold app and [ask line]',
-    'Message us on Kwentuhan to [ask line]',
+    'Message us on Quillo to [ask line]',
     'Your Parcel is held at Customs. [ask line]',
     'A message from Immigration. Transfer from Head Office today. [ask line]',
     'Hi Mom, this is Urgent. [ask line]',

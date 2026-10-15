@@ -18,7 +18,7 @@ Opaque backgrounds are JPEG because the PNG at the same size was 1.1 to 1.8 MB, 
 | `wall/a.jpg` | 96 KB | 780x1170 | Existing wallpaper candidate, byte-identical to `wallpaper.jpg`. Prompt not on record. |
 | `wall/b.jpg` | 46 KB | 780x1170 | Existing wallpaper candidate, dark teal and amber haze. Prompt not on record. |
 | `wall/c.jpg` | 65 KB | 780x1170 | Existing wallpaper candidate, dark green silk. Prompt not on record. |
-| `kwentuhan.png` | 31 KB | 192x192 | Existing app icon, glass tile, speech bubble on red-orange. Prompt not on record. |
+| `quillo.png` | 31 KB | 192x192 | Existing app icon, glass tile, speech bubble on red-orange. Prompt not on record. |
 | `fieldpost.png` | 29 KB | 192x192 | Existing app icon, glass tile, magenta. Prompt not on record. |
 | `fold.png` | 24 KB | 192x192 | Existing app icon, glass tile, teal. Prompt not on record. |
 | `relay.png` | 30 KB | 192x192 | Existing app icon, glass tile, sienna. Prompt not on record. |
@@ -28,6 +28,6 @@ Opaque backgrounds are JPEG because the PNG at the same size was 1.1 to 1.8 MB, 
 
 ## Coverage
 
-Every invented app in `shared/brands.ts` (kwentuhan, fieldpost, fold, relay) already had an icon, so none were generated this round. Institutions in `shared/brands.ts` are sender roles, not apps, and carry no icon.
+Every invented app in `shared/brands.ts` (quillo, fieldpost, fold, relay) already had an icon, so none were generated this round. Institutions in `shared/brands.ts` are sender roles, not apps, and carry no icon.
 
 Generations used: 7 of the 30 budget (5 first passes, 2 palette retries).

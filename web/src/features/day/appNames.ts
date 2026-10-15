@@ -5,11 +5,11 @@ import type { Layout } from '../../../../shared/types.ts';
 // ponytail: slice 5 records each layout's own brand in shared/brands.ts. Until then the four
 // existing made-up apps cover the looks, and text messages carry no app name at all.
 const LAYOUT_BRAND: Partial<Record<Layout, BrandId>> = {
-  'green-chat': 'kwentuhan',
-  'blue-chat': 'kwentuhan',
-  'sticker-chat': 'kwentuhan',
-  'cloud-chat': 'kwentuhan',
-  'purple-chat': 'kwentuhan',
+  'green-chat': 'quillo',
+  'blue-chat': 'quillo',
+  'sticker-chat': 'quillo',
+  'cloud-chat': 'quillo',
+  'purple-chat': 'quillo',
   email: 'fieldpost',
   wallet: 'fold',
   call: 'relay',
