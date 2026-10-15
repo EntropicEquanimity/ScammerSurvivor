@@ -7,9 +7,9 @@
   ],
   "confidence": "medium",
   "hotline": {
-    "label": "Indonesia Anti-Scam Centre (OJK)",
+    "label": "OJK contact centre (Indonesia Anti-Scam Centre)",
     "number": "157",
-    "reportUrl": "https://iasc.ojk.go.id/"
+    "reportUrl": "https://iasc.ojk.go.id/Guest/LaporanV2"
   },
   "numberMask": "08XX-XXXX-dddd",
   "currency": "IDR",
@@ -32,6 +32,12 @@
     "payment_change",
     "refund_payment"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "Indonesia Anti-Scam Centre (OJK)",
+      "url": "https://iasc.ojk.go.id/",
+      "date": "2026-10-16"
+    }
+  ]
 }

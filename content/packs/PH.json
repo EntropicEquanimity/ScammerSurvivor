@@ -7,8 +7,8 @@
   ],
   "confidence": "medium",
   "hotline": {
-    "label": "Cybercrime hotline (CICC)",
-    "number": "1326",
+    "label": "Report to your national police anti-scam line",
+    "number": "",
     "reportUrl": "https://www.cicc.gov.ph/"
   },
   "numberMask": "09XX XXX dddd",

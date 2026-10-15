@@ -9,7 +9,7 @@
   "hotline": {
     "label": "Anti-Scam Helpline",
     "number": "18222",
-    "reportUrl": "https://cyberdefender.hk/"
+    "reportUrl": "https://www.adcc.gov.hk/en-hk/home.html"
   },
   "numberMask": "+852 XXXX dddd",
   "currency": "HKD",
@@ -32,6 +32,12 @@
     "overseas_job",
     "refund_payment"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "Anti-Deception Coordination Centre, Hong Kong Police",
+      "url": "https://www.adcc.gov.hk/en-hk/home.html",
+      "date": "2026-10-16"
+    }
+  ]
 }

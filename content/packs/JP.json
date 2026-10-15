@@ -9,7 +9,7 @@
   "hotline": {
     "label": "Police consultation line",
     "number": "#9110",
-    "reportUrl": "https://www.npa.go.jp/"
+    "reportUrl": "https://www.npa.go.jp/goiken/index.html"
   },
   "numberMask": "0X0-XXXX-dddd",
   "currency": "JPY",
@@ -32,6 +32,12 @@
     "overseas_job",
     "refund_payment"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "National Police Agency, consultation contacts",
+      "url": "https://www.npa.go.jp/goiken/index.html",
+      "date": "2026-10-16"
+    }
+  ]
 }

@@ -7,8 +7,8 @@
   ],
   "confidence": "high",
   "hotline": {
-    "label": "Scamwatch (report) and IDCARE",
-    "number": "1800 595 160",
+    "label": "Scamwatch (report online)",
+    "number": "",
     "reportUrl": "https://www.scamwatch.gov.au/report-a-scam"
   },
   "numberMask": "04XX XXd ddd",
@@ -32,6 +32,12 @@
     "overseas_job",
     "refund_payment"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "Scamwatch, Report a scam (ACCC)",
+      "url": "https://www.scamwatch.gov.au/report-a-scam",
+      "date": "2026-10-16"
+    }
+  ]
 }

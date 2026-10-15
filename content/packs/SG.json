@@ -9,7 +9,7 @@
   "hotline": {
     "label": "ScamShield helpline",
     "number": "1799",
-    "reportUrl": "https://www.scamshield.gov.sg/"
+    "reportUrl": "https://go.gov.sg/scamreport"
   },
   "numberMask": "+65 XXXX dddd",
   "currency": "SGD",
@@ -32,6 +32,12 @@
     "prize_fee",
     "overseas_job"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "ScamShield (Singapore)",
+      "url": "https://www.scamshield.gov.sg/",
+      "date": "2026-10-16"
+    }
+  ]
 }

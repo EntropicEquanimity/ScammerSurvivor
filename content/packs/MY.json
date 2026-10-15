@@ -9,7 +9,7 @@
   "hotline": {
     "label": "National Scam Response Centre",
     "number": "997",
-    "reportUrl": "https://www.nsrc.gov.my/"
+    "reportUrl": "https://www.malaysia.gov.my/en/topics/nsrc-997-hotline"
   },
   "numberMask": "01X-XXX dddd",
   "currency": "MYR",
@@ -32,6 +32,12 @@
     "loan_threat",
     "overseas_job"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "NSRC 997 Hotline (Government of Malaysia portal)",
+      "url": "https://www.malaysia.gov.my/en/topics/nsrc-997-hotline",
+      "date": "2026-10-16"
+    }
+  ]
 }

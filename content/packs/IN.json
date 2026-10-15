@@ -9,7 +9,7 @@
   "hotline": {
     "label": "National cyber crime helpline",
     "number": "1930",
-    "reportUrl": "https://cybercrime.gov.in/"
+    "reportUrl": "https://www.cybercrime.gov.in/"
   },
   "numberMask": "+91 XXXXX Xdddd",
   "currency": "INR",
@@ -32,6 +32,12 @@
     "refund_payment",
     "payment_change"
   ],
-  "hotlineVerified": false,
-  "sources": []
+  "hotlineVerified": true,
+  "sources": [
+    {
+      "title": "National Cyber Crime Reporting Portal (Ministry of Home Affairs)",
+      "url": "https://www.cybercrime.gov.in/home",
+      "date": "2026-10-16"
+    }
+  ]
 }
