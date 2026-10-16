@@ -169,7 +169,7 @@ export function TalkingView({ caller, beat, offered, heardCode, busy, failed, sp
         <p className="call-caption scroll" aria-live="polite" ref={caption} onScroll={mark}>{beat?.caption ?? ''}</p>
         {failed && (
           <p className="plain-note call-note" role="alert">
-            That did not go through. Tap again.
+            We couldn't send that. Check your connection, then tap again.
           </p>
         )}
       </div>

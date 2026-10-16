@@ -62,7 +62,7 @@ function Flags({ card, busy, failed, verdict, onDone }: Omit<Props, 'onDone'> & 
         {card.page && card.page.lines.length > 0 && <PageTells page={card.page} tap={{ pressed, onToggle: toggle }} />}
         {failed && (
           <p className="plain-note on-wall" role="alert">
-            Your flags did not go through. Tap Done again.
+            We couldn't send your flags. Check your connection, then tap Done again.
           </p>
         )}
       </div>

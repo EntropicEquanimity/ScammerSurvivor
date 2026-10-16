@@ -11,6 +11,7 @@ import { getRoom, reportDay, startRoomDay } from '../room/api.ts';
 export type Phase =
   | { kind: 'loading' }
   | { kind: 'load-failed' }
+  | { kind: 'expired' } // the server no longer has this day (it restarted or updated mid-day)
   | { kind: 'notifications' }
   | { kind: 'card'; slotId: string }
   | { kind: 'tells'; slotId: string } // "Scam or real?", then flagging (TellPicker.tsx)
@@ -149,7 +150,9 @@ function request<T>(setState: SetState, call: () => Promise<T>, onOk: (value: T,
   setState((s) => ({ ...s, busy: true, failed: false }));
   call().then(
     (value) => setState((s) => onOk(value, { ...s, busy: false })),
-    () => setState((s) => ({ ...s, busy: false, failed: true })),
+    // A 404 means the server lost the day (an update or a restart), so retrying can never work.
+    (error: unknown) =>
+      setState((s) => (String(error).includes(' 404') ? { ...s, busy: false, phase: { kind: 'expired' } } : { ...s, busy: false, failed: true })),
   );
 }
 

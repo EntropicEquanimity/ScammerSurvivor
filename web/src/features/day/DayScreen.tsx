@@ -59,6 +59,24 @@ function Notice({ title, line }: { title: string; line: string }) {
   );
 }
 
+// The server lost this day mid-play (it updated or restarted), so no retry can work: say so plainly
+// and start a fresh day.
+function DayExpired() {
+  const restart = () => {
+    haptic();
+    window.location.reload();
+  };
+  return (
+    <section className="day-notice glass glass-strong anim-zoom">
+      <ScreenTitle>This day was reset</ScreenTitle>
+      <p>The game updated while you were playing, so this day can't continue. Start a new one.</p>
+      <button type="button" className="btn btn-primary pressable" onClick={restart}>
+        Start a new day
+      </button>
+    </section>
+  );
+}
+
 function LoadFailed({ onRetry }: { onRetry: () => void }) {
   const retry = () => {
     haptic();
@@ -103,7 +121,7 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
         <ChatThread chat={chat} />
         {failed && (
           <p className="plain-note" role="alert">
-            Your choice did not go through. Tap it again.
+            We couldn't send that. Check your connection, then tap your choice again.
           </p>
         )}
       </div>
@@ -118,7 +136,7 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
 // lesson are full app screens of their own (the Ruler's HOLD), the call has its own full-screen
 // look, and the end screen has its own score. A call over the day hides it too.
 // The tells keep the HUD: the points fly into it from Done there.
-const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'aftermath', 'lesson', 'call', 'end'];
+const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'expired', 'aftermath', 'lesson', 'call', 'end'];
 
 type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
@@ -216,6 +234,7 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const body = () => {
     if (phase.kind === 'loading') return <Notice title="Getting your day ready" line="Your messages are on the way." />;
     if (phase.kind === 'load-failed') return <LoadFailed onRetry={d.retryLoad} />;
+    if (phase.kind === 'expired') return <DayExpired />;
     if (phase.kind === 'call') return null; // the call layer holds the screen
     if (phase.kind === 'end') {
       const senders = Object.fromEntries((d.day?.cards ?? []).map((card) => [card.slotId, card.sender.displayName]));
@@ -223,6 +242,7 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
         <EndOfDay
           score={phase.score}
           points={juice.score}
+          slots={juice.slots}
           age={age}
           tells={d.tells}
           results={d.results}

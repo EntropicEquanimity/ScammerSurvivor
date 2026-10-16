@@ -75,7 +75,7 @@ function PageForm({ page, form, sending, failed, onFocus, onSend }: FormProps) {
           <Row key={id} id={id} filled={form.filled.includes(id)} focused={form.focus === id} onFocus={onFocus} />
         ))}
       </ul>
-      {failed && <p className="web-failed" role="alert">That did not go through. Tap {sendLabel(page.kind)} again.</p>}
+      {failed && <p className="web-failed" role="alert">We couldn't send that. Check your connection, then tap {sendLabel(page.kind)} again.</p>}
       <button type="button" className="web-send pressable" disabled={sending || form.filled.length === 0} onClick={send}>
         {sendLabel(page.kind)}
       </button>

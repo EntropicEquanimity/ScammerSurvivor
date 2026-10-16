@@ -10,6 +10,7 @@
   --line: #d9dde3;
   --accent: #0a70e8;
   --notice: #9a5b13;
+  --ok: #1f7a37; /* iOS green for text: Apple's accessible system green, 4.5:1 or better on white and grouped grey */
   --glass: rgba(255, 255, 255, 0.62);
   --glass-strong: rgba(255, 255, 255, 0.82);
   /* A bar over the wallpaper: iOS material hints at what is behind, never shows its shapes. */

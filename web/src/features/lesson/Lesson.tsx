@@ -36,7 +36,7 @@ function NextBar({ busy, failed, onNext, label }: StepProps & { label: string })
     <div className="page-end">
       {failed && (
         <p className="plain-note" role="alert">
-          That did not go through. Tap {label} again.
+          We couldn't load the next step. Check your connection, then tap {label} again.
         </p>
       )}
       <button type="button" className="btn btn-primary pressable" disabled={busy} onClick={next}>

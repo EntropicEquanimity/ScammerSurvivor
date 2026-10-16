@@ -211,7 +211,7 @@
 /* The outcome line in the stamps' colours: the accent ink when the move was safe, the warm notice
    colour when it was a slip (4.9:1 on the grouped grey). A word carries it too, never colour alone. */
 .lesson-did-good {
-  color: var(--accent-ink);
+  color: var(--ok);
   font-weight: 600;
 }
 

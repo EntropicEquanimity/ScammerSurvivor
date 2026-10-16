@@ -60,7 +60,9 @@ export function outcomeLine(result: SlotResult, lost?: string): { text: string; 
   const line = actionOutcome(result, lost);
   const said = verdictSaid(result);
   const text = [said, line.text, result.questioned ? 'You asked questions first.' : ''].filter(Boolean).join(' ');
-  return { ...line, text };
+  // A right call at "Scam or real?" reads as a win (green); the action alone decides when no call was asked.
+  const tone: OutcomeTone = result.verdict ? (result.verdictCorrect ? 'good' : 'slip') : line.tone;
+  return { text, tone };
 }
 
 // What the player said at "Scam or real?", marked right or wrong; nothing when they were not asked.

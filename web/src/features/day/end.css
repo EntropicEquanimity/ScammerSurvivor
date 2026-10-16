@@ -9,6 +9,7 @@
    reduced-motion twin is opacity only. */
 .end {
   --row-stagger: 60ms;
+  --reveal: 2000ms; /* REVEAL.barsAt in useReveal.ts: the ledger waits for the score reveal */
   position: relative;
 }
 
@@ -35,16 +36,18 @@
 .end-note,
 .result-card-slot,
 .boss-row {
-  --after-rows: calc(var(--n, 0) * var(--row-stagger) + 360ms);
+  --after-rows: calc(var(--reveal) + var(--n, 0) * var(--row-stagger) + 360ms);
 }
 
+/* Wallet's transaction row: sender and sentence at left, the points and the Scam or Real tag at right. */
 .ledger-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+  align-items: baseline;
   animation: ledger-in var(--dur-pop) var(--spring) both;
-  animation-delay: calc(var(--i, 0) * var(--row-stagger));
+  animation-delay: calc(var(--reveal) + var(--i, 0) * var(--row-stagger));
 }
 
 /* Rows start visible in their base style; only the keyframe carries the offset, so a browser that
@@ -59,14 +62,14 @@
 @media (prefers-reduced-motion: reduce) {
   .ledger-row {
     animation: ledger-fade 200ms ease-out both !important;
-    animation-delay: calc(var(--i, 0) * var(--row-stagger)) !important;
+    animation-delay: calc(var(--i, 0) * var(--row-stagger)) !important; /* no reveal to wait for */
   }
 
   .end-note,
   .result-card-slot,
   .boss-row {
     animation: ledger-fade 200ms ease-out both !important;
-    animation-delay: var(--after-rows) !important;
+    animation-delay: calc(var(--after-rows) - var(--reveal)) !important;
   }
 
   @keyframes ledger-fade {
@@ -97,23 +100,26 @@
   font-weight: 600;
 }
 
-/* Sender at left, the Scam or Real tag at right, the plain sentence under them. */
-.ledger-head {
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-  justify-content: space-between;
-  align-self: stretch;
+.ledger-points {
+  grid-column: 2;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
 }
 
+.ledger-points-none { color: var(--ink-2); }
+
+.ledger-sentence { grid-column: 1; }
+
 .ledger-tag {
-  flex: none;
+  grid-column: 2;
+  justify-self: end;
   font-size: var(--t15);
   font-weight: 600;
   white-space: nowrap;
 }
 
-.ledger-tag-right { color: var(--accent-ink, var(--accent)); }
+.ledger-tag-right { color: var(--ok); }
 .ledger-tag-wrong { color: var(--notice); }
 
 .ledger-sentence {
