@@ -4,7 +4,7 @@ import { Router } from 'express';
 import type { Card, CountryPack, PatternNote, People, TraceEvent, TrickId } from '../../shared/types.ts';
 import { NEUTRAL_NAMES, writeCard } from '../agents/director.ts';
 import type { WriteCardInput } from '../agents/director.ts';
-import { redealSlot } from '../deal.ts';
+import { fitLayout, redealSlot } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState } from '../store.ts';
 
@@ -65,6 +65,11 @@ export const planJobs = (state: PersonalState, pack: CountryPack, load: typeof l
     return note ? [{ dayId: state.dayId, slotId: slot.slotId, note, pack, people: state.people }] : [];
   });
 
+// The Director's four neutral names plus the six the pregenerate script adds: a day with no people
+// chosen (the Skip path) is still written around names that fit any JAPAC country.
+// ponytail: scripts/pregenerate.ts holds the same ten; one shared list is the upgrade.
+export const SKIP_NAMES: readonly string[] = [...NEUTRAL_NAMES, 'Ari', 'Kai', 'Nadia', 'Theo', 'Sam', 'Rina'];
+
 const names = (people: People): string[] => Object.values(people).filter((name): name is string => typeof name === 'string');
 
 // Re-reads the day at the moment the card lands: the player may have opened or
@@ -83,8 +88,8 @@ async function runJob(job: Job, write: Writer): Promise<void> {
   const started = Date.now();
   try {
     const { note, pack, people } = job;
-    const { card, trace } = await write({ note, pack, people, level: LEVEL, allowedNames: [...names(people), ...NEUTRAL_NAMES] });
-    settle(job.dayId, job.slotId, card, trace);
+    const { card, trace } = await write({ note, pack, people, level: LEVEL, allowedNames: [...new Set([...names(people), ...SKIP_NAMES])] });
+    settle(job.dayId, job.slotId, card && fitLayout(card, pack.layouts), trace);
   } catch {
     settle(job.dayId, job.slotId, null, [{ agent: 'director', ms: Date.now() - started, outcome: 'fallback' }]);
   }
@@ -103,6 +108,20 @@ const publicEvent = ({ agent, model, ms, tokens, outcome, reasons }: TraceEvent)
   outcome,
   ...(reasons ? { reasons: reasons.map(String) } : {}),
 });
+
+const COACH_LIMIT = 20; // the Coach can be asked again and again; its last twenty events are kept
+
+// The one trace store: the Coach's events land in the same per-day list the Director's do,
+// so GET /api/day/:dayId/trace shows every agent. An unknown day records nothing.
+export function appendTrace(dayId: string, event: TraceEvent): void {
+  const state = readPersonalState(dayId);
+  if (!state) return;
+  const joined = [...state.trace, event];
+  const coach = joined.filter((item) => item.agent === 'coach');
+  const drop = new Set(coach.slice(0, Math.max(0, coach.length - COACH_LIMIT)));
+  const next: PersonalState = { ...state, trace: joined.filter((item) => !drop.has(item)) };
+  saveDay(next);
+}
 
 export const listTrace = (dayId: string): TraceEvent[] | undefined => readPersonalState(dayId)?.trace.map(publicEvent);
 

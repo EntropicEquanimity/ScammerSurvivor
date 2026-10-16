@@ -28,7 +28,7 @@ function NotifCard({ card, onOpen }: CardProps) {
     <button type="button" className="glass glass-strong notif pressable" onClick={open}>
       <AppIcon layout={card.layout} size={38} />
       <span className="notif-body">
-        <span className="notif-top">Practice · {card.arrivesAt}</span>
+        <span className="notif-top">{card.arrivesAt}</span>
         <span className="notif-sender">{card.sender.displayName}</span>
         <span className="notif-text">{card.ask[0]?.text ?? ''}</span>
       </span>
@@ -39,8 +39,8 @@ function NotifCard({ card, onOpen }: CardProps) {
 // The lock screen of the day: the same anatomy as the real one. The heading doubles as the date
 // line, the clock is the next message's time, the stakes sit under it, the stack sits low.
 // The newest message drops in as a banner under the clock first, then settles at the top of the
-// stack. The practice tag sits on the date line, the lock screen's one (rule 1); each card's time
-// slot reads "Practice · time" in grey, the on-card wording, not a second tag.
+// stack. Each card's time slot shows the time only; the practice line lives in the visually hidden
+// DOM label PhoneShell renders (rule 1), never on a card.
 // The day clock on the status bar is DayScreen's (useDayClock); this screen never touches it.
 export function Notifications({ cards, wallet, people, onOpen }: Props) {
   const live = useArrival(cards.length > 0);

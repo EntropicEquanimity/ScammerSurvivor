@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Action, CallBeatPublic, CallTurnResult } from '../../../../shared/types.ts';
-import { callTurn, startCall } from './api.ts';
+import type { Action, CallBeatPublic, CallStartResult, CallTurnResult } from '../../../../shared/types.ts';
+import { NoBeatsError, callTurn, startCall } from './api.ts';
 
-export type CallPhase = 'ringing' | 'talking' | 'ended';
+// 'none': the day has no call beats; the screen says so instead of skipping in silence.
+export type CallPhase = 'ringing' | 'talking' | 'ended' | 'none';
 export type CallOutcome = NonNullable<CallTurnResult['outcome']>;
+
+// Who is calling, from the start response. Until the server sends it, the screen falls back.
+export interface Caller {
+  displayName: string;
+  role: string;
+}
+type StartReply = CallStartResult & { caller?: Caller };
 
 // A beat with no audio, or audio that will not play, still shows its caption this long.
 const CAPTION_MS = 4000;
@@ -18,10 +26,11 @@ export interface CallState {
   speaking: boolean; // the caller is talking: audio playing or the caption timer running
   busy: boolean; // a turn is in flight: buttons wait so a double tap cannot record twice
   failed: boolean; // the last turn did not reach the server; the player taps again
+  caller: Caller | null; // null until the start response names the caller
 }
 
 const START: CallState = {
-  phase: 'ringing', beat: null, meter: 50, offered: [], outcome: null, lastAction: null, speaking: false, busy: false, failed: false,
+  phase: 'ringing', beat: null, meter: 50, offered: [], outcome: null, lastAction: null, speaking: false, busy: false, failed: false, caller: null,
 };
 
 export interface CallControls extends CallState {
@@ -92,9 +101,14 @@ function useCallStart(dayId: string, setState: SetCall, onUnmount: () => void, o
     if (started.current) return; // StrictMode mounts twice; the server must see one call
     started.current = true;
     startCall(dayId)
-      .then((start) => setState((prev) => (prev.phase === 'ringing' ? { ...prev, beat: start.beat, meter: start.meter, offered: start.offered } : prev)))
-      // ponytail: any start failure skips the call, not only no_beats; split them if a retry ever matters.
-      .catch(() => skip.current());
+      .then((start: StartReply) => setState((prev) => (prev.phase === 'ringing'
+        ? { ...prev, beat: start.beat, meter: start.meter, offered: start.offered, caller: start.caller ?? null }
+        : prev)))
+      // No beats is said on screen; any other start failure still skips the call.
+      .catch((error: unknown) => {
+        if (error instanceof NoBeatsError) setState((prev) => (prev.phase === 'ringing' ? { ...prev, phase: 'none' } : prev));
+        else skip.current();
+      });
     return onUnmount;
   }, [dayId]);
 }

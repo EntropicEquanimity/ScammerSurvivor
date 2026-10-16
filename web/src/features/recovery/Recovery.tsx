@@ -16,6 +16,7 @@ interface Props {
   slotId: string;
   stake: number; // what the transfer took, shown as the amount at stake
   onDone: (result: RecoverResult) => void;
+  onSkip: () => void; // the choice did not go through: on to the lesson without it
 }
 
 type Step = { kind: 'choose' } | { kind: 'sending' } | { kind: 'failed' } | { kind: 'done'; result: RecoverResult };
@@ -50,18 +51,36 @@ function CountdownRing({ left }: { left: number }) {
 }
 
 // Three endings: money back, reported in time but nothing back, or too late. The server says which.
-function outcomeLines(result: RecoverResult, stake: number): { line: string; note: string } {
-  if (result.tooLate) {
-    return { line: `Too late, ${money(stake)} gone`, note: 'Once it has gone through, the minutes after matter most.' };
-  }
+type Lines = { line: string; note: string };
+
+const tooLateLines = (stake: number): Lines => ({
+  line: `Too late, ${money(stake)} gone`,
+  note: 'Once it has gone through, the minutes after matter most.',
+});
+
+function outcomeLines(result: RecoverResult, stake: number): Lines {
+  if (result.tooLate) return tooLateLines(stake);
   if (result.recovered > 0) {
     return { line: `You got ${money(result.recovered)} of ${money(stake)} back`, note: 'Quick action brings some money back. Faster is more.' };
   }
   return { line: `Reported. ${money(stake)} gone`, note: 'Nothing came back this time, but the report counts. Freezing the account first brings more back.' };
 }
 
-function Outcome({ result, stake, onDone }: { result: RecoverResult; stake: number; onDone: () => void }) {
-  const { line, note } = outcomeLines(result, stake);
+// The choice did not go through after a retry, or the server had nothing to claw back. The lesson
+// still comes: one way forward, never a dead sheet.
+function Failed({ onSkip }: { onSkip: () => void }) {
+  return (
+    <div className="recovery-outcome">
+      <p className="recovery-note" role="alert">That did not go through. The lesson is next.</p>
+      <button type="button" className="btn btn-primary pressable" onClick={onSkip}>
+        Continue
+      </button>
+    </div>
+  );
+}
+
+function Outcome({ lines, onDone }: { lines: Lines; onDone: () => void }) {
+  const { line, note } = lines;
   return (
     <div className="recovery-outcome">
       <p className="recovery-result" role="status">{line}</p>
@@ -73,7 +92,7 @@ function Outcome({ result, stake, onDone }: { result: RecoverResult; stake: numb
   );
 }
 
-// The wallet app's header strip, with the practice tag every app header carries.
+// The wallet app's header strip.
 function WalletHeader({ name }: { name: string }) {
   return (
     <div className="app-header">
@@ -88,10 +107,12 @@ function WalletHeader({ name }: { name: string }) {
 
 // Shown right after an unsafe action on a scam: the transfer went through, the clock runs, three
 // ways to act. The server scores the choice; this screen only shows the clock and the result.
-export function Recovery({ dayId, slotId, stake, onDone }: Props) {
+export function Recovery({ dayId, slotId, stake, onDone, onSkip }: Props) {
   const [step, setStep] = useState<Step>({ kind: 'choose' });
   const left = useCountdown(RECOVERY_WINDOW_SECONDS);
   const look = appLookFor('wallet');
+  // The clock ran out before a choice: too late on its own, nothing to send, the wallet stays as scored.
+  const expired = left === 0 && step.kind === 'choose';
 
   const choose = (action: Action) => {
     haptic();
@@ -113,14 +134,12 @@ export function Recovery({ dayId, slotId, stake, onDone }: Props) {
           <span className="recovery-balance-label">At stake</span>
           <span className="recovery-balance-amount">{money(stake)}</span>
         </div>
-        {step.kind === 'done' ? (
-          <Outcome result={step.result} stake={stake} onDone={() => onDone(step.result)} />
-        ) : (
+        {step.kind === 'done' && <Outcome lines={outcomeLines(step.result, stake)} onDone={() => onDone(step.result)} />}
+        {step.kind === 'failed' && <Failed onSkip={onSkip} />}
+        {expired && <Outcome lines={tooLateLines(stake)} onDone={onSkip} />}
+        {!expired && (step.kind === 'choose' || step.kind === 'sending') && (
           <>
             <CountdownRing left={left} />
-            {step.kind === 'failed' && (
-              <p className="recovery-note" role="alert">Your choice did not go through. Tap it again.</p>
-            )}
             <div className="recovery-actions" role="group" aria-label="What will you do?">
               {RECOVERY_ACTIONS.map((action) => (
                 <button key={action} type="button" className="btn recovery-btn pressable" disabled={step.kind === 'sending'} onClick={() => choose(action)}>

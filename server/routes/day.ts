@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, recoveryFor, scoreDay, scoreSlot } from '../../shared/score.ts';
+import type { SlotScore } from '../../shared/score.ts';
 import { ACTIONS, PEOPLE_ROLES } from '../../shared/types.ts';
 import type { Action, AgeGroup, Card, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
 import { isChipName } from '../../shared/people.ts';
 import { readCards } from '../cache.ts';
-import { resolveCountry } from '../country.ts';
+import { fixturesFor, resolveCountry } from '../country.ts';
 import { PEOPLE_START, collectedFrom, dealDay, followUpFor, lessonFor } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState, StoredSlot } from '../store.ts';
@@ -25,8 +26,15 @@ export interface DayQuery {
   people?: unknown; // JSON object, role to name
 }
 
-// Long enough for a Firestore cold start on Cloud Run; the browser shows "Getting your day ready" meanwhile.
+// After this a slow read is answered from the last good read of the same pack, when there is one.
 const CACHE_WAIT_MS = 8000;
+// With no last good read, a slow read is still awaited this long, since the fixtures are bracketed
+// stage directions (rule 6) and must not reach a screen; the browser shows "Getting your day ready".
+const COLD_WAIT_MS = 30000;
+// The packs list asks every pack at once (Promise.all), so one slow read caps the whole list here.
+const DECK_WAIT_MS = 2000;
+const FULL_DAY = 4;
+const QUICK_DAY = 2;
 
 const toAge = (value: unknown): AgeGroup => (value === 'younger' ? 'younger' : 'adult');
 const toQuick = (value: unknown): boolean => value === '1' || value === 'true';
@@ -60,14 +68,36 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
 
 export type CardSource = (country: string) => Card[] | Promise<Card[]>;
 
-// The cache when it holds a whole day; the fixtures when it is empty, short, slow or down.
+// The last read per pack that held cards: a slow read is answered from it instead of the fixtures.
+// ponytail: server memory, empty after a restart; warming it at boot is the upgrade.
+const lastGood = new Map<string, Card[]>();
+
+const remember = (code: string, cards: unknown): Card[] | null => {
+  if (!Array.isArray(cards) || cards.length === 0) return null;
+  lastGood.set(code, cards as Card[]);
+  return cards as Card[];
+};
+
+const enough = (cards: Card[] | null | undefined, need: number): cards is Card[] => Array.isArray(cards) && cards.length >= need;
+
+export interface CacheWaits {
+  first: number;
+  cold: number;
+}
+
+// The cache when it holds a whole day. Slow: the last good read, else keep waiting for the cache.
+// Empty, short or down: the fixtures.
 // ponytail: all or nothing per day. Topping a short cache up with fixtures is the upgrade.
-async function cardsFor(code: string, fixtures: Card[], need: number, source: CardSource): Promise<Card[]> {
+async function cardsFor(code: string, fixtures: Card[], need: number, source: CardSource, waits: CacheWaits): Promise<Card[]> {
+  const read = Promise.resolve().then(() => source(code)).then((cards) => remember(code, cards));
   try {
-    const cached = await withTimeout(Promise.resolve(source(code)), CACHE_WAIT_MS);
-    return Array.isArray(cached) && cached.length >= need ? cached : fixtures;
-  } catch {
-    return fixtures;
+    const cached = await withTimeout(read, waits.first);
+    return enough(cached, need) ? cached : fixtures;
+  } catch (error) {
+    const warm = lastGood.get(code);
+    if (enough(warm, need)) return warm;
+    if ((error as Error).message !== 'cache_timeout') return fixtures;
+    return withTimeout(read, waits.cold).then((late) => (enough(late, need) ? late : fixtures), () => fixtures);
   }
 }
 
@@ -75,6 +105,7 @@ export interface DayDeps {
   cards?: CardSource;
   note?: typeof loadNote;
   write?: Writer;
+  waits?: CacheWaits; // tests shorten the waits
 }
 
 export interface Begun {
@@ -83,14 +114,18 @@ export interface Begun {
 }
 
 // ponytail: every day is a first play until progress exists (slice 7).
-function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDeps): Begun {
+// `onSkip` personalises an adult full day with no people chosen too, around neutral names: the
+// day route sets it so the Gemini chip flips on the Skip path; rooms and test seams leave it off,
+// since a room's phones must hold the same cards.
+function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDeps, onSkip = false): Begun {
   const quick = toQuick(query.quick);
   const age = toAge(query.age);
   const dayId = randomUUID();
   const seed = Number.parseInt(dayId.slice(0, 8), 16);
   const { payload, slots } = dealDay({ dayId, pack, cards, quick, seed });
   // Only an adult full day is personalised; the quick day and younger players never reach a model.
-  const people = age === 'adult' && !quick ? parsePeople(query.people) : {};
+  const modelAllowed = age === 'adult' && !quick;
+  const people = modelAllowed ? parsePeople(query.people) : {};
   const base: PersonalState = {
     dayId,
     country: pack.code,
@@ -105,18 +140,34 @@ function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDe
     personalising: 0,
     opened: [],
   };
-  const jobs = Object.keys(people).length > 0 ? planJobs(base, pack, deps.note) : [];
+  const personalise = modelAllowed && (onSkip || Object.keys(people).length > 0);
+  const jobs = personalise ? planJobs(base, pack, deps.note) : [];
   const state: PersonalState = { ...base, personalising: jobs.length };
   saveDay(state);
+  // The jobs start here, in slot order, before the route has even sent the day.
   return { payload, settled: runJobs(jobs, deps.write) };
 }
 
 // The route's path: the cache when it holds a whole day, the fixtures otherwise.
 export async function beginDay(query: DayQuery, deps: DayDeps = {}): Promise<Begun> {
   const { pack, cards: fixtures } = resolveCountry(toCountry(query.country));
-  const need = toQuick(query.quick) ? 2 : 4;
-  const cards = await cardsFor(pack.code, fixtures, need, deps.cards ?? readCards);
-  return dealFrom(query, pack, cards, deps);
+  const need = toQuick(query.quick) ? QUICK_DAY : FULL_DAY;
+  const waits = deps.waits ?? { first: CACHE_WAIT_MS, cold: COLD_WAIT_MS };
+  const cards = await cardsFor(pack.code, fixtures, need, deps.cards ?? readCards, waits);
+  return dealFrom(query, pack, cards, deps, true);
+}
+
+// A pack's deck is ready when its own fixtures exist or the cache holds a whole full day for it
+// (the day route deals the cache first). A slow or broken cache reads as not ready.
+// Call it for every pack in one Promise.all: the list then waits DECK_WAIT_MS at most, not per pack.
+export async function deckReadyFor(code: string, source: CardSource = readCards): Promise<boolean> {
+  if (fixturesFor(code).length > 0) return true;
+  try {
+    const cached = await withTimeout(Promise.resolve(source(code)), DECK_WAIT_MS);
+    return Array.isArray(cached) && cached.length >= FULL_DAY;
+  } catch {
+    return false;
+  }
 }
 
 // Fixtures only, no cache read: the synchronous seam other routes' tests start a day with.
@@ -184,6 +235,16 @@ const scoredFields = (slot: StoredSlot): { scoredAt: number; lost: number } => {
   return { scoredAt: extra.scoredAt ?? 0, lost: extra.lost ?? 0 };
 };
 
+// Only a reply that moves money costs the stake: paying, sending, or handing over the code that
+// lets a transfer through. Keeping a secret or opening a link is still a slip, but nothing has
+// left the wallet yet, so no transfer sheet opens.
+const MONEY_MOVES: readonly Action[] = ['pay', 'send_money', 'share_code', 'read_code'];
+
+const scoreOf = (slot: StoredSlot, action: Action, taps: string[]): SlotScore => {
+  const score = scoreSlot(slot.key, action, taps);
+  return MONEY_MOVES.includes(action) ? score : { ...score, walletDelta: 0 };
+};
+
 // `now` is injectable so the recovery window can be tested; the route passes nothing.
 export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<SlotResult> {
   const state = readDay(dayId);
@@ -195,7 +256,7 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
   if (slot.result) return ok(slot.result);
   const taps = parseTaps(slot, fields.tappedPartIds);
   if (!taps) return fail(400, 'bad_taps');
-  const score = scoreSlot(slot.key, slot.action, taps);
+  const score = scoreOf(slot, slot.action, taps);
   const before = runningTotals(state);
   const { walletDelta, peopleDelta, ...rest } = score;
   const walletAfter = Math.max(0, before.wallet + walletDelta);
@@ -254,7 +315,7 @@ export function finishDay(dayId: string): Reply<DayScore> {
   if (!state) return fail(404, 'unknown_day');
   const scored = state.slots.filter((slot) => slot.result && slot.action);
   const results = scored.flatMap((slot) => (slot.result ? [slot.result] : []));
-  const items = scored.map((slot) => scoreSlot(slot.key, slot.action as Action, slot.taps ?? []));
+  const items = scored.map((slot) => scoreOf(slot, slot.action as Action, slot.taps ?? []));
   const day = scoreDay(items, { wallet: state.walletStart, people: state.peopleStart });
   // The wallet is the running total the player watched: scoreDay clamps once over the summed
   // losses, so it diverges from the per-slot clamps once a recovery lands mid-sequence.

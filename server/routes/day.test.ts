@@ -10,8 +10,9 @@ import { FIXTURES, PACKS, resolveCountry } from '../country.ts';
 import { dealDay, offeredFor } from '../deal.ts';
 import { readDay } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
-import { beginDay, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
-import { listTrace } from './trace.ts';
+import { beginDay, deckReadyFor, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
+import { SKIP_NAMES, appendTrace, listTrace } from './trace.ts';
+import { lessonFor } from './lesson.ts';
 import { listPacks } from './packs.ts';
 
 const KEY_FIELDS = ['plantedTells', 'safeReplies', 'unsafeReplies', 'usualEnding', 'callBeats', 'realTwin', 'tellIds', 'trickId', 'isScam', 'isTwin', 'neverAsks'];
@@ -114,7 +115,8 @@ test('the day is 400 on an unknown slot, action, tap before act, bad part id or 
   const [card] = cards;
   assert.equal(recordAct(dayId, { slotId: 'nope', action: 'reply' }).status, 400);
   assert.equal(recordAct(dayId, { slotId: card.slotId, action: 'write_me_a_message' }).status, 400);
-  assert.equal(recordAct(dayId, { slotId: card.slotId, action: 'read_code' }).status, 400);
+  const unoffered = ACTIONS.find((action) => !card.offered.includes(action));
+  assert.equal(recordAct(dayId, { slotId: card.slotId, action: unoffered }).status, 400);
   assert.equal(scoreTap(dayId, { slotId: card.slotId, tappedPartIds: [] }).status, 400);
   assert.equal(recordAct(dayId, { slotId: card.slotId, action: 'ignore' }).status, 200);
   assert.equal(scoreTap(dayId, { slotId: card.slotId, tappedPartIds: ['zz'] }).status, 400);
@@ -141,10 +143,15 @@ test('a country with a pack but no fixtures keeps its own hotline and layouts', 
   assert.equal(payload.cards.length, 4);
 });
 
-test('the packs list holds every JAPAC country, eight ready, two deck-ready', () => {
-  const packs = listPacks();
+// deckReady follows deckReadyFor (own fixtures, or a cache holding a full day), so the count
+// depends on the cache; `await` holds whether listPacks is sync or async.
+test('the packs list holds every JAPAC country, eight ready, deck-ready from deckReadyFor', async () => {
+  const packs = await listPacks();
   assert.equal(packs.filter((pack) => pack.ready).length, 8);
-  assert.deepEqual(packs.filter((pack) => pack.deckReady).map((pack) => pack.code).sort(), ['PH', 'SG']);
+  for (const pack of packs.filter((item) => item.ready)) {
+    assert.equal(pack.deckReady, await deckReadyFor(pack.code), pack.code);
+  }
+  assert.ok(packs.filter((pack) => pack.deckReady).length >= 2);
   assert.equal(packs.find((pack) => pack.code === 'PH')?.layouts[0], 'purple-chat');
   assert.equal(packs.find((pack) => pack.code === 'JP')?.layouts[0], 'sticker-chat');
   assert.equal(packs.find((pack) => pack.code === 'TO')?.ready, false);
@@ -171,8 +178,9 @@ function checkCard(card: Card, country: string) {
     assert.ok(isInstitutionId(sender.institutionId), `${card.id} sender`);
     assert.equal(sender.displayName, INSTITUTIONS[sender.institutionId], card.id);
   }
-  const offered = offeredFor(card);
-  assert.ok([...card.safeReplies, ...card.realTwin.acceptable].every((a) => offered.includes(a)), `${card.id} offered`);
+  const scamOffered = offeredFor(parts, card.unsafeReplies);
+  assert.ok(card.safeReplies.every((a) => scamOffered.includes(a)), `${card.id} scam offered`);
+  assert.ok(card.realTwin.acceptable.every((a) => offeredFor(card.realTwin.parts).includes(a)), `${card.id} twin offered`);
 }
 
 test('every fixture card is well formed: placeholders on the scam, plain text on the twin', () => {
@@ -302,3 +310,82 @@ test('a slot the player already acted on is never swapped, and a writer failure 
   assert.ok(listTrace(failing.payload.dayId)?.every((event) => event.outcome === 'fallback'));
 });
 
+
+test('the Skip path: an adult full day with no people is personalised from slot 2 with the neutral names', async () => {
+  const seen: WriteCardInput[] = [];
+  const record: typeof generated = (input) => {
+    seen.push(input);
+    return generated(input);
+  };
+  const { payload, settled } = await beginDay({ country: 'SG' }, { cards: noCache, note: approvedNote, write: record });
+  assert.equal(seen.length, payload.cards.length - 1, 'every job started before the day was returned');
+  await settled;
+  for (const input of seen) {
+    assert.deepEqual(input.people, {});
+    assert.deepEqual(input.allowedNames, [...SKIP_NAMES]);
+  }
+  assert.equal(SKIP_NAMES.length, 10);
+  const state = readDay(payload.dayId);
+  assert.ok(state && state.slots.slice(1).every((slot) => slot.card.id === 'gen-family_trouble'));
+  assert.ok(listTrace(payload.dayId)?.some((event) => event.agent === 'director' && event.outcome === 'ok'));
+  // A room day and the test seam stay unpersonalised: every phone in a room holds the same cards.
+  const room = startDay({ country: 'SG' });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(listTrace(room.dayId), []);
+});
+
+test('the trace route lists the Coach next to the Director, with model, ms and outcome', async () => {
+  const { payload, settled } = await beginDay({ country: 'SG' }, { cards: noCache, note: approvedNote, write: generated });
+  await settled;
+  const state = readDay(payload.dayId);
+  assert.ok(state);
+  const slot = state.slots[0];
+  assert.equal(recordAct(payload.dayId, { slotId: slot.slotId, action: 'ignore' }).status, 200);
+  assert.equal(scoreTap(payload.dayId, { slotId: slot.slotId, tappedPartIds: [] }).status, 200);
+  const stream = async function* () {
+    yield 'A short first line.';
+  };
+  const reply = lessonFor(payload.dayId, { slotId: slot.slotId }, stream);
+  assert.equal(reply.status, 200);
+  if (reply.status === 200) for await (const chunk of reply.chunks) assert.ok(chunk);
+  const coach = listTrace(payload.dayId)?.filter((event) => event.agent === 'coach') ?? [];
+  assert.equal(coach.length, 1);
+  assert.equal(coach[0].outcome, 'ok');
+  assert.ok(coach[0].model && coach[0].ms >= 0);
+  assert.ok(listTrace(payload.dayId)?.some((event) => event.agent === 'director'));
+  appendTrace('nope', { agent: 'coach', ms: 1, outcome: 'ok' });
+  assert.equal(listTrace('nope'), undefined);
+});
+
+// The fixtures are bracketed stage directions: a slow read must not put them on a screen.
+const SHORT_WAITS = { first: 20, cold: 2000 };
+const later = <T>(value: T, ms: number): Promise<T> => new Promise((resolve) => setTimeout(() => resolve(value), ms));
+const cacheOf = (prefix: string): Card[] => resolveCountry('SG').cards.map((card) => ({ ...card, id: `${prefix}-${card.id}` }));
+
+test('a slow cache with no earlier read is waited for instead of dealing the fixtures', async () => {
+  const cached = cacheOf('slow');
+  const { payload } = await beginDay({ country: 'HK' }, { cards: () => later(cached, 100), write: neverCalled, waits: SHORT_WAITS });
+  const state = readDay(payload.dayId);
+  assert.ok(state && state.slots.every((slot) => slot.card.id.startsWith('slow-')));
+});
+
+test('a slow cache after a good read deals the last good read at once', async () => {
+  const warm = cacheOf('warm');
+  await beginDay({ country: 'MY' }, { cards: () => warm, write: neverCalled, waits: SHORT_WAITS });
+  const started = Date.now();
+  const { payload } = await beginDay({ country: 'MY' }, { cards: () => new Promise<Card[]>(() => {}), write: neverCalled, waits: SHORT_WAITS });
+  assert.ok(Date.now() - started < 1000, 'answered from the last good read');
+  const state = readDay(payload.dayId);
+  assert.ok(state && state.slots.every((slot) => slot.card.id.startsWith('warm-')));
+});
+
+test('a pack is deck-ready on its own fixtures or a cache that holds a full day', async () => {
+  const sg = resolveCountry('SG').cards;
+  assert.equal(await deckReadyFor('SG', noCache), true);
+  assert.equal(await deckReadyFor('JP', () => sg.slice(0, 4)), true);
+  assert.equal(await deckReadyFor('JP', () => sg.slice(0, 3)), false);
+  assert.equal(await deckReadyFor('JP', () => Promise.reject(new Error('down'))), false);
+  const started = Date.now();
+  assert.equal(await deckReadyFor('JP', () => new Promise<Card[]>(() => {})), false);
+  assert.ok(Date.now() - started < 3000, 'a hung cache caps at the short pack-list wait');
+});

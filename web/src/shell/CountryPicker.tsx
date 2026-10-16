@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { UIEvent } from 'react';
 import { JAPAC_COUNTRIES } from '../../../shared/timezones.ts';
-import type { PackSummary } from '../api.ts';
 import { Icon } from './Icon.tsx';
 import { ScreenTitle } from './PhoneShell.tsx';
 import { storeCountryOverride } from './country.ts';
@@ -9,20 +8,19 @@ import { haptic } from './feel.ts';
 import './first-open.css';
 
 export interface CountryPickerProps {
-  packs: PackSummary[];
   selected: string | null;
   onSelect: (code: string) => void;
   onBack?: () => void;   // absent on the genuine first visit: there is no chosen country to return to
 }
 
-interface Row { code: string; name: string; ready: boolean }
+interface Row { code: string; name: string }
 
-// Countries with a deck come first, then the rest, both alphabetical. No search field: nothing is typed.
-function rows(packs: PackSummary[]): Row[] {
-  const ready = new Set(packs.filter((pack) => pack.ready).map((pack) => pack.code));
-  const byName = (a: Row, b: Row) => a.name.localeCompare(b.name);
-  return JAPAC_COUNTRIES.map((country) => ({ ...country, ready: ready.has(country.code) })).sort(byName);
-}
+// The eight country packs, read from the same files the server deals from, so the list never waits on
+// a fetch and a failed one still lets the player choose. Countries without a pack are not offered.
+const PACK_FILES = import.meta.glob<{ code: string }>('../../../content/packs/*.json', { eager: true, import: 'default' });
+const PACK_CODES = new Set(Object.values(PACK_FILES).map((pack) => pack.code));
+const ROWS: Row[] = JAPAC_COUNTRIES.filter((country) => PACK_CODES.has(country.code))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 // The blue check on the selected row, sized by shell.css through `.icon.inset-check`.
 const Check = () => (
@@ -53,8 +51,8 @@ function CountryGroup({ title, list, selected, onChoose }: {
   );
 }
 
-// A Settings page: nav bar with the back chevron, large title, two inset groups.
-export function CountryPicker({ packs, selected, onSelect, onBack }: CountryPickerProps) {
+// A Settings page: nav bar with the back chevron, large title, one inset group.
+export function CountryPicker({ selected, onSelect, onBack }: CountryPickerProps) {
   const choose = (code: string) => {
     haptic();
     storeCountryOverride(code);
@@ -70,7 +68,6 @@ export function CountryPicker({ packs, selected, onSelect, onBack }: CountryPick
     const title = event.currentTarget.querySelector('.large-title');
     setCollapsed(title ? title.getBoundingClientRect().top < event.currentTarget.getBoundingClientRect().top : false);
   };
-  const all = rows(packs);
   return (
     <section className="country-picker anim-sheet">
       <header className={`nav${collapsed ? ' nav-collapsed' : ''}`}>
@@ -79,8 +76,7 @@ export function CountryPicker({ packs, selected, onSelect, onBack }: CountryPick
       </header>
       <div className="picker-body scroll" onScroll={onScroll}>
         <ScreenTitle className="large-title">Country</ScreenTitle>
-        <CountryGroup title="Deck ready" list={all.filter((row) => row.ready)} selected={selected} onChoose={choose} />
-        <CountryGroup title="Deck coming" list={all.filter((row) => !row.ready)} selected={selected} onChoose={choose} />
+        <CountryGroup title="Countries" list={ROWS} selected={selected} onChoose={choose} />
       </div>
     </section>
   );

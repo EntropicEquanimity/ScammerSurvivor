@@ -8,7 +8,9 @@ import type { Schema } from '@google/genai';
 import { generateJson, MODELS } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
 import type { Beat } from '../beats.ts';
-import type { Action, CallTurnResult, TraceEvent } from '../../shared/types.ts';
+import { BRANDS } from '../../shared/brands.ts';
+import { trickCategory } from '../../shared/taxonomy.ts';
+import type { Action, CallTurnResult, Category, TraceEvent, TrickId } from '../../shared/types.ts';
 
 export type Generate = (req: JsonRequest) => Promise<{ json: unknown; trace: TraceEvent }>;
 
@@ -33,6 +35,69 @@ const LABELS: Partial<Record<Action, string>> = {
 // Which pushback answers which button, by position among the pushback beats.
 const PUSHBACK_FOR: Partial<Record<Action, number>> = { ask_reference: 0, refuse_code: 1, call_back: 2 };
 const ENDS: readonly Action[] = ['hang_up', 'hang_up_call_official'];
+
+// Who rings: an invented, JAPAC-neutral institution and a role, never a person.
+// The name matches what server/deal.ts fills into the card for the same category
+// (its INVENTED_INSTITUTION, not exported), so the card, the call header and the
+// voiced beats (scripts/tts-beats.ts) say one name. A trick whose card is sent by a
+// person (category E) gets a caller that fits the trick instead.
+// ponytail: mirrors deal.ts by hand; one shared table is the upgrade.
+export interface CallerIdentity { displayName: string; role: string }
+const HARBOURLINE: CallerIdentity = { displayName: 'Harbourline', role: 'the fraud desk' };
+const CIVIC: CallerIdentity = { displayName: 'Civic Notice Desk', role: 'a notice officer' };
+const PARCEL: CallerIdentity = { displayName: 'Northgate Parcel', role: 'a parcel officer' };
+export const CALLER_FOR: Record<Category, CallerIdentity> = {
+  A: { displayName: 'Kestrel Hiring', role: 'a hiring officer' },
+  B: { displayName: 'Cedar Trading Circle', role: 'an account manager' },
+  C: HARBOURLINE,
+  D: PARCEL,
+  E: { displayName: 'Westbay Clinic', role: 'the front desk' },
+  F: CIVIC,
+  G: HARBOURLINE,
+  H: { displayName: 'Meridian Prize Desk', role: 'a prize officer' },
+  I: HARBOURLINE,
+  J: HARBOURLINE,
+};
+// Tricks whose category caller would be an odd voice for them.
+const CALLER_BY_TRICK: Partial<Record<TrickId, CallerIdentity>> = {
+  loan_threat: { displayName: 'Cedar Trading Circle', role: 'the collections desk' },
+  fast_romance: PARCEL,
+  video_threat: CIVIC,
+};
+
+export const callerFor = (trickId: TrickId): CallerIdentity => ({ ...(CALLER_BY_TRICK[trickId] ?? CALLER_FOR[trickCategory(trickId)]) });
+
+// The identity check on a voiced line: no personal name, no country agency.
+// Reason ids only, never text. A capitalised word counts as a name when it sits
+// mid-sentence or right after a title or an introduction, unless it is listed here.
+const NOT_NAMES = new Set([
+  'i', 'practice', 'ok', 'hello', 'hi', 'greetings', 'calling', 'we', 'someone',
+  ...[...Object.values(CALLER_FOR), ...Object.values(CALLER_BY_TRICK)].flatMap((c) => `${c.displayName} ${c.role}`.toLowerCase().split(' ')),
+  ...Object.values(BRANDS).map((b) => b.name.toLowerCase()),
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+]);
+// The i flag lets "This is" match at a sentence start; the capture is re-checked for a capital.
+const TITLE_THEN_WORD = /\b(?:officer|investigator|inspector|agent|detective|sergeant|constable|mr|ms|mrs|dr|this is|my name is|i am|i'm)\.?\s+([A-Za-z]+)/gi;
+const BANNED = /\b(?:federal|fbi|cbi|irs|ato|iras|interpol|ministry|scotland yard|singapore|malaysia|india|indonesia|philippines|australia|hong kong|japan|thailand|vietnam)\b/i;
+
+// "Tarnak here" or "Tarnak speaking" anywhere.
+const NAME_THEN_HERE = /([A-Z][a-z]+)[,]?[ ](?:here|speaking)/g;
+// "Anand from the parcel desk" or "Anand at Harbourline" at a sentence start.
+const NAME_THEN_FROM = /(?:^|[.!?]\s+)([A-Z][a-z]+),?\s+(?:from|at|calling|on behalf)\b/g;
+// Capitalised words after the first of each sentence, trailing punctuation dropped.
+const midSentenceCaps = (text: string): string[] =>
+  text.split(/[.!?]+\s+/).flatMap((sentence) => sentence.trim().split(/[\s,;:.!?]+/).slice(1)).filter((w) => /^[A-Z][a-z]+$/.test(w));
+
+export function identityReasons(raw: string): string[] {
+  const text = raw.replace(/\[[^\]]*\]/g, ' ');
+  const titled = [...text.matchAll(TITLE_THEN_WORD)].map((m) => m[1]).filter((w) => /^[A-Z][a-z]+$/.test(w));
+  const signed = [...text.matchAll(NAME_THEN_HERE), ...text.matchAll(NAME_THEN_FROM)].map((m) => m[1]);
+  const names = [...titled, ...signed, ...midSentenceCaps(text)];
+  const reasons: string[] = [];
+  if (names.some((w) => !NOT_NAMES.has(w.toLowerCase()))) reasons.push('personal_name');
+  if (BANNED.test(text)) reasons.push('banned_word');
+  return reasons;
+}
 
 export const CALLER_SYSTEM = `You pick the next line of a scripted practice call inside a scam-awareness training game. The player knows it is practice. You see the remaining lines by id and role only, and the button the player pressed. Choose the pushback line that best answers that button. Set safetyStop true only if the player should be let go now. caption is one short neutral stage note. JSON only.`;
 

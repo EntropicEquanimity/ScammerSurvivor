@@ -14,7 +14,7 @@ const ART = {
   fieldpost: { src: '/art/fieldpost.png', colour: BRANDS.fieldpost.colour, label: BRANDS.fieldpost.name },
   fold: { src: '/art/fold.png', colour: BRANDS.fold.colour, label: BRANDS.fold.name },
   relay: { src: '/art/relay.png', colour: BRANDS.relay.colour, label: BRANDS.relay.name },
-  sms: { src: '/art/sms.png', colour: '#5b6b7c', label: 'Text messages' },
+  sms: { src: '/art/sms.png', colour: '#5b6b7c', label: 'Messages' },
   practice: { src: '/art/practice.png', colour: '#2f6bd6', label: 'My practice' },
   privacy: { src: '/art/privacy.png', colour: '#4a505a', label: 'Privacy' },
 } as const;
@@ -51,11 +51,25 @@ const DEFAULT_LAYOUT: Record<AppArtId, Layout> = {
 const layoutForTile = (id: AppArtId, packLayouts: Layout[]): Layout =>
   packLayouts.find((layout) => ART_FOR_LAYOUT[layout] === id) ?? DEFAULT_LAYOUT[id];
 
-const CONFIDENCE_WORDS: Record<CountryPack['confidence'], string> = {
-  high: 'from police statistics',
-  medium: 'based on usage',
-  low: 'based on usage',
+// The widget's source line: the pack's first source, by a short name that holds one line at 320.
+// Hand-kept per pack (the full titles live in content/packs); a pack with no source shows none.
+// ponytail: a new pack with sources needs a row here; move it into the pack files when they grow a short name.
+const SHORT_SOURCE: Record<string, string> = {
+  AU: 'Scamwatch',
+  HK: 'ADCC',
+  ID: 'OJK',
+  IN: 'MHA',
+  JP: 'NPA',
+  MY: 'NSRC',
+  SG: 'ScamShield',
 };
+
+type PackFacts = Pick<CountryPack, 'code' | 'sources'>;
+const PACK_FILES = import.meta.glob<PackFacts>('../../../content/packs/*.json', { eager: true, import: 'default' });
+const SOURCED = new Set(Object.values(PACK_FILES).filter((pack) => pack.sources.length > 0).map((pack) => pack.code));
+
+const sourceLine = (code: string): string | undefined =>
+  SOURCED.has(code) && SHORT_SOURCE[code] ? `Per ${SHORT_SOURCE[code]}` : undefined;
 
 const NO_PACK: Pick<PackSummary, 'layouts' | 'confidence'> = { layouts: [], confidence: 'low' };
 
@@ -79,6 +93,7 @@ function AppArt({ id }: { id: ArtId }) {
 }
 
 interface WidgetProps {
+  code: string;
   name: string;
   pack: Pick<PackSummary, 'layouts' | 'confidence'>;
   onPlay: (event: Tap, quick: boolean) => void;
@@ -86,7 +101,7 @@ interface WidgetProps {
 }
 
 // Two square widgets side by side, the way the home screen places them.
-function Widgets({ name, pack, onPlay, playRef }: WidgetProps) {
+function Widgets({ code, name, pack, onPlay, playRef }: WidgetProps) {
   const arts = [...new Set(pack.layouts.slice(0, 3).map((layout) => ART_FOR_LAYOUT[layout]))];
   return (
     <div className="widgets">
@@ -96,14 +111,14 @@ function Widgets({ name, pack, onPlay, playRef }: WidgetProps) {
           <ul className="widget-apps" aria-label="Apps in this country's practice">
             {arts.map((id) => <li key={id}><AppArt id={id} /></li>)}
           </ul>
-          <p className="widget-confidence">{CONFIDENCE_WORDS[pack.confidence]}</p>
+          {sourceLine(code) && <p className="widget-confidence">{sourceLine(code)}</p>}
         </div>
         <span className="widget-label">Country</span>
       </div>
       <div className="widget-cell anim-pop" style={stagger(1)}>
         <div className="widget glass glass-strong widget-play">
-          <button ref={playRef} type="button" className="btn btn-primary pressable" onClick={(event) => onPlay(event, false)}>Play a full day</button>
-          <button type="button" className="btn pressable" onClick={(event) => onPlay(event, true)}>Quick day<span className="widget-sub">about a minute</span></button>
+          <button ref={playRef} type="button" className="btn btn-primary pressable" onClick={(event) => onPlay(event, false)}>Full day</button>
+          <button type="button" className="btn pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
         </div>
         <span className="widget-label">Practice</span>
       </div>
@@ -182,7 +197,7 @@ export function HomeScreen({ country, pack, onPlay, onChangeCountry, onOpenApp }
   const tiles = APP_ARTS.length + 2;
   return (
     <section className="page home">
-      <Widgets name={name} pack={pack ?? NO_PACK} onPlay={play} playRef={playRef} />
+      <Widgets code={country} name={name} pack={pack ?? NO_PACK} onPlay={play} playRef={playRef} />
       <AppGrid packLayouts={layouts} onOpenApp={openApp} />
       <button type="button" className="search-pill glass glass-strong pressable anim-pop" style={stagger(tiles + 2)} onClick={change}>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13M15.5 15.5L20 20" /></svg>

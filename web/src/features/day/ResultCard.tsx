@@ -58,6 +58,7 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement): void {
   ctx.fillRect(0, 0, W, H);
 }
 
+const PRODUCT = 'Scammer Survivor';
 const fraction = (t: Tally): string => `${t.handled} of ${t.total}`;
 
 interface Line {
@@ -72,13 +73,12 @@ function linesFor({ score, dayNumber, tells, country }: Props): Line[] {
   const missed = score.tellMostMissed;
   const missedLabel = missed ? (tells[missed]?.label ?? missed.replaceAll('_', ' ')) : null;
   return [
-    // ponytail: the product name is pending (AGENTS.md), so the heading is the day count; swap the
-    // first line for the name once the naming step lands.
-    { text: `Day ${dayNumber}`, size: 96, weight: 800, colour: INK, gapAfter: 48 },
-    { text: 'on my practice phone', size: 52, weight: 500, colour: INK_2, gapAfter: 140 },
+    // The block is centred; the gaps are kept tight so its top clears the mark in the corner (inset + size, 316).
+    { text: PRODUCT, size: 60, weight: 700, colour: INK_2, gapAfter: 24 },
+    { text: `Day ${dayNumber}`, size: 96, weight: 800, colour: INK, gapAfter: 60 },
     { text: `Scams caught ${fraction(score.scamsCaught)}`, size: 64, weight: 700, colour: INK, gapAfter: 40 },
-    { text: `Real messages trusted ${fraction(score.realTrusted)}`, size: 64, weight: 700, colour: INK, gapAfter: 120 },
-    ...(missedLabel ? [{ text: `missed tell: ${missedLabel.toLowerCase()}`, size: 44, weight: 500, colour: INK_2, gapAfter: 100 }] : []),
+    { text: `Real messages trusted ${fraction(score.realTrusted)}`, size: 64, weight: 700, colour: INK, gapAfter: 60 },
+    ...(missedLabel ? [{ text: `missed tell: ${missedLabel.toLowerCase()}`, size: 44, weight: 500, colour: INK_2, gapAfter: 50 }] : []),
     ...(country ? [{ text: country, size: 44, weight: 600, colour: INK_2, gapAfter: 0 }] : []),
   ];
 }
@@ -125,7 +125,7 @@ export function ResultCard(props: Props) {
       current = false;
     };
   }, [score, dayNumber, tells, country]);
-  const caption = `Day ${dayNumber} on my practice phone: scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
+  const caption = `${PRODUCT}, day ${dayNumber}: scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
   return (
     <figure className="result-card">
       {src ? <img src={src} alt={caption} width={W} height={H} /> : <div className="result-card-blank" aria-hidden="true" />}

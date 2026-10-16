@@ -11,6 +11,16 @@
   position: relative;
 }
 
+/* The Coach's note leads, straight under the title, so it streams in view instead of under three
+   tell groups and the Next capsule. Visual order only: the rows take no focus, so focus order holds. */
+.lesson .page-body > .large-title {
+  order: -2;
+}
+
+.lesson .page-body > .inset-group:has(.lesson-coach) {
+  order: -1;
+}
+
 /* The groups scroll under the capsule; the last one clears it. */
 .lesson .page-body {
   padding-bottom: calc(var(--tap) + 1.75rem);
@@ -35,6 +45,12 @@
 .lesson .page-end .btn {
   min-height: 3.125rem;
   box-shadow: var(--shadow);
+}
+
+/* The real-twin note's Continue: the app reaches under the indicator, so the capsule lifts by the
+   shared bottom inset to clear it. */
+.app .page-end {
+  bottom: var(--page-end-bottom, 33px);
 }
 
 /* The retry note sits over content, so it gets its own glass. */
@@ -72,17 +88,21 @@
   gap: 0.375rem;
 }
 
+/* One height for every one-line stamp, whatever the words and the small note. The tilt makes the
+   bounding boxes differ by width; the box itself does not. */
 .stamp {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.375rem;
-  padding: 0.125rem 0.625rem;
+  min-height: 1.75rem;
+  max-width: 100%;
+  padding: 0.1875rem 0.625rem;
   border: 0;
   border-radius: var(--radius-pill);
   color: var(--surface);
   font-size: var(--t15);
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.2;
   transform: rotate(-1.5deg);
 }
 

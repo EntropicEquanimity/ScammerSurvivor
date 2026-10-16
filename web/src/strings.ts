@@ -4,8 +4,9 @@ import { INSTITUTIONS, isInstitutionId } from '../../shared/brands.ts';
 import { PEOPLE_CHIPS } from '../../shared/people.ts';
 import { NON_AFFILIATION } from '../../shared/strings.ts';
 
-// Placeholder until the team mailbox exists. Replace before the first deploy.
-export const CONTACT_EMAIL = 'team@practice-phone.example';
+// No team mailbox: questions go to the public repository. PrivacyNotice.tsx still wraps this in a mailto
+// link; that row must become plain wrapping text there (outside the copy owner's files), then rename this.
+export const CONTACT_EMAIL = 'github.com/EntropicEquanimity/ScammerSurvivor';
 
 const en = {
   langLabel: 'Language',
@@ -20,7 +21,7 @@ const en = {
     ageBlocked: 'Thank you for telling us. This practice is for people 18 and over.',
   },
   home: {
-    title: 'Practice phone',
+    title: 'Scammer Survivor',
     now: 'now',
     newBadge: '1 new',
     openHint: 'Tap the message to open it.',
@@ -33,7 +34,7 @@ const en = {
     brand: NON_AFFILIATION,
     ai: 'Practice messages may be AI-generated.',
     privacy: 'Privacy notice',
-    contact: 'Contact',
+    contact: 'Contact the team through the repository',
   },
   chat: {
     back: 'Back to home',
@@ -91,7 +92,7 @@ const en = {
     back: 'Back',
   },
   notes: {
-    title: 'A practice phone',
+    title: 'Scammer Survivor',
     body: 'Everything inside the phone is a simulation. The apps are made up, and no real message is sent or received.',
     progressTitle: 'Round progress',
   },

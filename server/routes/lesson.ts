@@ -3,25 +3,22 @@
 // (AGENTS.md rule 9); a model error serves the deterministic lesson (rule 5).
 import { Router } from 'express';
 import type { Response } from 'express';
-import type { CountryPack, TraceEvent } from '../../shared/types.ts';
+import type { CountryPack, SlotResult, TraceEvent } from '../../shared/types.ts';
 import { COACH_MODEL, lessonStream, lessonText } from '../agents/coach.ts';
 import type { StreamText } from '../agents/coach.ts';
+import { ThinkingLevel } from '@google/genai';
+import type { GoogleGenAI } from '@google/genai';
+import { makeClient } from '../gemini.ts';
+import type { GeminiResponse } from '../gemini.ts';
 import { readDay } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
+import { appendTrace, readPersonalState } from './trace.ts';
 
-const TRACE_LIMIT = 20;
 const DONE = '[DONE]';
 
-// ponytail: trace ring buffer in server memory, last 20 events per day; the
-// trace route reads it. Move next to the day state when the store goes to Firestore.
-let traces = new Map<string, TraceEvent[]>();
-
-const recordTrace = (dayId: string, event: TraceEvent): void => {
-  const kept = [...(traces.get(dayId) ?? []), event].slice(-TRACE_LIMIT);
-  traces = new Map(traces).set(dayId, kept);
-};
-
-export const readTrace = (dayId: string): TraceEvent[] => [...(traces.get(dayId) ?? [])];
+// The Coach's events, from the one per-day trace that GET /api/day/:dayId/trace returns.
+export const readTrace = (dayId: string): TraceEvent[] =>
+  (readPersonalState(dayId)?.trace ?? []).filter((event) => event.agent === 'coach');
 
 export type LessonReply =
   | { status: 200; chunks: AsyncIterable<string> }
@@ -29,24 +26,70 @@ export type LessonReply =
 
 const fail = (status: 400 | 404, error: string): LessonReply => ({ status, body: { error } });
 
-async function* cached(dayId: string, slot: StoredSlot): AsyncIterable<string> {
-  if (!slot.result) return;
-  yield lessonText(slot.result);
-  recordTrace(dayId, { agent: 'coach', ms: 0, outcome: 'cache' });
+type Tokens = NonNullable<TraceEvent['tokens']>;
+interface Usage { tokens?: Tokens }
+
+// The route's stream: the SDK's chunks with the usage the last one carries, so the trace can show
+// tokens. Errors propagate to coached(), which serves the deterministic lesson. Low thinking halves
+// the wait for the first chunk (measured Oct 16 on the developer route: 4.3 s to 2.2 s).
+// ponytail: the same ten lines as gemini.ts streamText plus usage; one stream with usage is the upgrade.
+let client: GoogleGenAI | undefined;
+const CONFIG = { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } };
+const textOf = (chunk: GeminiResponse): string =>
+  (chunk.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('');
+
+export const streamWithUsage = (usage: Usage): StreamText =>
+  async function* stream(req) {
+    client ??= makeClient();
+    const chunks = await client.models.generateContentStream({ model: req.model ?? COACH_MODEL, contents: req.contents, config: { ...CONFIG, systemInstruction: req.system } });
+    for await (const chunk of chunks) {
+      const u = chunk.usageMetadata;
+      if (u) usage.tokens = { input: u.promptTokenCount ?? 0, output: u.candidatesTokenCount ?? 0 };
+      const text = textOf(chunk);
+      if (text) yield text;
+    }
+  };
+
+// The model call starts now, not when the response is first read: the first chunk is already on
+// its way while the route writes its headers. A rejection is held until the reader awaits it.
+function primed(source: AsyncIterable<string>): AsyncIterable<string> {
+  const iterator = source[Symbol.asyncIterator]();
+  const first = iterator.next();
+  first.catch(() => undefined);
+  return {
+    [Symbol.asyncIterator]: () => {
+      let pending: Promise<IteratorResult<string>> | undefined = first;
+      const next = (): Promise<IteratorResult<string>> => {
+        const result = pending ?? iterator.next();
+        pending = undefined;
+        return result;
+      };
+      return { next };
+    },
+  };
 }
 
-// Streams the model's chunks; on any throw, even mid-stream, finishes with the
+async function* cached(dayId: string, result: SlotResult): AsyncIterable<string> {
+  yield lessonText(result);
+  appendTrace(dayId, { agent: 'coach', ms: 0, outcome: 'cache' });
+}
+
+const coachEvent = (started: number, outcome: TraceEvent['outcome'], usage: Usage): TraceEvent => ({
+  agent: 'coach',
+  model: COACH_MODEL,
+  ms: Date.now() - started,
+  ...(usage.tokens ? { tokens: usage.tokens } : {}),
+  outcome,
+});
+
+// Passes the model's chunks through; on any throw, even mid-stream, finishes with the
 // deterministic lesson so the player always gets a whole one. That is the cache
 // path in the trace (rule 5); 'fallback' is reserved for the 3.6-flash retry.
-async function* coached(dayId: string, slot: StoredSlot, hotline: CountryPack['hotline'], stream?: StreamText): AsyncIterable<string> {
-  const { result } = slot;
-  if (!result) return;
+async function* coached(dayId: string, result: SlotResult, source: AsyncIterable<string>, usage: Usage): AsyncIterable<string> {
   const started = Date.now();
   try {
-    const { caught, missed, actionCorrect, falseAlarm, lesson } = result;
-    const input = { scam: lesson.scam, real: lesson.real, caught, missed, action: slot.action ?? 'ignore', actionCorrect, falseAlarm, hotline, stream };
     let yielded = false;
-    for await (const chunk of lessonStream(input)) {
+    for await (const chunk of source) {
       yielded = true;
       yield chunk;
     }
@@ -55,17 +98,20 @@ async function* coached(dayId: string, slot: StoredSlot, hotline: CountryPack['h
     if (!yielded) {
       console.error('coach_empty');
       yield lessonText(result);
-      recordTrace(dayId, { agent: 'coach', model: COACH_MODEL, ms: Date.now() - started, outcome: 'cache' });
-      return;
     }
-    recordTrace(dayId, { agent: 'coach', model: COACH_MODEL, ms: Date.now() - started, outcome: 'ok' });
+    appendTrace(dayId, coachEvent(started, yielded ? 'ok' : 'cache', usage));
   } catch (error) {
     // Error type only; prompts and model text never go to the logs.
     console.error('coach_error', (error as Error)?.name);
     yield lessonText(result);
-    recordTrace(dayId, { agent: 'coach', model: COACH_MODEL, ms: Date.now() - started, outcome: 'cache' });
+    appendTrace(dayId, coachEvent(started, 'cache', usage));
   }
 }
+
+const coachSource = (slot: StoredSlot, result: SlotResult, hotline: CountryPack['hotline'], stream: StreamText): AsyncIterable<string> => {
+  const { caught, missed, actionCorrect, falseAlarm, lesson } = result;
+  return primed(lessonStream({ scam: lesson.scam, real: lesson.real, caught, missed, action: slot.action ?? 'ignore', actionCorrect, falseAlarm, hotline, stream }));
+};
 
 export function lessonFor(dayId: string, body: unknown, stream?: StreamText): LessonReply {
   const state = readDay(dayId);
@@ -74,8 +120,10 @@ export function lessonFor(dayId: string, body: unknown, stream?: StreamText): Le
   const slot = state.slots.find((candidate) => candidate.slotId === slotId);
   if (!slot) return fail(400, 'unknown_slot');
   if (!slot.result) return fail(400, 'no_result_yet');
-  const modelAllowed = state.age === 'adult' && !state.quick;
-  return { status: 200, chunks: modelAllowed ? coached(dayId, slot, state.hotline, stream) : cached(dayId, slot) };
+  if (state.age !== 'adult' || state.quick) return { status: 200, chunks: cached(dayId, slot.result) };
+  const usage: Usage = {};
+  const source = coachSource(slot, slot.result, state.hotline, stream ?? streamWithUsage(usage));
+  return { status: 200, chunks: coached(dayId, slot.result, source, usage) };
 }
 
 // One SSE event per chunk; a chunk with line breaks becomes one multi-line data field.
@@ -83,6 +131,7 @@ const frame = (chunk: string): string => `data: ${chunk.split('\n').join('\ndata
 
 async function writeStream(res: Response, chunks: AsyncIterable<string>): Promise<void> {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+  res.flushHeaders();
   for await (const chunk of chunks) {
     if (res.writableEnded || res.destroyed) return;
     res.write(frame(chunk));

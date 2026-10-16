@@ -14,9 +14,11 @@ export interface Stats {
   countries: Record<string, number>;
 }
 
-const DOC = 'stats/global';
+export const DOC = 'stats/global';
+// About shows the counter only once it says something: below this many days it is test traffic.
+export const DISPLAY_FROM = 50;
 
-const EMPTY: Stats = { daysPlayed: 0, scamsCaught: { handled: 0, total: 0 }, realTrusted: { handled: 0, total: 0 }, countries: {} };
+export const EMPTY: Stats = { daysPlayed: 0, scamsCaught: { handled: 0, total: 0 }, realTrusted: { handled: 0, total: 0 }, countries: {} };
 
 const mirrored = (): boolean => Boolean(process.env.GOOGLE_CLOUD_PROJECT) && process.env.CARD_CACHE !== 'file';
 
@@ -111,6 +113,8 @@ export const resetStats = (): void => {
 
 export const statsRouter = Router();
 
+export const publicStats = (stats: Stats): Stats & { display: boolean } => ({ ...stats, display: stats.daysPlayed >= DISPLAY_FROM });
+
 statsRouter.get('/stats', async (_req, res) => {
-  res.json(await getStats());
+  res.json(publicStats(await getStats()));
 });

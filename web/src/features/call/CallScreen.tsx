@@ -1,25 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, ReactNode } from 'react';
-import type { Action, CallBeatPublic } from '../../../../shared/types.ts';
+import type { Action, CallBeatPublic, CountryPack } from '../../../../shared/types.ts';
 import { INSTITUTIONS } from '../../../../shared/brands.ts';
 import { maskNumber } from '../../../../shared/mask.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { ACTION_LABELS } from '../card/actionLabels.ts';
 import { useCall } from './useCall.ts';
-import type { CallOutcome } from './useCall.ts';
+import type { CallOutcome, Caller } from './useCall.ts';
 import '../day.css';
 import './call.css';
+import './call-motion.css';
+
+type Hotline = CountryPack['hotline'];
 
 interface Props {
   dayId: string;
+  hotline?: Hotline; // the day's pack hotline, when DayScreen passes it
   onDone: (outcome: CallOutcome) => void;
   onSkip: () => void;
 }
 
-// ponytail: the caller is always the bank with one neutral mask; pass the card's sender and the
-// pack's numberMask through props once the call route exposes them.
-const CALLER = { name: INSTITUTIONS.bank, number: maskNumber('0000000000002140', '+XX XXX XXX dddd') };
+// ponytail: one neutral mask for every caller; pass the pack's numberMask through once the call route exposes it.
+const NUMBER = maskNumber('0000000000002140', '+XX XXX XXX dddd');
+// The start response names the caller; until it lands the ring shows the bank.
+const FALLBACK: Caller = { displayName: INSTITUTIONS.bank, role: 'mobile' };
 
 const RING_R = 46;
 const RING_C = 2 * Math.PI * RING_R;
@@ -41,14 +46,15 @@ const Glyph = ({ d, className }: { d: string; className?: string }) => (
   </svg>
 );
 
-type Lesson = (outcome: CallOutcome, lastAction: Action | null) => string;
+type Lesson = (outcome: CallOutcome, lastAction: Action | null) => { title: string; advice: string };
 
-// Names what happened, never what the player did wrong.
+// Names what happened, never what the player did wrong: a short title, the advice under it as body
+// text. The large title is 34px, so each title stays under about 16 characters to hold one line at 320.
 const lessonLine: Lesson = (outcome, lastAction) => {
-  if (outcome === 'read_code') return 'You read the code out. No real caller needs it. Next time, hang up and call the official number.';
-  if (outcome === 'timeout') return 'The caller kept pushing until the call ran out. Hanging up is always allowed.';
-  if (lastAction === 'hang_up_call_official') return 'You hung up and called the official number. That is the whole trick.';
-  return 'You hung up. That is always allowed. Next time, call the official number you already know as well.';
+  if (outcome === 'read_code') return { title: 'You read it out.', advice: 'No real caller needs the code. Next time, hang up and call the official number.' };
+  if (outcome === 'timeout') return { title: 'Time ran out.', advice: 'The caller kept pushing until the call ran out. Hanging up is always allowed.' };
+  if (lastAction === 'hang_up_call_official') return { title: 'You checked it.', advice: 'You hung up and called the official number. That is the whole trick.' };
+  return { title: 'You hung up.', advice: 'That is always allowed. Next time, call the official number you already know as well.' };
 };
 
 // The tag the rule asks for, inside the line the phone shows under the name.
@@ -63,13 +69,13 @@ const PracticeLine = ({ tail }: { tail: string }) => (
 // The caller's name is the screen title: focus moves to it when the ringing and the talking view
 // mount, so assistive technology hears the new screen and the practice label linked to it. The
 // ring that programmatic focus can draw is suppressed in call.css (.call-name:focus-visible).
-const CallName = ({ talking }: { talking?: boolean }) => (
-  <ScreenTitle className={talking ? 'call-name call-name-talking' : 'call-name'}>{CALLER.name}</ScreenTitle>
+const CallName = ({ name, talking }: { name: string; talking?: boolean }) => (
+  <ScreenTitle className={talking ? 'call-name call-name-talking' : 'call-name'}>{name}</ScreenTitle>
 );
 
-const Avatar = ({ children }: { children?: ReactNode }) => (
+const Avatar = ({ name, children }: { name: string; children?: ReactNode }) => (
   <div className="call-avatar" aria-hidden="true">
-    <span className="call-initial">{CALLER.name[0]}</span>
+    <span className="call-initial">{name[0]}</span>
     {children}
   </div>
 );
@@ -93,20 +99,21 @@ function RoundButton({ label, tone, glyph, disabled, onPress }: RoundProps) {
 }
 
 interface RingingProps {
+  caller: Caller;
   ready: boolean; // the first beat has arrived; Accept waits for it, Decline never does
   busy: boolean; // the decline turn is in flight
   onAnswer: () => void;
   onDecline: () => void;
 }
 
-export function RingingView({ ready, busy, onAnswer, onDecline }: RingingProps) {
+export function RingingView({ caller, ready, busy, onAnswer, onDecline }: RingingProps) {
   return (
     <section className="page-full call call-ringing anim-zoom call-fade">
       <div className="page-body">
-        <CallName />
-        <PracticeLine tail="mobile" />
-        <p className="call-number">{CALLER.number}</p>
-        <Avatar />
+        <CallName name={caller.displayName} />
+        <PracticeLine tail={caller.role} />
+        <p className="call-number">{NUMBER}</p>
+        <Avatar name={caller.displayName} />
       </div>
       <div className="page-end call-ring-end">
         <RoundButton label="Decline" tone="end" glyph={PHONE} disabled={busy} onPress={onDecline} />
@@ -206,6 +213,7 @@ function Elapsed() {
 }
 
 interface TalkingProps {
+  caller: Caller;
   beat: CallBeatPublic | null;
   meter: number;
   offered: Action[];
@@ -217,58 +225,90 @@ interface TalkingProps {
   onAct: (action: Action) => void;
 }
 
-// Hang up is the red End button at the bottom; every other offered action sits in the grid.
-export function TalkingView({ beat, meter, offered, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
-  const grid = offered.filter((action) => action !== 'hang_up');
+// End takes the middle of the second row, so six controls make two rows of three with End
+// centred. The grid sits under the scrolling column, in the flow, so it stays above the
+// indicator at any height and nothing floats over a label.
+const withEnd = (offered: Action[]): Action[] => {
+  const rest = offered.filter((action) => action !== 'hang_up');
+  const at = Math.min(4, rest.length);
+  return [...rest.slice(0, at), 'hang_up', ...rest.slice(at)];
+};
+
+// One cell of the grid: the red End for hang_up, a glass control for every other action.
+function GridButton({ action, offered, busy, onAct }: { action: Action; offered: Action[]; busy: boolean; onAct: (action: Action) => void }) {
+  if (action === 'hang_up') {
+    return <RoundButton label="End" tone="end" glyph={PHONE} disabled={busy || !offered.includes('hang_up')} onPress={() => onAct('hang_up')} />;
+  }
+  return <RoundButton label={ACTION_LABELS[action]} tone="glass" glyph={GLYPHS[action] ?? PHONE} disabled={busy} onPress={() => onAct(action)} />;
+}
+
+export function TalkingView({ caller, beat, meter, offered, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
+  const caption = useRef<HTMLParagraphElement>(null);
+  // A long beat on a short phone scrolls the column so the new caption is in view above the grid.
+  useEffect(() => {
+    caption.current?.scrollIntoView({ block: 'nearest' });
+  }, [beat?.id]);
   return (
     <section className="page-full call call-talking anim-zoom call-fade">
       <div className="page-body scroll">
-        <CallName talking />
+        <CallName name={caller.displayName} talking />
         <Elapsed />
-        <PracticeLine tail={CALLER.number} />
-        <Avatar>
+        <PracticeLine tail={NUMBER} />
+        <Avatar name={caller.displayName}>
           <Ring meter={meter} />
         </Avatar>
         <p className="call-meter-text">
           Caller&apos;s confidence <strong>{Math.round(meter)}</strong> of 100
         </p>
         <Waveform audio={audio} speaking={speaking} graph={graph} />
-        <p className="call-caption" aria-live="polite">{beat?.caption ?? ''}</p>
-        <ul className="call-grid">
-          {grid.map((action) => (
-            <li key={action}>
-              <RoundButton label={ACTION_LABELS[action]} tone="glass" glyph={GLYPHS[action] ?? PHONE} disabled={busy} onPress={() => onAct(action)} />
-            </li>
-          ))}
-        </ul>
+        <p className="call-caption" aria-live="polite" ref={caption}>{beat?.caption ?? ''}</p>
         {failed && (
           <p className="plain-note call-note" role="alert">
             That did not go through. Tap again.
           </p>
         )}
       </div>
-      <div className="page-end call-talk-end">
-        <RoundButton label="End" tone="end" glyph={PHONE} disabled={busy || !offered.includes('hang_up')} onPress={() => onAct('hang_up')} />
-      </div>
+      <ul className="call-grid">
+        {withEnd(offered).map((action) => (
+          <li key={action}>
+            <GridButton action={action} offered={offered} busy={busy} onAct={onAct} />
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
 
 interface EndedProps {
+  hotline?: Hotline;
   outcome: CallOutcome;
   lastAction: Action | null;
   beat: CallBeatPublic | null;
   onDone: () => void;
 }
 
-export function EndedView({ outcome, lastAction, beat, onDone }: EndedProps) {
+// Where to report, from the pack; a plain line, never a link (rule 4). One line when the pack is missing.
+function HotlineLine({ hotline }: { hotline?: Hotline }) {
+  if (!hotline) return <p className="call-hotline">Report it to your national anti-scam line</p>;
+  return (
+    <p className="call-hotline">
+      <span>Report it: {hotline.label}</span>
+      {hotline.number && <strong>{hotline.number}</strong>}
+    </p>
+  );
+}
+
+export function EndedView({ hotline, outcome, lastAction, beat, onDone }: EndedProps) {
+  const lesson = lessonLine(outcome, lastAction);
   return (
     <section className="page-full call call-ended anim-sheet call-fade" data-surface="light">
       <div className="page-body scroll">
         <PracticeLine tail="ended" />
-        <ScreenTitle className="large-title">{lessonLine(outcome, lastAction)}</ScreenTitle>
+        <ScreenTitle className="large-title">{lesson.title}</ScreenTitle>
+        <p className="call-advice">{lesson.advice}</p>
         <p className="call-sub">Call ended</p>
         {beat && <p className="call-caption">{beat.caption}</p>}
+        <HotlineLine hotline={hotline} />
       </div>
       <div className="page-end">
         <button type="button" className="btn btn-primary pressable" onClick={() => { haptic(); onDone(); }}>
@@ -279,9 +319,29 @@ export function EndedView({ outcome, lastAction, beat, onDone }: EndedProps) {
   );
 }
 
+// Mirrors NO_CALL_REASON in server/routes/call.ts; call/api.ts drops the 503 body, so the line is here.
+const NO_CALL = 'No call today';
+
+// The day had no beats: the promise of a call is answered in words, then Next ends the day.
+export function NoCallView({ onNext }: { onNext: () => void }) {
+  return (
+    <section className="page-full call call-ended anim-sheet call-fade" data-surface="light">
+      <div className="page-body scroll">
+        <ScreenTitle className="large-title">{NO_CALL}</ScreenTitle>
+        <p className="call-advice">Your phone stayed quiet. The day ends here.</p>
+      </div>
+      <div className="page-end">
+        <button type="button" className="btn btn-primary pressable" onClick={() => { haptic(); onNext(); }}>
+          Next
+        </button>
+      </div>
+    </section>
+  );
+}
+
 // The practice call, full screen inside the phone. Never a microphone: the player answers with
-// buttons only. Skips itself when the day has no beats.
-export function CallScreen({ dayId, onDone, onSkip }: Props) {
+// buttons only. When the day has no beats it says so, and Next skips the call.
+export function CallScreen({ dayId, hotline, onDone, onSkip }: Props) {
   const call = useCall(dayId, onSkip);
   const graph = useRef<Graph>(null);
   // One AudioContext per call, closed when the call screen leaves. Mounted while ringing, so the
@@ -291,12 +351,15 @@ export function CallScreen({ dayId, onDone, onSkip }: Props) {
     if (g && g !== 'none') g.ctx.close().catch(() => undefined);
   }, []);
   const { outcome } = call;
+  const caller = call.caller ?? FALLBACK;
+  if (call.phase === 'none') return <NoCallView onNext={onSkip} />;
   if (call.phase === 'ended' && outcome) {
-    return <EndedView outcome={outcome} lastAction={call.lastAction} beat={call.beat} onDone={() => onDone(outcome)} />;
+    return <EndedView hotline={hotline} outcome={outcome} lastAction={call.lastAction} beat={call.beat} onDone={() => onDone(outcome)} />;
   }
   if (call.phase === 'talking') {
     return (
       <TalkingView
+        caller={caller}
         beat={call.beat}
         meter={call.meter}
         offered={call.offered}
@@ -309,5 +372,5 @@ export function CallScreen({ dayId, onDone, onSkip }: Props) {
       />
     );
   }
-  return <RingingView ready={call.beat !== null} busy={call.busy} onAnswer={call.answer} onDecline={call.decline} />;
+  return <RingingView caller={caller} ready={call.beat !== null} busy={call.busy} onAnswer={call.answer} onDecline={call.decline} />;
 }

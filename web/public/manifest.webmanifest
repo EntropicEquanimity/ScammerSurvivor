@@ -1,6 +1,6 @@
 {
-  "name": "Practice Phone",
-  "short_name": "Practice",
+  "name": "Scammer Survivor",
+  "short_name": "Survivor",
   "description": "A training simulation for telling real messages from scams. Not affiliated with any brand.",
   "start_url": "/",
   "scope": "/",

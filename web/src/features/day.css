@@ -28,6 +28,15 @@
   padding: 0 1rem 1rem;
 }
 
+/* The one bottom inset for a floating capsule, measured from the phone's bottom edge: the home
+   indicator's band plus 12px, so a capsule in a full-height screen (the app, the call) sits where a
+   capsule inside the screen's indicator padding does (0.75rem from it): 33px above the indicator.
+   --fade-h is the soft edge under every capsule. */
+:root {
+  --page-end-bottom: calc(var(--indicator-h) + 0.75rem);
+  --fade-h: 24px;
+}
+
 /* A floating capsule over content, the way iOS 26 bottom actions sit. No band, no hairline. */
 .page-end {
   display: flex;
@@ -36,7 +45,7 @@
   gap: 0.5rem;
   position: absolute;
   right: 1rem;
-  bottom: 0.75rem;
+  bottom: var(--page-end-bottom);
   left: 1rem;
   padding: 0;
   background: none;
@@ -313,4 +322,47 @@
   .day .notif-banner.anim-drop {
     animation: none !important;
   }
+}
+
+/* The soft edge under a floating capsule, so content never runs hard under it.
+   On a solid surface (the app thread, the ended call) a fade from transparent to the surface sits
+   behind the capsule, 24px above it down to the phone's edge; it takes no taps. */
+.app .page-end,
+.call-ended .page-end {
+  isolation: isolate;
+}
+
+.app .page-end::after,
+.call-ended .page-end::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * var(--fade-h));
+  right: -1rem;
+  bottom: calc(-1 * var(--page-end-bottom));
+  left: -1rem;
+  background: linear-gradient(to bottom, transparent, var(--surface) var(--fade-h));
+  pointer-events: none;
+}
+
+/* Over the wallpaper a colour band would read as a bottom bar, so the scrolling body itself fades
+   out over the 24px above the capsule's zone (the bottom padding each body reserves for it). */
+.page-body.scroll:has(~ .page-end, ~ .setup-foot, ~ .end-foot) {
+  --fade-zone: calc(var(--tap) + 1.75rem);
+  --fade-mask: linear-gradient(
+    to bottom,
+    #000 calc(100% - var(--fade-zone) - var(--fade-h)),
+    rgb(0 0 0 / 0.8) calc(100% - var(--fade-zone) - var(--fade-h) * 0.75),
+    rgb(0 0 0 / 0.45) calc(100% - var(--fade-zone) - var(--fade-h) * 0.5),
+    rgb(0 0 0 / 0.15) calc(100% - var(--fade-zone) - var(--fade-h) * 0.25),
+    transparent calc(100% - var(--fade-zone))
+  ); /* eased, so the fade has no visible starting line */
+  -webkit-mask-image: var(--fade-mask);
+  mask-image: var(--fade-mask);
+}
+
+/* The ended call's body sits on the surface and the fade above covers it. */
+.call-ended .page-body.scroll {
+  -webkit-mask-image: none;
+  mask-image: none;
 }

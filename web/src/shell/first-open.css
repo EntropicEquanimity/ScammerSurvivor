@@ -85,6 +85,9 @@
   padding: 0.75rem;
   border: 0;
   border-radius: var(--radius);
+  background: var(--glass-bar);
+  -webkit-backdrop-filter: blur(var(--glass-bar-blur)) saturate(1.2);
+  backdrop-filter: blur(var(--glass-bar-blur)) saturate(1.2);
   box-shadow: var(--shadow);
   color: var(--ink);
   text-align: left;

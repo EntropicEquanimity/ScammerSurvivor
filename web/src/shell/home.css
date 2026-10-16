@@ -24,6 +24,9 @@
   min-width: 0;
 }
 
+/* The grid stretches both cells to the taller one and each widget fills its cell, so the pair
+   shares one height where content outgrows the square on a narrow phone. */
+
 /* Widgets and the dock have no edge and no inset highlight, only the drop shadow, as on the phone.
    Scoped under .home so the rule outranks .glass whatever order the bundle gives the two files. */
 .home .widget,
@@ -34,6 +37,8 @@
 
 .widget {
   display: flex;
+  flex: 1;
+  container-type: inline-size;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
@@ -49,8 +54,9 @@
   letter-spacing: var(--track-15);
 }
 
+/* Three icons always fit the row: on a narrow phone they shrink with the widget, never past its edge. */
 .widget-apps {
-  --art: 40px;
+  --art: min(40px, calc((100cqi - 0.8rem) / 3));
   display: flex;
   gap: 0.4rem;
   margin-top: auto;

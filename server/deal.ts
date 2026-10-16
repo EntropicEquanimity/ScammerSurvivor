@@ -2,16 +2,16 @@ import { BRANDS, INSTITUTIONS, isInstitutionId } from '../shared/brands.ts';
 import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
 import { STANDARD_ACTIONS } from '../shared/types.ts';
-import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, MessagePart, PublicCard, SlotResult } from '../shared/types.ts';
+import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult } from '../shared/types.ts';
 
 export const PEOPLE_START = 3;
 const FIRST_TRICK = 'family_trouble';
 const CLOCK = ['08:10', '10:40', '13:20', '17:05'];
 
-// The Director writes "[institution]" and "[chat app name]" (rule 2: never a real brand).
-// They are filled here, at deal time, so no bracketed placeholder reaches a screen.
-// The institution is the sender's INSTITUTIONS label when the card names one; a
-// Director card has none, so the trick's category picks an invented, pack-neutral name.
+// The Director writes bracketed tokens such as "[institution]", "[chat app name]", "[wallet]" or
+// "[bank]" (rule 2: never a real brand). They are filled here, at deal time, so no bracketed
+// placeholder reaches a screen. The institution is the sender's INSTITUTIONS label when the card
+// names one; a Director card has none, so the trick's category picks an invented, pack-neutral name.
 const INVENTED_INSTITUTION: Record<Category, string> = {
   A: 'Kestrel Hiring',
   B: 'Cedar Trading Circle',
@@ -24,6 +24,8 @@ const INVENTED_INSTITUTION: Record<Category, string> = {
   I: 'Harbourline',
   J: 'Harbourline',
 };
+const INVENTED_BANK = 'Harbourline';
+const NEUTRAL_NAME = 'Mira';
 
 // The app the card arrives in, by layout: the brand that owns the look.
 const APP_NAME: Record<Layout, string> = {
@@ -38,32 +40,80 @@ const APP_NAME: Record<Layout, string> = {
   call: BRANDS.relay.name,
 };
 
+const CHAT_LOOKS: readonly Layout[] = ['green-chat', 'blue-chat', 'sticker-chat', 'cloud-chat', 'purple-chat'];
+
+// The card in a look the pack lists: an unlisted chat look takes the pack's first chat look, a
+// wallet card the pack's wallet or else text messages; sms, email and call stay as they are.
+export function fitLayout(card: Card, layouts: readonly Layout[]): Card {
+  if (layouts.includes(card.layout)) return card;
+  const chat = layouts.find((layout) => CHAT_LOOKS.includes(layout));
+  const fitted = CHAT_LOOKS.includes(card.layout) ? chat : card.layout === 'wallet' ? 'sms' : undefined;
+  return fitted ? { ...card, layout: fitted } : card;
+}
+
 const institutionFor = (card: Card): string =>
   isInstitutionId(card.sender.institutionId) ? INSTITUTIONS[card.sender.institutionId] : INVENTED_INSTITUTION[trickCategory(card.trickId)];
 
-const PLACEHOLDER = /\[(institution|chat app name)\]/i;
+// Innermost brackets only; an outer description is looked at again once its inner tokens are filled.
+const TOKEN = /\[([^[\]]{1,80})\]/g;
+const MAX_PASSES = 4;
+const ARTICLE = /^(a|an|the)\s/i;
 
-const fillText = (text: string, institution: string, app: string): string =>
-  text.replace(/\[institution\]/gi, institution).replace(/\[chat app name\]/gi, app);
-
-// A card with every placeholder filled. A clean card (every fixture) is returned as is,
-// so a day dealt from the fixtures still holds the fixture objects themselves.
-export function fillCard(card: Card): Card {
-  if (!PLACEHOLDER.test(JSON.stringify(card))) return card;
-  const institution = institutionFor(card);
+function tokenFills(card: Card): Record<string, string> {
   const app = APP_NAME[card.layout];
-  const fill = (text: string) => fillText(text, institution, app);
-  const fillParts = (parts: MessagePart[]): MessagePart[] => parts.map((part) => ({ ...part, text: fill(part.text) }));
-  const fillSender = (sender: Card['sender']): Card['sender'] => ({ ...sender, displayName: fill(sender.displayName) });
+  const wallet = BRANDS.fold.name;
   return {
-    ...card,
-    sender: fillSender(card.sender),
-    setup: fillParts(card.setup),
-    ask: fillParts(card.ask),
-    usualEnding: fill(card.usualEnding),
-    neverAsks: fill(card.neverAsks),
-    realTwin: { ...card.realTwin, sender: fillSender(card.realTwin.sender), parts: fillParts(card.realTwin.parts) },
+    institution: institutionFor(card),
+    'chat app name': app,
+    'chat app': app,
+    'app name': app,
+    app,
+    wallet,
+    'wallet app': wallet,
+    'wallet name': wallet,
+    'e-wallet': wallet,
+    bank: INVENTED_BANK,
+    'bank name': INVENTED_BANK,
+    name: NEUTRAL_NAME,
+    'first name': NEUTRAL_NAME,
   };
+}
+
+const known = (inner: string, fills: Record<string, string>): string | undefined => fills[inner.trim().toLowerCase()];
+
+// Inside a sentence an unknown token gets a neutral fill: its own words, behind an article.
+const neutral = (inner: string): string => (ARTICLE.test(inner.trim()) ? inner.trim() : `the ${inner.trim()}`);
+
+// A text that is one bracketed description (rule 6, every fixture scam part) stays as written
+// unless it is a known token; every token inside it, and every bracket in a sentence, is filled.
+export function fillText(text: string, fills: Record<string, string>): string {
+  let current = text;
+  for (let pass = 0; pass < MAX_PASSES; pass += 1) {
+    const whole = current.trim();
+    const next = current.replace(TOKEN, (match: string, inner: string) =>
+      known(inner, fills) ?? (match === whole ? match : neutral(inner)),
+    );
+    if (next === current) return current;
+    current = next;
+  }
+  return current;
+}
+
+const mapStrings = (value: unknown, fill: (text: string) => string): unknown => {
+  if (typeof value === 'string') return fill(value);
+  if (Array.isArray(value)) return value.map((item) => mapStrings(item, fill));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, mapStrings(item, fill)]));
+  }
+  return value;
+};
+
+// A card with every placeholder filled, in every text field. A card with nothing to fill (every
+// fixture) is returned as is, so a day dealt from the fixtures still holds the fixture objects.
+export function fillCard(card: Card): Card {
+  const fills = tokenFills(card);
+  const filled = mapStrings(card, (text) => fillText(text, fills)) as Card;
+  return JSON.stringify(filled) === JSON.stringify(card) ? card : filled;
 }
 
 export interface DealtSlot {
@@ -100,10 +150,37 @@ export function shuffle<T>(items: readonly T[], random: () => number): T[] {
 
 const unique = <T>(items: readonly T[]): T[] => [...new Set(items)];
 
-// STANDARD_ACTIONS plus the buttons the scam itself offers. The twin gets the
-// same list, so the buttons never leak which slot is the scam.
-export const offeredFor = (card: Card): Action[] =>
-  unique([...STANDARD_ACTIONS, ...card.unsafeReplies.filter((action) => !STANDARD_ACTIONS.includes(action))]);
+// A message's own buttons come from its own words (lesson 20): money buttons only when money is
+// asked for, Open link only with a link, Install only with an app to install, the code buttons
+// only with a code, Keep it secret only when secrecy is asked. Real messages ask for money too,
+// so a money button never gives the answer away. A cue right after "no", "not" or "never" in the
+// same clause ("no payment needed", "never keep it secret") does not count.
+// ponytail: word cues, not meaning; a mention ("scammers ask you to keep it secret") still counts.
+const CUES: ReadonlyArray<[Action, RegExp]> = [
+  ['pay', /\b(pay|paying|pay for|fee|fees|invoice|settle|top[- ]?up|make (a|the) payment|payment (now|today|within|before|link|is needed|is required|needed|required))\b/g],
+  ['send_money', /\b(transfer|wire|remit|lend|borrow|deposit|(money|cash|funds) sent|send (me |us |him |her |them |it |over )?(the |some )?(money|cash|funds|amount|\d)|(personal|new|bank|friend's) account)/g],
+  ['open_link', /(https?:\/\/|www\.|\blinks?\b|\btap here\b|\bclick\b|\b[a-z0-9-]+\.(com|net|org|link|site|xyz|info)\b)/g],
+  ['install', /\b(install|download|apk|screen ?shar\w*|remote access|full screen access)/g],
+  ['share_code', /\b(code|otp|one-time|passcode)\b/g],
+  ['read_code', /\b(read|tell|say|give)\b[^.!?]{0,30}\b(code|otp|passcode)\b/g],
+  ['call_back', /\b(call (me |us )?back|call (this|our) number|ring (me |us )?back)\b/g],
+  ['keep_secret', /\b(secret|confidential|quietly|between us|keep (this|it) (quiet|private|to yourself)|tell no one|no one else|nobody else|(don't|do not|not to) (tell|call|ring))/g],
+];
+const NEGATED = /\b(no|not|never|without|free of|nothing)\b[^,.;:!?]{0,40}$/;
+const MAX_EXTRAS = 3;
+
+export const asks = (text: string, cue: RegExp): boolean => {
+  const lower = text.toLowerCase();
+  return [...lower.matchAll(cue)].some((match) => !NEGATED.test(lower.slice(0, match.index)));
+};
+
+// STANDARD_ACTIONS plus the extras the shown parts ask for, the card's own unsafe replies first.
+export const offeredFor = (parts: readonly { text: string }[], preferred: readonly Action[] = []): Action[] => {
+  const text = parts.map((part) => part.text).join('. '); // a cue never reads across two parts
+  const asked = CUES.filter(([, cue]) => asks(text, cue)).map(([action]) => action);
+  const ranked = [...preferred.filter((action) => asked.includes(action)), ...asked];
+  return unique([...STANDARD_ACTIONS, ...unique(ranked).slice(0, MAX_EXTRAS)]);
+};
 
 const strip = (parts: Card['setup']) => parts.map(({ id, text }) => ({ id, text }));
 
@@ -124,20 +201,24 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     sender: { ...(isTwin ? card.realTwin.sender : card.sender) },
     setup: strip(setup),
     ask: strip(ask),
-    offered: offeredFor(card),
+    offered: offeredFor([...setup, ...ask], card.unsafeReplies),
     stake: card.stake,
     arrivesAt,
     bannerHint,
   };
 }
 
+// Calling the number you already know is the lesson's own advice, so it is never a slip: safe on
+// every scam, acceptable on every real message, whatever the pattern note lists.
+const VERIFY: Action = 'verify_known_number';
+
 const toKey = (card: Card, isTwin: boolean): SlotKey => ({
   isTwin,
   parts: isTwin ? card.realTwin.parts : [...card.setup, ...card.ask],
   plantedTells: isTwin ? [] : card.plantedTells,
-  safeReplies: card.safeReplies,
-  unsafeReplies: card.unsafeReplies,
-  acceptable: card.realTwin.acceptable,
+  safeReplies: unique([...card.safeReplies, VERIFY]),
+  unsafeReplies: card.unsafeReplies.filter((action) => action !== VERIFY),
+  acceptable: unique([...card.realTwin.acceptable, VERIFY]),
   stake: card.stake,
 });
 
@@ -162,7 +243,7 @@ export interface DealInput {
 export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: DealInput): Deal {
   const random = seededRandom(seed);
   const count = Math.min(quick ? 2 : 4, cards.length);
-  const picked = pickCards(cards.map(fillCard), count, firstPlay, random);
+  const picked = pickCards(cards.map((card) => fillCard(fitLayout(card, pack.layouts))), count, firstPlay, random);
   const twinCount = Math.floor(count / 2);
   const protect = picked[0]?.trickId === FIRST_TRICK && firstPlay ? 1 : 0;
   const twinIds = new Set(shuffle(picked.slice(protect), random).slice(0, twinCount).map((card) => card.id));

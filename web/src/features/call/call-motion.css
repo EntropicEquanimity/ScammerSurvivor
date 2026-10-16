@@ -1,0 +1,45 @@
+/* The call's keyframes and their reduced-motion twins, split from call.css to keep both short. */
+
+@keyframes call-breathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+
+@keyframes wave-pulse {
+  from { height: 18%; }
+  to { height: 100%; }
+}
+
+@keyframes call-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes call-breathe-fade {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+@keyframes wave-fade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+/* Reduced motion. base.css cuts every animation to nothing; these twins cross-fade instead, and
+   the class selectors outrank its universal rule at the same importance. */
+@media (prefers-reduced-motion: reduce) {
+  .call-fade {
+    animation: call-fade 240ms ease-out both !important;
+  }
+
+  /* The breathe twin: the same slow beat as a faint opacity change, no scale. */
+  .call-ringing .call-avatar {
+    animation: call-breathe-fade 1800ms ease-in-out infinite alternate !important;
+  }
+
+  .wave-on .wave-bar {
+    height: 60%;
+    animation: wave-fade 1200ms ease-in-out infinite alternate !important;
+    animation-delay: calc(var(--i, 0) * 60ms) !important;
+  }
+}

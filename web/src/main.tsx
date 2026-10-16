@@ -1,7 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App.tsx';
+// Base first, so every feature stylesheet that App pulls in lands after it in the bundle and wins ties.
 import './base.css';
+import { App } from './App.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

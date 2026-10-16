@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { NON_AFFILIATION } from '../../../shared/strings.ts';
 import type { AgeGroup } from '../../../shared/types.ts';
-import { fetchPacks } from '../api.ts';
-import type { PackSummary } from '../api.ts';
 import { CountryPicker } from './CountryPicker.tsx';
 import { ScreenTitle } from './PhoneShell.tsx';
 import { haptic, rememberTap } from './feel.ts';
@@ -26,7 +24,7 @@ const SWIPE_PX = 60;
 const PRACTICE_LINE = 'Every message, call and app on this phone is made up for practice.';
 const ALERT_LINES = [
   PRACTICE_LINE,
-  'Under 18 gets prepared practice: no sign-in, microphone or AI conversation.',
+  'Under 18 gets prepared practice: no microphone or AI conversation.',
 ];
 
 // Mirrors App.tsx readAge: only these values count, so a stray stored value still gets the question.
@@ -54,19 +52,6 @@ function markNoticeSeen(): void {
   } catch {
     // The in-memory state still hides it for this render.
   }
-}
-
-// The packs list only decides which countries say "deck ready". A failed fetch still lets the player choose.
-function usePacks(): PackSummary[] {
-  const [packs, setPacks] = useState<PackSummary[]>([]);
-  useEffect(() => {
-    let current = true;
-    fetchPacks().then((list) => current && setPacks(list), () => current && setPacks([]));
-    return () => {
-      current = false;
-    };
-  }, []);
-  return packs;
 }
 
 // Same 24-hour clock as the status bar, so the two never disagree on screen.
@@ -127,7 +112,7 @@ function AgeAlert({ askAge, onAnswer, onDismiss }: {
   return (
     <div className="alert-scrim">
       <div className="alert anim-zoom" role="alertdialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-msg">
-        <h2 ref={title} tabIndex={-1} id="age-title" className="alert-title">{askAge ? 'Are you 18 or older?' : 'Practice phone'}</h2>
+        <h2 ref={title} tabIndex={-1} id="age-title" className="alert-title">{askAge ? 'Are you 18 or older?' : 'Scammer Survivor'}</h2>
         <div id="age-msg" className="alert-msg">
           {(askAge ? ALERT_LINES : [PRACTICE_LINE]).map((line) => <p key={line}>{line}</p>)}
         </div>
@@ -214,7 +199,6 @@ function LockScreen({ cleared, askAge, onAnswer, onDismiss, onPick, onUnlock }: 
 }
 
 export function FirstOpen({ country, onCountry, onConfirm, onUnlock }: FirstOpenProps) {
-  const packs = usePacks();
   // App keeps passing null while it is in "choosing" mode, so the lock shows the code picked here.
   const [chosen, setChosen] = useState(country);
   const [picking, setPicking] = useState(country === null);
@@ -229,7 +213,7 @@ export function FirstOpen({ country, onCountry, onConfirm, onUnlock }: FirstOpen
       setPicking(false);
     };
     const back = chosen === null ? undefined : () => setPicking(false);
-    return <CountryPicker packs={packs} selected={chosen} onSelect={select} onBack={back} />;
+    return <CountryPicker selected={chosen} onSelect={select} onBack={back} />;
   }
   const dismiss = () => {
     markNoticeSeen();

@@ -54,10 +54,6 @@ export function PracticeProgress() {
             <Icon name="notes" />
             <p><strong>Your day is waiting.</strong><span>Play a full day or a quick day from your home screen.</span></p>
           </li>
-          <li className="inset-row inset-body">
-            <Icon name="privacy" />
-            <p><strong>Progress across days</strong><span>Arrives with sign-in, for adults only.</span></p>
-          </li>
         </ul>
       </section>
       <ul className="inset">

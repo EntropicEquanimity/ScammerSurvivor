@@ -31,6 +31,7 @@ interface RecoveryProps {
   slotId: string;
   stake: number;
   onDone: (result: RecoverResult) => void;
+  onSkip: () => void; // the request failed or was refused: on to the lesson
 }
 
 const RECOVERY_PATH = '../recovery/Recovery.tsx';
@@ -107,7 +108,7 @@ function slotScreen(d: Day, step: Step) {
   if (phase.kind === 'recovery' && Recovery && card) {
     return (
       <Suspense fallback={<Notice title="One moment" line="Checking what can still be done." />}>
-        <Recovery dayId={day.dayId} slotId={phase.slotId} stake={card.stake} onDone={d.recovered} />
+        <Recovery dayId={day.dayId} slotId={phase.slotId} stake={card.stake} onDone={d.recovered} onSkip={d.skipRecovery} />
       </Suspense>
     );
   }
@@ -138,7 +139,7 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const body = () => {
     if (phase.kind === 'loading') return <Notice title="Getting your day ready" line="Your messages are on the way." />;
     if (phase.kind === 'load-failed') return <LoadFailed onRetry={d.retryLoad} />;
-    if (phase.kind === 'call' && d.day) return <CallScreen dayId={d.day.dayId} onDone={endCall} onSkip={endCall} />;
+    if (phase.kind === 'call' && d.day) return <CallScreen dayId={d.day.dayId} hotline={d.day.pack.hotline} onDone={endCall} onSkip={endCall} />;
     if (phase.kind === 'end') {
       const senders = Object.fromEntries((d.day?.cards ?? []).map((card) => [card.slotId, card.sender.displayName]));
       return (

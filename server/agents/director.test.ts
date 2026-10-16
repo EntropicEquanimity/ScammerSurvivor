@@ -117,6 +117,11 @@ test('the schema holds the nine tells, the reply ids and a bounded difficulty', 
   assert.ok(DIRECTOR_SYSTEM.includes('No em dashes'));
 });
 
+test('the prompt pins names to the allowed list spelling and family words to Mom and Dad', () => {
+  assert.ok(DIRECTOR_SYSTEM.includes('Spell every name exactly as the allowed list gives it'));
+  assert.ok(DIRECTOR_SYSTEM.includes('Mom and Dad, never Mum'));
+});
+
 test('the fixtures stand where the test needs them: clean passes the guard, broken fails it', () => {
   assert.deepEqual(guardDraft(toDraft(clean, note), OPTIONS), { ok: true, reasons: [] });
   assert.ok(guardDraft(toDraft(broken, note), OPTIONS).reasons.length > 0);

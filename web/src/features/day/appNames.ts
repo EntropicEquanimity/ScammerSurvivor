@@ -15,7 +15,7 @@ const LAYOUT_BRAND: Partial<Record<Layout, BrandId>> = {
   call: 'relay',
 };
 
-// Text messages have no brand: a neutral grey icon and tint, never a real carrier's colour.
+// Messages (text messages) have no brand: a neutral grey icon and tint, never a real carrier's colour.
 const SMS_COLOUR = '#4a505a';
 
 export interface AppLook {
@@ -26,7 +26,7 @@ export interface AppLook {
 
 export function appLookFor(layout: Layout): AppLook {
   const id = LAYOUT_BRAND[layout];
-  if (!id) return { name: 'Text messages', art: '/art/sms.png', colour: SMS_COLOUR };
+  if (!id) return { name: 'Messages', art: '/art/sms.png', colour: SMS_COLOUR };
   return { name: BRANDS[id].name, art: `/art/${id}.png`, colour: BRANDS[id].colour };
 }
 

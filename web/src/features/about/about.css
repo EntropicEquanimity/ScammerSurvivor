@@ -22,8 +22,14 @@
   line-height: 1.4;
 }
 
+/* Notes sit on their own glass block like the lead: grey ink straight on the wallpaper did not read. */
 .about-note {
-  color: var(--ink-2);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  color: var(--ink);
   font-size: var(--t16);
   line-height: 1.45;
 }
@@ -92,19 +98,6 @@
   color: var(--muted);
   font-size: var(--t13);
   letter-spacing: var(--track-13);
-}
-
-.about-tag {
-  display: inline-block;
-  margin-left: 0.375rem;
-  padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--ink-2);
-  font-size: var(--t13);
-  font-weight: 600;
-  letter-spacing: var(--track-13);
-  vertical-align: middle;
 }
 
 .about-stat {

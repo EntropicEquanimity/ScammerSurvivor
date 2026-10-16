@@ -45,7 +45,7 @@ test('four rows, one verdict each, totals match the day score tallies', () => {
   const ledger = ledgerFrom(results, SENDERS, START);
   assert.deepEqual(
     ledger.rows.map((row) => row.line),
-    ['Mom: trusted', 'Bank: caught', 'Boss: blocked, they did not hear back', 'Courier: fell for it, P500 gone'],
+    ['Mom: trusted', 'Bank: caught', 'Boss: real, they did not hear back', 'Courier: fell for it, P500 gone'],
   );
   assert.deepEqual(ledger.rows.map((row) => row.verdict), ['trusted', 'caught', 'blocked', 'fell']);
   assert.deepEqual(ledger.rows.map((row) => row.walletDelta), [0, 0, 0, -500]);

@@ -35,7 +35,8 @@ const shownSender = (r: SlotResult): string =>
   r.isScam ? r.lesson.scam.sender.displayName : r.lesson.real.sender.displayName;
 
 // actionCorrect decides first, exactly as shared/score.ts tallies it, so the rows and the footnote
-// agree; falseAlarm only splits the real-but-wrong rows into blocked and risky.
+// agree; falseAlarm only splits the real-but-wrong rows into blocked and risky. blocked covers both
+// Block and Ignore (SlotResult does not say which), so its line names neither.
 // ponytail: a scam met with a plain reply (nothing lost) still lands in fell; the line text carries that.
 function verdictOf(r: SlotResult): Verdict {
   if (r.isScam) return r.actionCorrect ? 'caught' : 'fell';
@@ -47,7 +48,7 @@ function verdictOf(r: SlotResult): Verdict {
 function detailOf(verdict: Verdict, lost: number, recovered: number, money: (n: number) => string): string {
   if (verdict === 'trusted') return 'trusted';
   if (verdict === 'caught') return 'caught';
-  if (verdict === 'blocked') return 'blocked, they did not hear back';
+  if (verdict === 'blocked') return 'real, they did not hear back';
   if (verdict === 'risky') return 'real, but that reply was not the safe one';
   if (lost <= 0) return 'fell for it, nothing lost yet';
   const back = recovered > 0 ? `, ${money(recovered)} back` : '';

@@ -123,14 +123,18 @@ function withCard(s: State, slotId: string, card: PublicCard): State {
 const swapUnopened = (s: State, cards: PublicCard[]): State =>
   cards.filter((card) => !s.opened.includes(card.slotId)).reduce((acc, card) => withCard(acc, card.slotId, card), s);
 
-// Where a scored slot goes: a real message gets one line, a slip gets the recovery window
-// when that screen exists, every other scam goes straight to its lesson.
-function phaseAfter(result: SlotResult, canRecover: boolean): Phase {
+// Where a scored slot goes: a real message gets one line; a scam that took money out of the
+// wallet gets the recovery window when that screen exists; every other scam, a wrong but free
+// reply included, goes straight to its lesson. The server refuses a recovery that lost nothing.
+export function phaseAfter(result: SlotResult, walletBefore: number, canRecover: boolean): Phase {
   const { slotId } = result;
   if (!result.isScam) return { kind: 'note', slotId };
-  if (!result.actionCorrect && canRecover) return { kind: 'recovery', slotId };
+  if (canRecover && result.walletAfter < walletBefore) return { kind: 'recovery', slotId };
   return { kind: 'lesson', slotId };
 }
+
+// The wallet the player held before this slot: the last result's, else the day's start.
+const walletOf = (s: State): number => s.results.at(-1)?.walletAfter ?? s.day?.wallet ?? 0;
 
 // The last result with the recovery applied: the wallet after the claw-back, and how much came back.
 const withRecovery = (results: SlotResult[], recovery: RecoverResult): SlotResult[] =>
@@ -200,14 +204,19 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
     request(
       setState,
       () => postTap(day.dayId, { slotId, tappedPartIds }),
-      (result, s) => ({ ...s, results: [...s.results, result], phase: phaseAfter(result, options.canRecover) }),
+      (result, s) => ({ ...s, results: [...s.results, result], phase: phaseAfter(result, walletOf(s), options.canRecover) }),
     );
   };
   const recovered = (recovery: RecoverResult) => {
     if (phase.kind !== 'recovery') return;
     setState((s) => ({ ...s, results: withRecovery(s.results, recovery), phase: { kind: 'lesson', slotId: phase.slotId } }));
   };
-  return { open, act, tap, recovered, ...endTransitions(day, phase, remaining, options, setState) };
+  // The recovery request failed or was refused: the lesson still comes, the wallet stays as scored.
+  const skipRecovery = () => {
+    if (phase.kind !== 'recovery') return;
+    setState((s) => ({ ...s, busy: false, failed: false, phase: { kind: 'lesson', slotId: phase.slotId } }));
+  };
+  return { open, act, tap, recovered, skipRecovery, ...endTransitions(day, phase, remaining, options, setState) };
 }
 
 // The day state machine: loading, notifications, card, tells, then a lesson, a note or the

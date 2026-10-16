@@ -4,7 +4,10 @@ import type { DayScore } from '../../shared/types.ts';
 import { readDay } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
 import { finishDay, recordAct, scoreTap, startDay } from './day.ts';
-import { addStats, getStats, recordDay, resetStats } from './stats.ts';
+import { DISPLAY_FROM, DOC, addStats, getStats, publicStats, recordDay, resetStats } from './stats.ts';
+import type { Stats } from './stats.ts';
+import { resetGlobalStats } from '../../scripts/reset-stats.ts';
+import type { StatsDb } from '../../scripts/reset-stats.ts';
 
 // Memory only: no project env, so nothing here reaches Firestore.
 delete process.env.GOOGLE_CLOUD_PROJECT;
@@ -67,4 +70,33 @@ test('finishDay records a day once: a second finish returns the same score and a
   assert.deepEqual(stats.realTrusted, first.body.realTrusted);
   assert.equal(finishDay('nope').status, 404);
   assert.equal((await getStats()).daysPlayed, 1);
+});
+
+test('the About counter is hidden until fifty days are played', async () => {
+  resetStats();
+  for (let day = 0; day < DISPLAY_FROM - 1; day += 1) recordDay(score(1, 1), 'SG');
+  const below = publicStats(await getStats());
+  assert.equal(below.display, false);
+  assert.equal(below.daysPlayed, DISPLAY_FROM - 1);
+  recordDay(score(1, 1), 'JP');
+  assert.equal(publicStats(await getStats()).display, true);
+  resetStats();
+});
+
+test('reset-stats overwrites stats/global with zero counts and nothing else', async () => {
+  const writes: { path: string; data: unknown; options?: unknown }[] = [];
+  const db = {
+    doc: (path: string) => ({
+      set: (data: unknown, options?: unknown) => {
+        writes.push({ path, data, options });
+        return Promise.resolve();
+      },
+    }),
+  } as unknown as StatsDb;
+  await resetGlobalStats(db);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].path, DOC);
+  assert.equal(writes[0].options, undefined, 'a full set, so old country counts go');
+  const zero: Stats = { daysPlayed: 0, scamsCaught: { handled: 0, total: 0 }, realTrusted: { handled: 0, total: 0 }, countries: {} };
+  assert.deepEqual(writes[0].data, zero);
 });

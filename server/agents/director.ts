@@ -26,6 +26,7 @@ Rules:
 - usualEnding: one sentence on what happens if the player complies.
 - Institutions and app names: use "[institution]" and "[chat app name]" placeholders, never a real brand.
 - People: first names only, from the allowed list. The sender of a family or friend card is one of the player's people by name.
+- Spell every name exactly as the allowed list gives it, letter for letter with the same capitals; never swap in a variant or a nickname. Family words follow the game's labels: Mom and Dad, never Mum, Ma, Mother or Father.
 - maskedNumber: a plus sign, the country code, a space, X for every hidden digit, then the real last four digits (shape "+65 XXXX NNNN"). The scam sender and the real twin have different last-four digits.
 - No run of more than four digits anywhere in any text field. No account numbers, reference numbers or codes written as digits; say "the practice code on screen" instead. Amounts in the pack's currency, short figures like "500".
 - Links only on the .example domain, written as plain text.
