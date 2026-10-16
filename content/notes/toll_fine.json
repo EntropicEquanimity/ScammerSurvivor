@@ -21,7 +21,7 @@
     "pay"
   ],
   "usualEnding": "The small amount is the hook: the card details are used for larger charges, and the same number gets more fake notices.",
-  "realTwin": "A real notice from [institution] says a toll statement is ready to view and pay in the official app or on the website the player already uses, with no link in the text.",
+  "realTwin": "A real notice from [institution] says a toll statement is ready, names the operator's own website in plain text, and says to view and pay it in the official app the player already uses; it asks for nothing else.",
   "confidence": "medium",
   "source": {
     "url": "https://www.info.gov.hk/gia/general/202410/28/P2024102800253.htm (HK Transport Department, 28 Oct 2024: fake toll texts link to pages that take card details; the real operator sends no payment links, and tolls are paid in its own app or site). Catalogue entry 42 is the nearest row, not an exact one.",

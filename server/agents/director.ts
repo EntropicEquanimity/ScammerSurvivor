@@ -171,9 +171,13 @@ const SENDER_LINE = {
 
 const hasPages = (note: PatternNote): boolean => PAGE_TRICKS.includes(trickFor(note));
 
-// The slow add (Oct 16): its opening must read, and score, as an ordinary new contact.
+// Per-trick notes (Oct 16): the slow add's opening must read, and score, as an ordinary new contact;
+// a toll fine stays small and a SIM swap names no amount, since the live run wrote the stake in as a
+// hundredfold late fee and as an order on a card that only asks for a code.
 const TRICK_LINE: Partial<Record<TrickId, string>> = {
   slow_add: 'This card is a slow add: the setup parts are ordinary small talk from a new contact and carry no tellIds at all; every tell sits on the ask, which turns to the favour or the tip as if it just came up.',
+  toll_fine: 'This card is a toll or parking fine: the charge and any late fee are small figures for one trip; never write the stake as a fine or a penalty.',
+  sim_swap: 'This card is a SIM swap: it asks only for the code and names no amount of money anywhere.',
 };
 
 export function userMessage(note: PatternNote, pack: CountryPack, level: number, allowedNames: string[], leaked: readonly FieldId[] = []): string {

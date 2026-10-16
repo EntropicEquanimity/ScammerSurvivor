@@ -154,7 +154,7 @@ export const REAL_WHY: readonly string[] = [
 const REAL_WHY_BY_TRICK: Partial<Record<TrickId, readonly string[]>> = {
   wrong_number: ['They said sorry for the wrong number and left it there.', 'Nothing in it turns to money, an app or a tip.'],
   slow_add: ['The chat stays ordinary: no favour, no tip, no money.', 'You can meet them where you met, with other people around.'],
-  toll_fine: ['It points you to the official app or site you already use, with no link to tap.', 'Nothing in it rushes you or asks for card details.'],
+  toll_fine: ["It names the operator's own site and says to pay in the app you already use.", 'Nothing in it rushes you or asks for card details.'],
   preorder_deposit: ['The seller meets in person or uses the marketplace checkout.', 'Nothing is paid to a personal account before you see the item.'],
   sim_swap: ['It asks for no code and no reply.', 'It says to visit a store or open the official app if it was not you.'],
 };

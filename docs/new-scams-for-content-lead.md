@@ -18,7 +18,7 @@ The notes describe tactics only. There is no message text in them. Every note is
 - Tells: posing as official, rushing you, asking for a card or code.
 - Safe: ignore, block and report, check on the number you know. Unsafe: open the link, pay.
 - The page: a "pay the fine" page (new kind `fine_payment`). The real twin's page only says to open the official app.
-- The real one: a toll statement that says to view and pay it in the official app or on the site you already use.
+- The real one: a toll statement that names the operator's own site and says to view and pay it in the official app you already use. (Every page trick's real twin names its own site, so the toll twin carries a plain-text address too.)
 - Source: Hong Kong Transport Department press release, 28 Oct 2024, https://www.info.gov.hk/gia/general/202410/28/P2024102800253.htm (fake toll texts link to pages that take card details; the real service sends no payment links; pay in its app or site). Catalogue entry 42 is the nearest row, not an exact one.
 
 ## Pre-order deposit (`preorder_deposit.json`)
