@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { ACTIONS } from '../../../../shared/types.ts';
 import type { SlotResult } from '../../../../shared/types.ts';
 import { TRICK_IDS, TRICK_TITLES } from '../../../../shared/taxonomy.ts';
-import { ACTION_LINES, flagsOf, tellOrder, tellRows, lessonTitle, outcomeLine, parseNotes, quoteOf, secondPerson } from './title.ts';
+import { ACTION_LINES, flagsOf, tellOrder, tellRows, lessonTitle, outcomeLine, parseNotes, quoteOf, secondPerson, verdictSaid } from './title.ts';
 
 const base = (over: Partial<SlotResult> = {}): SlotResult => ({
   slotId: 's1',
@@ -113,4 +113,11 @@ test('the Coach notes parse only in their shape', () => {
 test('a message questioned first adds the line to the outcome', () => {
   assert.equal(outcomeLine(base({ action: 'block_report', questioned: true })).text, 'You blocked and reported it. You asked questions first.');
   assert.equal(outcomeLine(base({ action: 'block_report' })).text, 'You blocked and reported it.');
+});
+
+test('the verdict leads the line, right or wrong, and the action still follows', () => {
+  assert.equal(outcomeLine(base({ action: 'pay', actionCorrect: false, verdict: 'scam', verdictCorrect: true }), 'SGD 500').text, 'You said Scam \u2713. You fell for it, SGD 500 gone.');
+  assert.equal(outcomeLine(base({ action: 'reply', isScam: false, verdict: 'scam', verdictCorrect: false })).text, 'You said Scam \u2717. You answered a real message.');
+  assert.equal(verdictSaid(base({ verdict: 'real', verdictCorrect: true })), 'You said Real \u2713.');
+  assert.equal(verdictSaid(base()), '');
 });

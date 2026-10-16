@@ -9,7 +9,7 @@ import './juice.css';
 export interface Flight {
   id: number;
   amount: number;
-  speed?: SpeedTag; // a right call made fast: the small tag beside the number
+  speed?: SpeedTag; // a tell spotted fast: the small tag beside the number
   from: { x: number; y: number };
   to: { x: number; y: number };
 }
@@ -63,9 +63,9 @@ export function useJuice() {
     setBump((b) => b + 1);
   }, []);
 
-  // decisionMs is how long the player took to act on the card; it scales the decision's points.
-  const reward = useCallback((result: SlotResult, origin?: Element | null, decisionMs?: number) => {
-    const base = pointsFor(result, decisionMs);
+  // correctTapMs: the time to each mark that held a tell, from the tell picker opening (speedClock.ts).
+  const reward = useCallback((result: SlotResult, origin?: Element | null, correctTapMs: readonly number[] = []) => {
+    const base = pointsFor(result, correctTapMs);
     const next = nextStreak(streakNow.current, base.good);
     streakNow.current = next;
     setStreak(next);

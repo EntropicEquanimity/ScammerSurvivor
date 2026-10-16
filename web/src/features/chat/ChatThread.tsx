@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { haptic } from '../../shell/feel.ts';
+import { capped } from './chatState.ts';
 import { CHIP_LABELS } from './labels.ts';
 import type { Chat } from './useChat.ts';
 import './chat.css';
@@ -34,6 +35,11 @@ export function ChatThread({ chat }: { chat: Chat }) {
       {failed && (
         <p className="plain-note" role="alert">
           Not delivered. Tap your reply again.
+        </p>
+      )}
+      {capped(chat.state) && !waiting && (
+        <p className="chat-capped" role="status">
+          They stopped answering. Decide now: a Reply now is your final answer.
         </p>
       )}
       <div ref={end} aria-hidden="true" />

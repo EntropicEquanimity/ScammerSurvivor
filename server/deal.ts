@@ -2,13 +2,13 @@ import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
 import type { Action, Card, CountryPack, DayPayload, DayScore, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
 import type { Clue } from '../shared/clues.ts';
-import { offeredFor } from './offered.ts';
+import { offeredForPair } from './offered.ts';
 import { moneyComesIn } from '../shared/money.ts';
 import { NEEDS, pageTells, publicPage } from '../shared/page.ts';
 import { isPageScam, placePage } from './arc.ts';
 import { fillCard, fitLayout } from './fill.ts';
 
-export { asks, offeredFor } from './offered.ts';
+export { asks, offeredFor, offeredForPair } from './offered.ts';
 export { isPageScam, placePage } from './arc.ts';
 export { INVENTED_INSTITUTION, fillCard, fillText, fitLayout, undouble } from './fill.ts';
 
@@ -94,10 +94,15 @@ const withPage = <T extends object>(card: Card, isTwin: boolean, pick: (page: No
   return page ? pick(page) : {};
 };
 
-// A real twin never has a code handed over (the Guard's twin_asks_code): a cached twin written before
-// that rule still asks, so its code buttons are dropped and handing a code over is never acceptable.
+// A real twin never has a code handed over (the Guard's twin_asks_code): handing a code over is never
+// acceptable on one. The buttons still show it when the scam side asks, so both sides look alike.
 const CODE_ACTIONS: readonly Action[] = ['share_code', 'read_code'];
 const withoutCodes = (actions: Action[], isTwin: boolean): Action[] => (isTwin ? actions.filter((action) => !CODE_ACTIONS.includes(action)) : actions);
+
+// One offered list for the pair (offered.ts offeredForPair): the scam's own unsafe replies rank first,
+// then what the twin may fittingly do, so both sides show the same buttons in the same places.
+export const pairOffered = (card: Card): Action[] =>
+  offeredForPair([...card.setup, ...card.ask], card.realTwin.parts, [...card.unsafeReplies, ...withoutCodes(card.realTwin.acceptable, true)]);
 
 function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string, bannerHint: PublicCard['bannerHint']): PublicCard {
   const cut = card.setup.length;
@@ -109,7 +114,7 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     sender: { ...(isTwin ? card.realTwin.sender : card.sender) },
     setup: strip(setup),
     ask: strip(ask),
-    offered: withoutCodes(offeredFor([...setup, ...ask], card.unsafeReplies), isTwin),
+    offered: pairOffered(card),
     stake: card.stake,
     arrivesAt,
     bannerHint,

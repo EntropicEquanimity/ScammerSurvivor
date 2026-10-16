@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Card } from '../shared/types.ts';
 import { PACKS, fixturesFor, resolveCountry } from './country.ts';
-import { dealDay, fillCard, lessonFor } from './deal.ts';
+import { dealDay, fillCard, lessonFor, redealSlot } from './deal.ts';
 import { collapse, secondPerson } from './fill.ts';
 
 // Nothing raw reaches a screen (Skeptic round 4): no look id ("green-chat"), no doubled word
@@ -84,7 +84,7 @@ test('the faults the Skeptic saw are repaired at deal time', () => {
   assert.equal(secondPerson("The player's account is frozen. The scam asks the player for more."), 'Your account is frozen. The scam asks you for more.');
 });
 
-test('a real twin never offers a code button, and handing a code over is never acceptable on one', () => {
+test('handing a code over is never acceptable on a real twin, and its buttons match the scam side', () => {
   const base = resolveCountry('SG').cards[0];
   const cards = ['t1', 't2', 't3', 't4'].map((id): Card => ({
     ...base,
@@ -96,12 +96,12 @@ test('a real twin never offers a code button, and handing a code over is never a
   const twins = slots.filter((slot) => slot.isTwin);
   assert.ok(twins.length > 0);
   for (const twin of twins) {
-    assert.ok(!twin.public.offered.includes('share_code') && !twin.public.offered.includes('read_code'), twin.slotId);
+    assert.deepEqual(twin.public.offered, redealSlot({ ...twin, isTwin: false }, twin.card).public.offered, twin.slotId);
     assert.ok(!twin.key.acceptable.includes('share_code'), twin.slotId);
   }
 });
 
-test('a friend transferring their share in shows no payment clue and no money button', () => {
+test('a friend transferring their share in shows no payment clue; its buttons are the scam side\'s', () => {
   const base = resolveCountry('SG').cards[0];
   const text = 'My share was PHP 2,000 for dinner, transferring it over now.';
   const cards = ['f1', 'f2', 'f3', 'f4'].map((id): Card => ({
@@ -119,6 +119,6 @@ test('a friend transferring their share in shows no payment clue and no money bu
   assert.ok(twins.length > 0);
   for (const twin of twins) {
     assert.ok(!(twin.public.clues ?? []).some((clue) => clue.kind === 'payment_request'), twin.slotId);
-    assert.ok(!twin.public.offered.some((action) => action === 'pay' || action === 'send_money'), twin.slotId);
+    assert.deepEqual(twin.public.offered, redealSlot({ ...twin, isTwin: false }, twin.card).public.offered, twin.slotId);
   }
 });

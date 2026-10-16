@@ -134,3 +134,67 @@
   border-radius: var(--radius-sm);
   background: var(--glass-strong);
 }
+
+/* Every part reads as tappable before a mark (the UX audit, Oct 16): a hairline outline and a small
+   plus at the right, where the Marked stamp lands. */
+.part-tap {
+  position: relative;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--surface));
+}
+
+.part-tap:not([aria-pressed='true'])::after {
+  content: '+';
+  position: absolute;
+  top: 50%;
+  right: 0.625rem;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent-ink);
+  font-size: var(--t16);
+  font-weight: 700;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.part-tap:not([aria-pressed='true']) .part-text {
+  padding-right: 1.75rem;
+}
+
+/* The skip and Done, two equal capsules where the tray sits; the thread fades out above them. */
+.tells-end {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  position: relative;
+  padding: 0.5rem 1rem 0.25rem;
+  background: var(--surface);
+}
+
+.tells-end::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: var(--fade-h, 24px);
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+
+.tells-end .action-std {
+  min-height: var(--tap);
+}
+
+/* "Is this a scam?" over its two buttons, in the tray's place (VerdictStep.tsx). */
+.verdict-question {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--t18);
+  font-weight: 600;
+  text-align: center;
+}

@@ -10,6 +10,7 @@ import { Autofill } from './Autofill.tsx';
 import { PageView } from './PageView.tsx';
 import { sendPage } from './api.ts';
 import { EMPTY_FORM, fillFocused, focusRow, givenOf } from './fill.ts';
+import { NOT_PRACTICE, templatePage } from './template.ts';
 import './browser.css';
 
 // The in-app Safari view an app opens for a link: Done and the address at the top, no tabs, no
@@ -19,6 +20,7 @@ import './browser.css';
 interface Props {
   slotId: string;
   page: PublicPage;
+  preview?: boolean; // a code-built page for a link with no practice page: rows show, nothing sends
   onLeave: () => void;
 }
 
@@ -45,7 +47,7 @@ function Hint({ text }: { text: string }) {
   return <p className="safari-hint">{text}</p>;
 }
 
-export function SafariView({ slotId, page, onLeave }: Props) {
+export function SafariView({ slotId, page, preview = false, onLeave }: Props) {
   const { form, setForm, phase, sent, send } = useSend(slotId, page, onLeave);
   const leave = () => {
     haptic();
@@ -54,8 +56,8 @@ export function SafariView({ slotId, page, onLeave }: Props) {
   const onKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape' && phase !== 'sending') onLeave();
   };
-  const offering = sent ? null : form.focus;
-  const hint = sent || page.fields.length === 0 ? 'Tap Done to go back.' : 'Tap a row to fill it, or Done to leave.';
+  const offering = sent || preview ? null : form.focus;
+  const hint = sent || preview || page.fields.length === 0 ? 'Tap Done to go back.' : 'Tap a row to fill it, or Done to leave.';
   return (
     <section className="safari anim-sheet" role="dialog" aria-label={`Browser, ${page.host}`} onKeyDown={onKey}>
       <header className="safari-bar">
@@ -65,6 +67,7 @@ export function SafariView({ slotId, page, onLeave }: Props) {
       <div className="safari-page scroll">
         <PageView
           page={page}
+          preview={preview ? NOT_PRACTICE : undefined}
           sent={sent}
           form={form}
           sending={phase === 'sending'}
@@ -78,13 +81,12 @@ export function SafariView({ slotId, page, onLeave }: Props) {
   );
 }
 
-// The Open link hand-off: the card's link opens its page over the card; leaving it, after a send or
-// not, hands back to the card's own action. The decision clock holds still while the page is open.
-// ponytail: the call shares the one pause; a call that covers the page and ends first resumes the
-// clock early. Harmless on a page card, which is untimed anyway; a pause count is the upgrade.
+// The Open link hand-off: the card's link always opens a page over the card, its own practice page
+// or, without one, the code-built preview for the link's host (template.ts). Leaving it, after a send
+// or not, hands back to the card's own action, then the tells.
 export function openBrowser(card: PublicCard, onLeave: () => void): void {
-  const page = card.page;
-  if (!page) return onLeave();
+  const page = card.page ?? templatePage(card);
+  const preview = card.page === undefined;
   const id = `browser-${card.slotId}`;
   const leave = () => {
     closeOverlay(id);
@@ -92,5 +94,5 @@ export function openBrowser(card: PublicCard, onLeave: () => void): void {
     onLeave();
   };
   pauseClock();
-  if (!showOverlay({ id, node: <SafariView key={id} slotId={card.slotId} page={page} onLeave={leave} /> })) leave();
+  if (!showOverlay({ id, node: <SafariView key={id} slotId={card.slotId} page={page} preview={preview} onLeave={leave} /> })) leave();
 }

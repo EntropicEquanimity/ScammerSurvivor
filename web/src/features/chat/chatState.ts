@@ -29,8 +29,12 @@ export const initialChat = (card: Pick<PublicCard, 'sender' | 'offered'>): ChatS
   exchanges: 0,
 });
 
-// Reply opens the chips while exchanges are left; after that it is an ordinary, scored pick.
-export const takesReply = (state: ChatState, action: Action): boolean => action === 'reply' && state.exchanges < MAX_EXCHANGES;
+// The questions are used up: five answers, or an answer that brought no more chips. From then on
+// Reply is an ordinary, scored pick, and the thread says so (ChatThread.tsx), never silently.
+export const capped = (state: ChatState): boolean => state.exchanges >= MAX_EXCHANGES || (state.exchanges > 0 && state.chips.length === 0);
+
+// Reply opens the chips while questions are left.
+export const takesReply = (state: ChatState, action: Action): boolean => action === 'reply' && !capped(state);
 
 export const opened = (state: ChatState): ChatState => ({ ...state, open: true, failed: false });
 

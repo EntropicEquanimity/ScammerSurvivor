@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RECOVERY_WINDOW_SECONDS, mostMissed, recoveryFor, scoreDay, scoreSlot } from './score.ts';
+import { RECOVERY_WINDOW_SECONDS, isVerdict, mostMissed, recoveryFor, scoreDay, scoreSlot, verdictRight } from './score.ts';
 import type { SlotKey } from './score.ts';
 import type { Action, MessagePart, TellId } from './types.ts';
 import { NEEDS } from './page.ts';
@@ -197,4 +197,17 @@ test('calling the known number is safe on a scam and cautious on a real message'
   const onReal = scoreSlot(familyTwin, 'verify_known_number', []);
   assert.deepEqual([onReal.actionCorrect, onReal.cautious, onReal.falseAlarm], [true, true, false]);
   assert.equal(scoreSlot(familyTwin, 'reply', []).cautious, undefined);
+});
+
+test('the verdict is right when it names what the message was', () => {
+  assert.equal(verdictRight(true, 'scam'), true);
+  assert.equal(verdictRight(false, 'real'), true);
+  assert.equal(verdictRight(true, 'real'), false);
+  assert.equal(verdictRight(false, 'scam'), false);
+  assert.equal(isVerdict('scam') && isVerdict('real') && !isVerdict('maybe') && !isVerdict(undefined), true);
+});
+
+test('a real message checked by a call is handled but not counted as trusted', () => {
+  const day = scoreDay([scoreSlot(familyTwin, 'verify_known_number', []), scoreSlot(parcelTwin, 'reply', [])], { wallet: 2000, people: 3 });
+  assert.deepEqual(day.realTrusted, { handled: 1, total: 2 });
 });

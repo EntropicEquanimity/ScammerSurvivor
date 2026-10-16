@@ -266,12 +266,10 @@
 /* A plain part is a line; the tap-mode part (tells.css) is a flex button. */
 .part:not(.part-tap) { display: block; }
 
-/* A fake link looks like a link and goes nowhere. It is a span, never an anchor. */
+/* A fake link is a span, never an anchor. It takes the accent colour but no underline, so it never
+   reads as tappable (the UX audit, Oct 16): Open link in the tray is how it opens. */
 .fake-link {
-  font-weight: 700;
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  color: var(--accent-ink);
 }
 
 /* Looks. The five chats share the bubble; cloud-chat names the sender inside it. email: no bubbles,
@@ -346,22 +344,5 @@
   cursor: default;
 }
 
-/* The message's own buttons share the primary row; pay and install fill with the app's colour. */
-
-/* The app's colour, deep enough for white words on every app (5.2:1 or more; 80% gave 3.4 to 3.7). */
-.cta-fill {
-  background: color-mix(in srgb, var(--app-colour) 62%, #000);
-  color: var(--surface);
-}
-
-/* A link chip: a darker accent in a pill (4.5:1 on its tint), no underline inside the capsule. */
-.cta-link {
-  color: color-mix(in srgb, var(--accent) 78%, #000);
-  text-decoration: none;
-}
-
-/* Any other offered button: a chip tinted with the app's own colour. */
-.cta-chip {
-  background: color-mix(in srgb, var(--app-colour) 12%, var(--surface));
-  color: var(--ink);
-}
+/* The message's own buttons wear the same capsule as the rest: no button is coloured by danger
+   (the UX audit, Oct 16). */

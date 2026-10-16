@@ -111,3 +111,12 @@
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
 }
+
+/* The questions are used up: one centred grey line, the thread's own system-note look. */
+.chat-capped {
+  align-self: center;
+  margin: 0.25rem 0 0;
+  color: var(--ink-2);
+  font-size: var(--t13);
+  text-align: center;
+}

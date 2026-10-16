@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { clockMs, pauseClock, resumeClock, startClock, untimeClock } from './speedClock.ts';
+import { clearMarks, clockMs, correctMarkMs, markPart, pauseClock, resumeClock, startClock } from './speedClock.ts';
 
 test('a paused stretch is not counted', () => {
   startClock(1_000);
@@ -19,10 +19,22 @@ test('a second pause or a resume without a pause changes nothing', () => {
   assert.equal(clockMs(5_000), 2_000);
 });
 
-test('an untimed card has no decision time until the next card starts its clock', () => {
+test('each mark keeps the time from the picker opening; false taps are left out', () => {
   startClock(0);
-  untimeClock();
-  assert.equal(clockMs(5_000), undefined);
-  startClock(6_000);
-  assert.equal(clockMs(7_000), 1_000);
+  markPart('a1', true, 1_200);
+  markPart('s1', true, 2_000);
+  markPart('a2', true, 4_000);
+  markPart('a2', false, 4_500);
+  markPart('a2', true, 7_000);
+  assert.deepEqual(correctMarkMs(['s1']), [1_200, 7_000]);
+});
+
+test('a new picker or a clear forgets the marks', () => {
+  startClock(0);
+  markPart('a1', true, 500);
+  startClock(10_000);
+  assert.deepEqual(correctMarkMs([]), []);
+  markPart('a1', true, 10_500);
+  clearMarks();
+  assert.deepEqual(correctMarkMs([]), []);
 });

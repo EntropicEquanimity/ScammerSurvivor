@@ -35,11 +35,26 @@ const oneMoney = (ranked: Action[]): Action[] => {
   return ranked.filter((action) => !MONEY.includes(action) || action === first);
 };
 
-// STANDARD_ACTIONS plus the extras the shown parts ask for, the card's own unsafe replies first.
-export const offeredFor = (parts: readonly { text: string }[], preferred: readonly Action[] = []): Action[] => {
+// The extras one side's words ask for, in cue order.
+const askedBy = (parts: readonly { text: string }[]): Action[] => {
   const text = parts.map((part) => part.text).join('. '); // a cue never reads across two parts
   const report = moneyComesIn(text);
-  const asked = CUES.filter(([action, cue]) => !(report && MONEY.includes(action)) && asks(text, cue)).map(([action]) => action);
+  return CUES.filter(([action, cue]) => !(report && MONEY.includes(action)) && asks(text, cue)).map(([action]) => action);
+};
+
+const withExtras = (asked: readonly Action[], preferred: readonly Action[]): Action[] => {
   const ranked = oneMoney(unique([...preferred.filter((action) => asked.includes(action)), ...asked]));
   return unique([...STANDARD_ACTIONS, ...ranked.slice(0, MAX_EXTRAS)]);
 };
+
+// STANDARD_ACTIONS plus the extras the shown parts ask for, the card's own unsafe replies first.
+// Used for one side alone: a chat answer's new asks (routes/chat.ts).
+export const offeredFor = (parts: readonly { text: string }[], preferred: readonly Action[] = []): Action[] =>
+  withExtras(askedBy(parts), preferred);
+
+// The UX audit (Oct 16): a money button on 63 of 64 scams and 5 of 64 real messages was the answer
+// key. A scam and its real twin get one list: what either side's words ask for, in one order, so the
+// buttons never tell them apart. A button the shown side never asked for is part of the test.
+// This amends lesson 20: the buttons fit the pair's words, not one side's.
+export const offeredForPair = (scam: readonly { text: string }[], twin: readonly { text: string }[], preferred: readonly Action[] = []): Action[] =>
+  withExtras(unique([...askedBy(scam), ...askedBy(twin)]), preferred);

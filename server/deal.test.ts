@@ -182,7 +182,7 @@ test('a message offers only the buttons its own words ask for', () => {
   assert.deepEqual(extras('Install the helper app so I can see your screen.'), ['install']);
 });
 
-test('the scam and its twin each get their own words\' buttons; the scam\'s own come first, three at most', () => {
+test('the scam and its twin share one list: what either side asks for, the scam\'s own first, three at most', () => {
   const card: Card = {
     ...raw,
     unsafeReplies: ['keep_secret', 'pay'],
@@ -192,7 +192,19 @@ test('the scam and its twin each get their own words\' buttons; the scam\'s own 
   const scam = slots.find((slot) => !slot.isTwin);
   const twin = slots.find((slot) => slot.isTwin);
   assert.deepEqual(scam?.public.offered, [...STANDARD_ACTIONS, 'keep_secret', 'pay', 'open_link']); // one money button (offered.ts)
-  assert.deepEqual(twin?.public.offered, [...STANDARD_ACTIONS]);
+  assert.deepEqual(twin?.public.offered, scam?.public.offered); // the UX audit's colour giveaway (Oct 16)
+});
+
+test('every fixture card offers the same buttons as a scam and as its real twin', () => {
+  for (const [code, cards] of FIXTURES) {
+    for (const card of cards) {
+      const offered = (isTwin: boolean) => redealSlot({ slotId: 'slot-1', isTwin, public: { arrivesAt: '08:10', bannerHint: null } } as never, card).public.offered;
+      assert.deepEqual(offered(true), offered(false), `${code} ${card.id}`);
+      for (const action of card.realTwin.acceptable.filter((a) => a !== 'share_code' && a !== 'read_code')) {
+        assert.ok(offered(true).includes(action), `${code} ${card.id} twin can ${action}`);
+      }
+    }
+  }
 });
 
 test('calling the number you already know is safe on every scam and acceptable on every real message', () => {

@@ -1,5 +1,5 @@
 import { TELL_IDS } from './taxonomy.ts';
-import type { Action, DayScore, MessagePart, Tally, TellId } from './types.ts';
+import type { Action, DayScore, MessagePart, Tally, TellId, Verdict } from './types.ts';
 import { isSlip, leakedOf, movesMoney, pageCost } from './page.ts';
 import type { FieldId, PageKind } from './page.ts';
 
@@ -101,6 +101,12 @@ function scorePage(key: SlotKey, page: NonNullable<SlotKey['page']>, tells: Tell
   };
 }
 
+// "Scam or real?" scored on its own: right when it names what the message was. The action keeps
+// its own score, so a right verdict with a wrong action still loses the money.
+export const verdictRight = (isScam: boolean, verdict: Verdict): boolean => (verdict === 'scam') === isScam;
+
+export const isVerdict = (value: unknown): value is Verdict => value === 'scam' || value === 'real';
+
 // Recovery after a slip: how much of the lost stake comes back, by what the player did and how fast.
 // Only these three actions are accepted; block_report recovers nothing but is still the right report.
 export const RECOVERY_WINDOW_SECONDS = 90;
@@ -147,7 +153,9 @@ export interface DayStart {
 export function scoreDay(items: SlotScore[], start: DayStart): Omit<DayScore, 'collected'> {
   return {
     scamsCaught: tally(items.filter((item) => item.isScam)),
-    realTrusted: tally(items.filter((item) => !item.isScam)),
+    // A real message checked by a call is handled but not trusted (the UX audit, Oct 16): checking
+    // everything never reads as a perfect day. The end screen counts the checked ones apart.
+    realTrusted: { handled: items.filter((item) => !item.isScam && item.actionCorrect && !item.cautious).length, total: items.filter((item) => !item.isScam).length },
     wallet: Math.max(0, start.wallet + sum(items, (item) => item.walletDelta)),
     walletStart: start.wallet,
     people: Math.max(0, start.people + sum(items, (item) => item.peopleDelta)),

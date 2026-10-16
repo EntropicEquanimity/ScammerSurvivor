@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId, TraceEvent } from '../../../../shared/types.ts';
+import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId, TraceEvent, Verdict } from '../../../../shared/types.ts';
 import { fetchDay, fetchTrace, postAct, postFinish, postOpen, postTap } from '../../api.ts';
 import { usePersonalised } from './useArrival.ts';
 import { getRoom, reportDay, startRoomDay } from '../room/api.ts';
@@ -201,7 +201,7 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
     const { slotId } = phase;
     request(setState, () => postAct(day.dayId, { slotId, action }), (_ok, s) => ({ ...s, phase: { kind: 'tells', slotId } }));
   };
-  const tap = (tappedPartIds: string[]) => {
+  const tap = (tappedPartIds: string[], verdict?: Verdict) => {
     if (!day || phase.kind !== 'tells') return;
     const { slotId } = phase;
     request(
@@ -209,7 +209,7 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
       // The game layer hears the result before the state moves on, so the Done the player tapped
       // is still on screen for the points to fly from. Outside the updater: StrictMode runs those twice.
       () =>
-        postTap(day.dayId, { slotId, tappedPartIds }).then((result) => {
+        postTap(day.dayId, { slotId, tappedPartIds, ...(verdict ? { verdict } : {}) }).then((result) => {
           options.onResult?.(result);
           return result;
         }),

@@ -16,8 +16,7 @@ import { MessageView } from '../layouts/MessageView.tsx';
 import { Lesson, RealNote } from '../lesson/Lesson.tsx';
 import { GameHud } from '../juice/GameHud.tsx';
 import { FlyingPoints, useJuice } from '../juice/Juice.tsx';
-import { SpeedBar } from '../juice/SpeedBar.tsx';
-import { clockMs } from '../juice/speedClock.ts';
+import { correctMarkMs } from '../juice/speedClock.ts';
 import { EndOfDay } from './EndOfDay.tsx';
 import { Notifications } from './Notifications.tsx';
 import { appLookFor } from './appNames.ts';
@@ -98,7 +97,6 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
     <section className="app anim-zoom" data-look={card.layout} style={colour}>
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} trace={trace} personalised={personalised} />
-      <SpeedBar key={card.slotId} />
       <div className="app-body scroll">
         <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
         <ChatThread chat={chat} />
@@ -202,15 +200,9 @@ function useDayWithCall({ country, age, quick, onCall, onResult }: DayCallInput)
 // The stakes pills live on the lock screen under the clock.
 export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const juice = useJuice();
-  // The decision time, read when the player taps an action on the card, before the request goes out.
-  const decisionMs = useRef<number | undefined>(undefined);
-  // The points fly from the button that scored the slot: the tell picker's Done.
-  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .nav button'), decisionMs.current);
+  // The points fly from the tell picker's Done; the bonus counts the marks that held a tell.
+  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .tells-done'), correctMarkMs(result.falseTaps));
   const { d, call, endCall } = useDayWithCall({ country, age, quick, onCall, onResult });
-  const act = (action: Action) => {
-    decisionMs.current = clockMs();
-    d.act(action);
-  };
   const step = { busy: d.busy, failed: d.failed, onNext: d.next };
   const { phase } = d;
   const slotId = 'slotId' in phase ? phase.slotId : null;
@@ -238,7 +230,7 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
         />
       );
     }
-    return slotScreen({ ...d, act }, step) ?? <Notifications cards={d.arrived} wallet={d.wallet} people={d.people} onOpen={d.open} />;
+    return slotScreen(d, step) ?? <Notifications cards={d.arrived} wallet={d.wallet} people={d.people} onOpen={d.open} />;
   };
 
   return (

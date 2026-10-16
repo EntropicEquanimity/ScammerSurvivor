@@ -327,3 +327,17 @@
 .web-tells .web-line {
   margin: 0;
 }
+
+/* A preview page (template.ts): the rows are drawn flat, not buttons, and one grey line says why. */
+.web-row-static {
+  min-height: 48px;
+  justify-content: center;
+  background: #f2f2f7;
+  cursor: default;
+}
+
+.web-preview {
+  margin-top: 1rem;
+  color: var(--ink-2);
+  font-size: var(--t15);
+}

@@ -89,16 +89,29 @@ function useCountUp(to: number, delay: number): number {
   return shown;
 }
 
-// The two rates and the wallet, counting up once the last row has landed.
-function RatesNote({ score, rows, money }: { score: DayScore; rows: number; money: (n: number) => string }) {
+// The real messages checked by a call: handled, but not trusted (shared/score.ts scoreDay).
+export const checkedOf = (results: readonly SlotResult[]): number => results.filter((r) => !r.isScam && r.cautious).length;
+
+// "Scam or real?" answered right, out of the messages it was asked on.
+const verdictsOf = (results: readonly SlotResult[]): { right: number; asked: number } => ({
+  right: results.filter((r) => r.verdictCorrect).length,
+  asked: results.filter((r) => r.verdict).length,
+});
+
+// The rates and the wallet, counting up once the last row has landed.
+function RatesNote({ score, results, money }: { score: DayScore; results: SlotResult[]; money: (n: number) => string }) {
+  const rows = results.length;
   const delay = rows * ROW_STAGGER_MS + 360;
   const caught = useCountUp(score.scamsCaught.handled, delay);
   const trusted = useCountUp(score.realTrusted.handled, delay);
   const wallet = useCountUp(score.wallet, delay);
+  const checked = checkedOf(results);
+  const { right, asked } = verdictsOf(results);
   return (
     <p className="end-note" style={{ '--n': rows } as CSSProperties}>
-      Scams caught {caught} of {score.scamsCaught.total}. Real messages trusted {trusted} of {score.realTrusted.total}. Wallet{' '}
-      {money(wallet)} of {money(score.walletStart)}.
+      {asked > 0 && <>You called {right} of {asked} right. </>}
+      Scams caught {caught} of {score.scamsCaught.total}. Real messages trusted {trusted} of {score.realTrusted.total}
+      {checked > 0 && <>, {checked} checked first</>}. Wallet {money(wallet)} of {money(score.walletStart)}.
     </p>
   );
 }
@@ -200,11 +213,11 @@ export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders =
       <div className="page-body scroll">
         <NavBar title="Day over" />
         <Ledger results={results} senders={senders} score={score} money={money} />
-        <RatesNote score={score} rows={results.length} money={money} />
+        <RatesNote score={score} results={results} money={money} />
         {hotline && <HotlineGroup hotline={hotline} />}
         <MostMissed score={score} tells={tells} boss={<BossRow dayId={dayId} results={results} rows={results.length} />} />
         <div className="result-card-slot" style={{ '--n': results.length } as CSSProperties}>
-          <ResultCard score={score} dayNumber={dayNumber} tells={tells} points={points} />
+          <ResultCard score={score} dayNumber={dayNumber} tells={tells} points={points} checked={checkedOf(results)} />
         </div>
         <InstallNudge />
       </div>

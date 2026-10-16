@@ -91,9 +91,11 @@ const TEASERS: readonly { id: ArtId; title: string; line: string; when: string }
   { id: 'fieldpost', title: 'Fieldpost', line: 'New job', when: '5m ago' },
 ];
 
-function Teaser() {
+// The rows look like notifications, so a tap on them opens the day, as Play does (the UX audit,
+// Oct 16: they were a dead end). Play stays the one control assistive technology hears.
+function Teaser({ onPlay }: Pick<WidgetProps, 'onPlay'>) {
   return (
-    <div className="teaser" aria-hidden="true">
+    <div className="teaser" aria-hidden="true" onClick={(event) => onPlay(event, false)}>
       {TEASERS.map((t, i) => (
         <div key={t.id} className="teaser-notif anim-pop" style={stagger(i)}>
           <AppArt id={t.id} />
@@ -132,7 +134,8 @@ function DaySide({ onPlay, playRef }: Pick<WidgetProps, 'onPlay' | 'playRef'>) {
     <div className="widget-side">
       <p className="widget-day-n">
         <span>Day {progress.n + 1}</span>
-        <span className="widget-streak">{streak > 0 && <><Flame />Streak {streak}</>}</span>
+        {/* Days played and days in a row count different things; a streak shows from two days in a row. */}
+        <span className="widget-streak">{streak > 1 && <><Flame />{streak} days in a row</>}</span>
       </p>
       <button ref={playRef} type="button" className="widget-play-btn pressable" onClick={(event) => onPlay(event, false)}><PlayMark />Play</button>
       <button type="button" className="widget-capsule widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
@@ -148,7 +151,7 @@ function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
       <div className="widget-cell anim-pop" style={stagger(0)}>
         <div className="widget widget-day">
           <ScreenTitle className="visually-hidden">Your practice day</ScreenTitle>
-          <Teaser />
+          <Teaser onPlay={onPlay} />
           <DaySide onPlay={onPlay} playRef={playRef} />
           <div className="widget-foot">
             <button type="button" className="widget-capsule widget-link pressable" onClick={onPeople}><Glyph name="people" size={20} />Your people<Icon name="chevron" className="widget-chevron" /></button>

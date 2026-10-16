@@ -20,7 +20,7 @@ export interface LedgerRow {
 export interface Ledger {
   rows: LedgerRow[];
   caught: Tally; // scams with actionCorrect, equals DayScore.scamsCaught
-  trusted: Tally; // real messages with actionCorrect, equals DayScore.realTrusted
+  trusted: Tally; // real messages with actionCorrect and not checked by a call, equals DayScore.realTrusted
   walletDelta: number;
   peopleDelta: number;
 }
@@ -65,6 +65,9 @@ function detailOf(r: SlotResult, verdict: Verdict, lost: number, money: (n: numb
   return `fell for it, ${money(lost)} gone${back}`;
 }
 
+// The player's answer to "Scam or real?", when they gave one.
+const saidOf = (r: SlotResult): string => (r.verdict ? `, you said ${r.verdict}${r.verdictCorrect ? '' : ' (wrong)'}` : '');
+
 export function ledgerFrom(results: SlotResult[], senders: Record<string, string>, start: LedgerStart): Ledger {
   const money = start.money ?? String;
   const rows = results.map((r, i): LedgerRow => {
@@ -76,7 +79,7 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
     const sender = senders[r.slotId] ?? shownSender(r);
     const verdict = verdictOf(r);
     // walletAfter already nets a recovery (the server adds it back), so the amount gone is the delta plus what came back.
-    const detail = `${detailOf(r, verdict, -walletDelta + recovered, money)}${r.questioned ? ', asked questions first' : ''}`;
+    const detail = `${detailOf(r, verdict, -walletDelta + recovered, money)}${r.questioned ? ', asked questions first' : ''}${saidOf(r)}`;
     return {
       slotId: r.slotId,
       sender,
@@ -89,7 +92,7 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
   });
   const tally = (scam: boolean, ok: Verdict): Tally => {
     const mine = results.filter((r) => r.isScam === scam);
-    return { handled: rows.filter((row) => row.verdict === ok).length, total: mine.length };
+    return { handled: rows.filter((row, i) => row.verdict === ok && !results[i].cautious).length, total: mine.length };
   };
   return {
     rows,

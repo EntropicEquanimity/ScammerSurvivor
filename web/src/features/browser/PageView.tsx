@@ -98,9 +98,38 @@ function Sent({ given }: { given: FieldId[] }) {
 interface Props extends Omit<FormProps, 'page'> {
   page: PublicPage;
   sent: FieldId[] | null; // what the send button sent, once it landed
+  preview?: string; // the line a code-built page shows instead of its form: its rows are not buttons
 }
 
-export function PageView({ page, sent, ...form }: Props) {
+// A preview page's rows: what the site asks for, drawn flat, with no fill and no send.
+function PreviewRows({ page, line }: { page: PublicPage; line: string }) {
+  return (
+    <>
+      {page.fields.length > 0 && (
+        <ul className="web-form">
+          {page.fields.map((id) => (
+            <li key={id} className="web-row web-row-static">
+              <span className="web-row-label">{ROW_LABEL[id]}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="web-preview" role="note">{line}</p>
+    </>
+  );
+}
+
+export function PageView({ page, sent, preview, ...form }: Props) {
+  if (preview) {
+    return (
+      <article className="web">
+        <SiteHeader host={page.host} />
+        <ScreenTitle className="web-title">{page.title}</ScreenTitle>
+        {page.lines.map((line) => <p key={line.id} className="web-line">{line.text}</p>)}
+        <PreviewRows page={page} line={preview} />
+      </article>
+    );
+  }
   return (
     <article className="web">
       <SiteHeader host={page.host} />

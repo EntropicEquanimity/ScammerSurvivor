@@ -8,17 +8,21 @@ test('four standard buttons fill the grid, no More', () => {
   assert.deepEqual(trayFor([...STD]), { primary: [], grid: [...STD], more: [] });
 });
 
-test('filled extras lead the primary row; the rest go behind More', () => {
-  const tray = trayFor(['send_money', 'keep_secret', 'pay', ...STD]);
-  assert.deepEqual(tray.primary, ['send_money', 'pay']);
-  assert.deepEqual(tray.grid, ['reply', 'ignore', 'block_report']);
-  assert.deepEqual(tray.more, ['verify_known_number', 'keep_secret']);
+test('two extras take the row in the offered order; the four standard ones stay in the grid', () => {
+  assert.deepEqual(trayFor([...STD, 'open_link', 'pay']), { primary: ['open_link', 'pay'], grid: [...STD], more: [] });
+});
+
+test('three extras: the first and More in the row; Call to check is never behind More', () => {
+  const tray = trayFor([...STD, 'keep_secret', 'send_money', 'pay']);
+  assert.deepEqual(tray.primary, ['keep_secret']);
+  assert.deepEqual(tray.grid, [...STD]);
+  assert.deepEqual(tray.more, ['send_money', 'pay']);
+  assert.ok(!tray.more.includes('verify_known_number'));
 });
 
 test('every offered button lands exactly once', () => {
-  const offered = ['open_link', 'install', 'share_code', 'keep_secret', ...STD] as const;
+  const offered = [...STD, 'open_link', 'install', 'share_code', 'keep_secret'] as const;
   const tray = trayFor([...offered]);
   assert.equal(tray.primary.length + tray.grid.length + tray.more.length, offered.length);
   assert.deepEqual(new Set([...tray.primary, ...tray.grid, ...tray.more]), new Set(offered));
-  assert.ok(tray.primary.length <= 2 && tray.grid.length <= 4);
 });

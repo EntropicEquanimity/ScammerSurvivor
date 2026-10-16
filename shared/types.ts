@@ -277,9 +277,12 @@ export interface PageBody {
   given: FieldId[];
 }
 
+export type Verdict = 'scam' | 'real';
+
 export interface TapBody {
   slotId: string;
   tappedPartIds: string[]; // parts of setup and ask the player tapped
+  verdict?: Verdict; // the player's answer to "Scam or real?", sent with the taps
 }
 
 // Returned after the taps, never after the action alone.
@@ -297,6 +300,8 @@ export interface SlotResult {
   leaked?: FieldId[]; // page cards only: fields sent on a fake page, for What you gave away
   pageCost?: number; // page cards only: the sent fields' weight, taken off the points
   cautious?: boolean; // a real message met with Call to check: trusted, but it did not need the call
+  verdict?: Verdict; // what the player said it was, when they said
+  verdictCorrect?: boolean; // set with verdict: shared/score.ts verdictRight
   action?: Action; // the action scored, so the lesson can say what it meant; routes/day.ts scoreTap sets it
   questioned?: boolean; // the player sent at least one reply chip before the final action
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model

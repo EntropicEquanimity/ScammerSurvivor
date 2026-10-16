@@ -140,3 +140,9 @@ test('a message questioned first says so', () => {
   const [row] = ledgerFrom([slot('s2', { isScam: true, action: 'block_report', questioned: true })], SENDERS, START).rows;
   assert.equal(row.detail, 'blocked, asked questions first');
 });
+
+test('a real message checked by a call is not counted as trusted, and the verdict is named', () => {
+  const ledger = ledgerFrom([slot('s1', { action: 'verify_known_number', cautious: true, verdict: 'scam', verdictCorrect: false })], {}, START);
+  assert.deepEqual(ledger.trusted, { handled: 0, total: 1 });
+  assert.equal(ledger.rows[0].detail, 'real, you checked, you said scam (wrong)');
+});

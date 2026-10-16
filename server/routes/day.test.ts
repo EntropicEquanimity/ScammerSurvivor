@@ -427,3 +427,17 @@ test('an invalid focus is ignored: the deal is the plain deal for the seed', () 
   for (const focus of ['hacked', '', 42, ['urgency'], undefined]) assert.deepEqual(dealFocused(input, focus), plain);
   assert.equal(startDay({ country: 'SG', focus: 'not_a_tell' }).cards.length, 4);
 });
+
+test('the verdict rides with the taps and is scored on its own; a bad one is refused', () => {
+  const { dayId } = startDay({ country: 'SG' });
+  const slots = readDay(dayId)?.slots ?? [];
+  const [first, second] = slots;
+  recordAct(dayId, { slotId: first.slotId, action: 'ignore' });
+  assert.deepEqual(scoreTap(dayId, { slotId: first.slotId, tappedPartIds: [], verdict: 'maybe' }), { status: 400, body: { error: 'bad_verdict' } });
+  const said = first.isTwin ? 'real' : 'scam';
+  const right = scoreTap(dayId, { slotId: first.slotId, tappedPartIds: [], verdict: said });
+  assert.ok(right.status === 200 && right.body.verdict === said && right.body.verdictCorrect === true);
+  recordAct(dayId, { slotId: second.slotId, action: 'ignore' });
+  const wrong = scoreTap(dayId, { slotId: second.slotId, tappedPartIds: [], verdict: second.isTwin ? 'scam' : 'real' });
+  assert.ok(wrong.status === 200 && wrong.body.verdictCorrect === false);
+});

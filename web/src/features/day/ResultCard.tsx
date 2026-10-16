@@ -14,6 +14,7 @@ interface Props {
   dayNumber: number;
   tells: TellInfo;
   points?: number; // the day's game points; without them the card leads with the share handled safely
+  checked?: number; // real messages checked by a call: safe, so they count in the day line, but not as trusted
 }
 
 const W = 1080;
@@ -22,8 +23,8 @@ const PRODUCT = 'Scammer Survivor';
 const fraction = (t: Tally): string => `${t.handled} of ${t.total}`;
 
 // The words on the card, from the score alone. Exported for the caption and kept pure.
-export function cardText({ score, dayNumber, tells, points }: Props): CardText {
-  const safe = score.scamsCaught.handled + score.realTrusted.handled;
+export function cardText({ score, dayNumber, tells, points, checked = 0 }: Props): CardText {
+  const safe = score.scamsCaught.handled + score.realTrusted.handled + checked;
   const total = score.scamsCaught.total + score.realTrusted.total;
   const missed = score.tellMostMissed;
   const missedLabel = missed ? (tells[missed]?.label ?? missed.replaceAll('_', ' ')) : null;
@@ -54,14 +55,14 @@ async function render(props: Props): Promise<string> {
 // ponytail: rendered once per mount into a data URL; a page that renders many cards would want a blob URL.
 export function ResultCard(props: Props) {
   const [src, setSrc] = useState('');
-  const { score, dayNumber, tells, points } = props;
+  const { score, dayNumber, tells, points, checked } = props;
   useEffect(() => {
     let current = true;
-    render({ score, dayNumber, tells, points }).then((url) => current && setSrc(url), () => undefined);
+    render({ score, dayNumber, tells, points, checked }).then((url) => current && setSrc(url), () => undefined);
     return () => {
       current = false;
     };
-  }, [score, dayNumber, tells, points]);
+  }, [score, dayNumber, tells, points, checked]);
   const text = cardText(props);
   const caption = `${PRODUCT}, ${text.day}. ${text.big} ${text.bigLabel}. Scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
   return (

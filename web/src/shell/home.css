@@ -401,3 +401,8 @@
     height: 54px;
   }
 }
+
+/* The teaser opens the day like Play does. */
+.teaser {
+  cursor: pointer;
+}

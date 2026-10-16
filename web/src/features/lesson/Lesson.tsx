@@ -71,10 +71,10 @@ export function Lesson({ dayId, result, busy, failed, onNext, lost }: LessonProp
       <div className="page-body scroll">
         <LessonHead result={result} lost={lost} />
         <TellsGroup result={result} notes={notes} />
+        <NextTime lesson={lesson} />
         <FlaggedGroup result={result} />
         <GaveAwayGroup result={result} />
         <WouldHaveHappened lesson={lesson} />
-        <NextTime lesson={lesson} />
         <ReportIt hotline={lesson.hotline} />
         <TwinMessage lesson={lesson} notes={notes} />
       </div>

@@ -11,7 +11,7 @@ const money = (amount: number): string => moneyIn(amount, initialCountry());
 
 // The front of each clue, drawn the way the phone draws the real thing. Every face is phrasing
 // content (spans only), because it sits inside the inspect button. Nothing here navigates: the
-// host line is text, the Pay pill is a span, the code shows dots.
+// host line is text, the request is a grey label (never a button shape), the code shows dots.
 
 type FaceProps = { clue: Clue };
 
@@ -31,8 +31,9 @@ function LinkPreview({ clue }: FaceProps) {
   );
 }
 
-// A wallet request: the amount large, who asks under it, a Pay pill that looks real and does nothing.
-// Money coming in (a refund, a friend's share) reads "Incoming SGD 500" and has no pill: nobody pays to receive.
+// A wallet request: the amount large, who asks under it, and a grey "Payment request" label. It is a
+// preview of the request, not a Pay button (the UX audit, Oct 16): paying lives in the tray.
+// Money coming in (a refund, a friend's share) reads "Incoming SGD 500" and has no label: nobody pays to receive.
 function PaymentRequest({ clue }: FaceProps) {
   const amount = typeof clue.amount === 'number' ? money(clue.amount) : '';
   const incoming = moneyComesIn(clue.title, clue.detail);
@@ -41,9 +42,7 @@ function PaymentRequest({ clue }: FaceProps) {
       <span className="clue-amount">{incoming && amount ? `Incoming ${amount}` : amount}</span>
       <span className="clue-title">{clue.title}</span>
       {!incoming && (
-        <span className="clue-pay-pill" aria-hidden="true">
-          Pay
-        </span>
+        <span className="clue-pay-pill">Payment request</span>
       )}
     </span>
   );

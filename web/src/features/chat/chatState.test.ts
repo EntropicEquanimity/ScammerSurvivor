@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { ChatReplyResult } from '../../../../shared/types.ts';
-import { answered, initialChat, notSent, opened, sent, takesReply } from './chatState.ts';
+import { answered, capped, initialChat, notSent, opened, sent, takesReply } from './chatState.ts';
 import { CHIP_LABELS, pickChips } from './labels.ts';
 
 const CARD = { sender: { displayName: 'Sender', institutionId: 'bank', maskedNumber: '' }, offered: ['reply', 'ignore'] as ChatReplyResult['offered'] };
@@ -39,4 +39,15 @@ test('a failed send takes the bubble back and keeps the chips', () => {
   assert.equal(failed.waiting, false);
   assert.deepEqual(failed.chips, pickChips(CARD, []));
   assert.equal(INITIAL_CHAT.bubbles.length, 0);
+});
+
+test('the cap: open before the first answer, reached after five answers or an answer with no more chips', () => {
+  assert.equal(capped(INITIAL_CHAT), false);
+  const one = answered(sent(opened(INITIAL_CHAT), 'who_is_this'), result(1, false));
+  assert.equal(capped(one), false);
+  const dry = answered(sent(opened(INITIAL_CHAT), 'who_is_this'), { ...result(1, true), chips: [] });
+  assert.equal(capped(dry), true);
+  assert.equal(takesReply(dry, 'reply'), false);
+  const five = [1, 2, 3, 4, 5].reduce((state, n) => answered(sent(opened(state), 'who_is_this'), result(n, n === 5)), INITIAL_CHAT);
+  assert.equal(capped(five), true);
 });

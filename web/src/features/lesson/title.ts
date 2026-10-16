@@ -58,7 +58,16 @@ function verdictLine(result: SlotResult): string {
 // the lesson alone does not know the wallet before this message.
 export function outcomeLine(result: SlotResult, lost?: string): { text: string; tone: OutcomeTone } {
   const line = actionOutcome(result, lost);
-  return result.questioned ? { ...line, text: `${line.text} You asked questions first.` } : line;
+  const said = verdictSaid(result);
+  const text = [said, line.text, result.questioned ? 'You asked questions first.' : ''].filter(Boolean).join(' ');
+  return { ...line, text };
+}
+
+// What the player said at "Scam or real?", marked right or wrong; nothing when they were not asked.
+// The action's line follows it, so a right verdict with a wrong action says both.
+export function verdictSaid(result: SlotResult): string {
+  if (!result.verdict) return '';
+  return `You said ${result.verdict === 'scam' ? 'Scam' : 'Real'} ${result.verdictCorrect ? '\u2713' : '\u2717'}.`;
 }
 
 function actionOutcome(result: SlotResult, lost?: string): { text: string; tone: OutcomeTone } {
