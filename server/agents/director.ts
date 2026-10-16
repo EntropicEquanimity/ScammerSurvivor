@@ -11,6 +11,8 @@ import { guardDraft, isClueReason, isSoftReason, reasonText } from '../guard/car
 import type { GuardReason } from '../guard/card.ts';
 import { guardPages, isPageReason, leakReasons, pageReasonText } from '../guard/page.ts';
 import type { LeakReason, PageReason } from '../guard/page.ts';
+import { checkDomains, domainReasonText, isDomainReason, liveCheck } from '../guard/domains.ts';
+import type { CheckDomain, DomainReason } from '../guard/domains.ts';
 import { PAGE_TRICKS } from '../../shared/page.ts';
 import type { CardPage } from '../../shared/page.ts';
 import type { FieldId } from '../../shared/profile.ts';
@@ -95,6 +97,7 @@ export interface WriteCardInput {
   opener?: boolean; // the first card of a first-ever day: the only card that may be level 1
   rand?: () => number; // the level coin, for tests
   generate?: Generate;
+  checkDomain?: CheckDomain; // the registry check; RDAP by default, a fake in tests
 }
 
 export const NEUTRAL_NAMES = ['Mira', 'Ren', 'Lena', 'Tomas'] as const; // no tech words as names (lessons row 23)
@@ -178,10 +181,10 @@ export function userMessage(note: PatternNote, pack: CountryPack, level: number,
   ].join('\n');
 }
 
-export type DirectorReason = GuardReason | PageReason | LeakReason;
+export type DirectorReason = GuardReason | PageReason | LeakReason | DomainReason;
 const isLeakReason = (reason: DirectorReason): reason is LeakReason => reason === 'leak_token_missing' || reason === 'leak_token_extra';
 const textFor = (reason: DirectorReason): string =>
-  isPageReason(reason) || isLeakReason(reason) ? pageReasonText(reason) : reasonText(reason);
+  isDomainReason(reason) ? domainReasonText(reason) : isPageReason(reason) || isLeakReason(reason) ? pageReasonText(reason) : reasonText(reason);
 
 export const repairMessage = (reasons: DirectorReason[]): string =>
   `Code review rejected the card for these reasons: ${reasons.map(textFor).join('; ')}. Return the corrected card in the same JSON shape, nothing else.`;
@@ -324,10 +327,13 @@ async function pass(generate: Generate, contents: Content[], input: WriteCardInp
   const started = performance.now();
   // The level is code's, never the model's own report of it.
   const draft = { ...toDraft(json, input.note), difficulty: levelOf(input.level) };
-  const reasons = guardAll(draft, input, allowedNames);
+  // Every domain the draft writes is asked of the registries (guard/domains.ts); the free ones ride on the card.
+  const registry = await checkDomains(draft, input.checkDomain ?? liveCheck);
+  const reasons = [...guardAll(draft, input, allowedNames), ...registry.reasons];
   const ms = Math.round(performance.now() - started);
   const guard: TraceEvent = reasons.length === 0 ? { agent: 'guard', ms, outcome: 'ok' } : { agent: 'guard', ms, outcome: 'rejected', reasons };
-  return { json, draft, reasons, trace: [trace, guard] };
+  const checked = registry.domains.length > 0 ? { ...draft, domains: registry.domains } : draft;
+  return { json, draft: checked, reasons, trace: [trace, guard] };
 }
 
 const withOutcome = (events: TraceEvent[], outcome: TraceEvent['outcome']): TraceEvent[] =>

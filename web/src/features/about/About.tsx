@@ -14,7 +14,7 @@ const ROUTE = 'Gemini 3.8 Flash runs on Vertex AI through the global endpoint, c
 
 const AGENTS = [
   { name: 'Director', model: 'Gemini 3.8 Flash', job: 'Writes each card and its real twin from an approved pattern note and the people you picked. Structured JSON output.' },
-  { name: 'Guard', model: 'code, no model', job: 'Checks every card against thirteen rules: tells on the ask, masked numbers, no digit runs, no brand names, links only on .example. A failed card gets one repair turn, then is dropped.' },
+  { name: 'Guard', model: 'code, no model', job: 'Checks every card against thirteen rules: tells on the ask, masked numbers, no digit runs, no brand names, links only on invented sites, each checked unregistered with the domain registries when it is written. A failed card gets one repair turn, then is dropped.' },
   { name: 'Coach', model: 'Gemini 3.8 Flash', job: 'Explains the tells after a scam, streamed. It never scores.' },
   { name: 'Caller', model: 'Gemini 3.8 Flash TTS', job: 'Voices the practice call, beat by beat, generated before the call starts.' },
 ] as const;
@@ -31,6 +31,7 @@ const SERVICES = [
 const HONEST = [
   'The first card of a day comes from a reviewed cache so the day opens at once. If you picked people, cards two to four are rewritten live around them while card one plays; otherwise the whole day is the reviewed cache. The quick day is cache only, and under 18 cannot enter.',
   'Every screen carries the practice label. Nothing here is a real message, and no real app is shown.',
+  'Every website and link in this game is invented. Do not visit them outside the game. A link opens only the practice browser inside the phone.',
   'No data about you is stored beyond the day: no account, no audio, nothing you type.',
   'A typed chat reply is checked on the phone for real details, which are blocked. It is sent only so Gemini can write the reply, held in memory for that chat, and never stored or logged.',
   'Code keeps every score. A model never decides whether you passed.',

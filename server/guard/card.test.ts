@@ -82,13 +82,19 @@ test('reply_not_allowed: a reply id outside the allowed list', () => {
   expectOnly({ ...clean(), unsafeReplies: ['pay', 'send_money'] }, 'reply_not_allowed');
 });
 
-test('link_not_example: a link off the .example domain', () => {
-  expectOnly({ ...clean(), usualEnding: '[usual ending] at https://track.test/parcel' }, 'link_not_example');
+test('link_off_list: a link on an ending the game never writes', () => {
+  expectOnly({ ...clean(), usualEnding: '[usual ending] at https://track.test/parcel' }, 'link_off_list');
+  expectOnly({ ...clean(), usualEnding: 'Go to pay-verify.xyz/now' }, 'link_off_list');
+  // .co has no RDAP service, so a .co name can never be checked unregistered.
+  expectOnly({ ...clean(), usualEnding: 'Visit www.secure-pay.co now' }, 'link_off_list');
 });
 
-test('link_not_example: a schemeless host and a www host off .example', () => {
-  expectOnly({ ...clean(), usualEnding: 'Go to pay.example-verify.com/now' }, 'link_not_example');
-  expectOnly({ ...clean(), usualEnding: 'Visit www.secure-pay.com now' }, 'link_not_example');
+// The Builder (Oct 17): ".example gives it away". Realistic endings pass the card Guard; the
+// registry check (domains.ts) then asks whether each name is free.
+test('links on .com, .net, .top and .info pass, with or without scheme and www', () => {
+  for (const ending of ['https://northgate-parcel-help.com/fee', 'harbourline-secure.net', 'www.parcel-fee.top/now', 'prize-desk.info']) {
+    assert.deepEqual(guardDraft({ ...clean(), usualEnding: `[usual ending] at ${ending}` }, OPTIONS).reasons, [], ending);
+  }
 });
 
 test('a schemeless .example link and an abbreviation pass', () => {
@@ -168,7 +174,7 @@ test('clue_kind, clue_count and clue_text', () => {
   expectOnly(withClue([{ ...badge, kind: 'sticker' as never }]), 'clue_kind');
   expectOnly(withClue([badge, badge, badge]), 'clue_count');
   expectOnly(withClue([{ ...badge, detail: `Added by ${BRAND_DENYLIST[0]}` }]), 'clue_text');
-  expectOnly(withClue([{ ...badge, detail: 'Opens login.real-site.com' }]), 'clue_text');
+  expectOnly(withClue([{ ...badge, detail: 'Opens login.real-site.xyz' }]), 'clue_text');
 });
 
 test('every clue reason has its own repair line', () => {

@@ -85,7 +85,7 @@ export const PAGE_TRICKS: readonly TrickId[] = Object.keys(KINDS_BY_TRICK) as Tr
 
 export interface CardPage {
   kind: PageKind;
-  host: string; // ends in .example
+  host: string; // an invented site on .com, .net, .top or .info (shared/links.ts); .example in fixtures
   title: string;
   lines: MessagePart[]; // ids p1, p2...; tells only on the scam side
   fields: FieldId[];

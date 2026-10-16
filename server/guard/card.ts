@@ -4,6 +4,7 @@
 import { isTellId } from '../../shared/taxonomy.ts';
 import { BRANDS, INSTITUTIONS } from '../../shared/brands.ts';
 import { PEOPLE_ROLES } from '../../shared/types.ts';
+import { hasOffListLink } from '../../shared/links.ts';
 import { cluesReasons } from '../../shared/clues.ts';
 import type { Clue, ClueReason } from '../../shared/clues.ts';
 import { asks } from '../offered.ts';
@@ -20,7 +21,7 @@ export type GuardReason =
   | 'twin_disclaims'
   | 'twin_asks_code'
   | 'reply_not_allowed'
-  | 'link_not_example'
+  | 'link_off_list'
   | 'layout_id'
   | 'scaffold_word'
   | 'brand_name'
@@ -53,7 +54,7 @@ export const GUARD_REASONS: readonly GuardReason[] = [
   'twin_disclaims',
   'twin_asks_code',
   'reply_not_allowed',
-  'link_not_example',
+  'link_off_list',
   'layout_id',
   'scaffold_word',
   'brand_name',
@@ -203,9 +204,6 @@ const textFields = (draft: Draft): string[] => [
   str(draft.realTwin?.sender?.displayName),
 ];
 
-export const hasOffExampleLink = (text: string): boolean =>
-  [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
-
 export const hasBrand = (text: string): boolean =>
   (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 
@@ -293,7 +291,7 @@ const checkText = (draft: Draft, allowedNames: readonly string[]): GuardReason[]
   const texts = textFields(draft);
   const allowed = new Set(allowedNames.map((n) => n.toLowerCase()));
   const out: GuardReason[] = [];
-  if (texts.some(hasOffExampleLink)) out.push('link_not_example');
+  if (texts.some(hasOffListLink)) out.push('link_off_list');
   if (texts.some((t) => LAYOUT_ID.test(t))) out.push('layout_id');
   if (texts.some((t) => SCAFFOLD.test(t))) out.push('scaffold_word');
   if (texts.some(hasBrand)) out.push('brand_name');
@@ -322,7 +320,7 @@ const checkClues = (draft: Draft, allowedNames: readonly string[]): ClueReason[]
   ];
   const allowed = new Set(allowedNames.map((n) => n.toLowerCase()));
   const lines = [...clueLines(draft.clues), ...clueLines(draft.realTwin?.clues)];
-  const badText = lines.some((t) => hasOffExampleLink(t) || hasBrand(t) || strangeNames(t, allowed).length > 0);
+  const badText = lines.some((t) => hasOffListLink(t) || hasBrand(t) || strangeNames(t, allowed).length > 0);
   return badText ? [...own, 'clue_text'] : own;
 };
 
@@ -351,7 +349,7 @@ const REASON_TEXT: Record<GuardReason, string> = {
   twin_disclaims: 'The real twin must not mention what it does not ask for (no "no fee", "no payment", "we never ask"); end it when its business ends.',
   twin_asks_code: 'The real twin must never ask the player to share, read or enter a code, a one-time code, a PIN or a password, and its acceptable list must not hold share_code or read_code; a real sender says to open their own app instead.',
   reply_not_allowed: 'Every reply id in safeReplies, unsafeReplies and acceptable must come from the allowed list.',
-  link_not_example: 'Every link, with or without http and www, must be on a host ending in .example, like pay.example/path.',
+  link_off_list: 'Every link, with or without http and www, must be on an invented host ending in .com, .net, .top or .info, like northgate-parcel-help.com/fee.',
   layout_id: 'Never write a look id such as green-chat in the copy; call the app by its name or use "[chat app name]".',
   scaffold_word: 'Never write "the player" or the possessive of player; speak to the reader as "you" and "your".',
   brand_name: 'No real company, app or institution name; use the made-up names or a placeholder like [institution].',
@@ -366,9 +364,9 @@ const REASON_TEXT: Record<GuardReason, string> = {
   clue_kind: 'Every clue kind must be one of: link_preview, payment_request, countdown, badge, voice_note, parcel_status, code_box.',
   clue_part: 'Every clue partId must name a part on its own side: s1 or a1 style for the scam, r1 style for the real twin.',
   clue_grounding:
-    'Each clue must be backed by its part: a link_preview detail names the .example host written in that part, a payment_request amount is a figure in that part, a countdown has minutes 1 to 60, a code_box sits on a part that says "code". Fix the clue or leave it out.',
+    'Each clue must be backed by its part: a link_preview detail names the exact host written in that part, a payment_request amount is a figure in that part, a countdown has minutes 1 to 60, a code_box sits on a part that says "code". Fix the clue or leave it out.',
   clue_count: 'At most two clues on the scam and at most two on the real twin.',
-  clue_text: 'Clue title and detail must each be 1 to 60 characters, with no run of five digits, no em dash, no real brand, no link off .example and no name outside the allowed list.',
+  clue_text: 'Clue title and detail must each be 1 to 60 characters, with no run of five digits, no em dash, no real brand, no link off .com, .net, .top or .info and no name outside the allowed list.',
 };
 
 export const reasonText = (reason: GuardReason): string => REASON_TEXT[reason];

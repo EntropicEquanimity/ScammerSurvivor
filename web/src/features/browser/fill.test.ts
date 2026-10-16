@@ -76,3 +76,10 @@ test('a site names itself from its host, a country code tail in capitals', async
   assert.equal(siteName('my-bank.example'), 'My Bank');
   assert.equal(siteName('harbour-sign-in.example'), 'Harbour Sign In', 'in stays a word: sign in, log in');
 });
+
+test('a realistic host names its site without the ending', async () => {
+  const { siteName } = await import('./fill.ts');
+  assert.equal(siteName('harbourline-secure.net'), 'Harbourline Secure');
+  assert.equal(siteName('northgate-parcel-help.top'), 'Northgate Parcel Help');
+  assert.equal(siteName('kestrel-hiring.com'), 'Kestrel Hiring');
+});

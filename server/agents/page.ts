@@ -15,7 +15,7 @@ import type { Draft } from './director.ts';
 export const PAGE_SYSTEM = `
 
 Pages: this card's link opens a practice page in the game's own browser. Write one page for the scam ("page") and one for the real twin ("realTwin.page").
-- Hosts: the user message gives the institution's own site. The real twin's text writes exactly that host as its plain-text link, and its page uses that host. The scam's text writes a different look-alike host on .example, and its page uses that host.
+- Hosts: the user message gives the institution's own site. The real twin's text writes exactly that host as its plain-text link, and its page uses that host. The scam's text writes a different look-alike host that no one owns, and its page uses that host: the institution's name with a word added ("-help", "-secure", "-verify") or slightly changed, on .com, .net, .top or .info, never the institution site itself or a subdomain of it.
 - kind: the user message names the kinds this card may use, one list for the scam page and one for the real twin page, with what each kind is.
 - fields: the details the page asks for, from the field list. The real twin page asks exactly what its kind needs: tracking asks only "tracking", bank_app_note and info_page ask nothing. The scam page asks for more than its task needs (a login, the code, the card, an ID photo, a birthday), at most five, and it may also ask for what the task needs.
 - title: the page heading, at most 40 characters. lines: one to three short lines under it, at most 90 characters each, in the register of the sender's site. Tag scam page lines with the tells they carry; real twin page lines carry none.
@@ -58,9 +58,14 @@ export function withPages(base: Schema): Schema {
 // planning the next meetup, so its link is a meetup and video app, never the invented bank.
 const SITE_BY_TRICK: Partial<Record<TrickId, string>> = { fast_romance: 'Lantern Meet' };
 
-// The invented institution's own site: "Northgate Parcel" gives northgate-parcel.example.
-export const realHostFor = (trick: TrickId): string =>
-  `${(SITE_BY_TRICK[trick] ?? institutionOf(trick)).toLowerCase().replace(/\s+/g, '-')}.example`;
+// The invented institution's own site, a plain realistic name: "Northgate Parcel" gives
+// northgate-parcel.com. Two plain names were taken when checked by RDAP (Oct 17), so those use a
+// variant. The Director's registry check (server/guard/domains.ts) still asks for every one.
+const SITE_BY_NAME: Record<string, string> = { Harbourline: 'harbourline-bank.com', 'Meridian Market': 'meridian-market.net' };
+export const realHostFor = (trick: TrickId): string => {
+  const name = SITE_BY_TRICK[trick] ?? institutionOf(trick);
+  return SITE_BY_NAME[name] ?? `${name.toLowerCase().replace(/\s+/g, '-')}.com`;
+};
 
 // What each kind is, for the Director: the scam kinds ask for more than the task needs.
 const KIND_TEXT: Record<PageKind, string> = {

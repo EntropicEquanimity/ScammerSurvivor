@@ -13,7 +13,7 @@ export { asks } from '../shared/money.ts';
 const CUES: ReadonlyArray<[Action, RegExp]> = [
   ['pay', /\b(pay|paying|pay for|fee|fees|invoice|settle|top[- ]?up|make (a|the) payment|payment (now|today|within|before|link|is needed|is required|needed|required))\b/g],
   ['send_money', /\b(transfer|wire|remit|lend|borrow|deposit|(money|cash|funds) sent|send (me |us |him |her |them |it |over )?(the |some )?(money|cash|funds|amount|\d)|(move|send)\b[^.!?]{0,30}\b(aud|hkd|idr|inr|jpy|myr|php|sgd|usd)\b|(personal|new|bank|friend's|holding|safe|safety|secure|secured) account)/g],
-  ['open_link', /(https?:\/\/|www\.|\blinks?\b|\btap here\b|\bclick\b|\b[a-z0-9-]+\.(com|net|org|link|site|xyz|info|example)\b)/g],
+  ['open_link', /(https?:\/\/|www\.|\blinks?\b|\btap here\b|\bclick\b|\b[a-z0-9-]+\.(com|net|co|top|org|link|site|xyz|info|example|invalid)\b)/g],
   ['install', /\b(install|download|apk|screen ?shar\w*|remote access|full screen access)/g],
   ['share_code', /\b(code|otp|one-time|passcode)\b/g],
   ['read_code', /\b(read|tell|say|give)\b[^.!?]{0,30}\b(code|otp|passcode)\b/g],

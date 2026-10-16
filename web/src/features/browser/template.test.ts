@@ -34,3 +34,8 @@ test('a message with no link of its own opens a page that says so', () => {
   assert.deepEqual(page.lines.map((line) => line.text), ['There is no link in this message.']);
   assert.deepEqual(page.fields, []);
 });
+
+test('a realistic host opens the template under that host', () => {
+  assert.equal(templatePage(card('Northgate Parcel', 'Book at northgate-parcel-help.top/fee today.')).host, 'northgate-parcel-help.top');
+  assert.equal(templatePage(card('Harbourline Bank', 'Sign in at harbourline-secure.net now.')).host, 'harbourline-secure.net');
+});

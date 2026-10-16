@@ -19,7 +19,7 @@ export const GUARD_RULES: readonly GuardReason[] = [
   'twin_has_tells',
   'twin_no_acceptable',
   'reply_not_allowed',
-  'link_not_example',
+  'link_off_list',
   'brand_name',
   'name_not_allowed',
   'empty_ask',

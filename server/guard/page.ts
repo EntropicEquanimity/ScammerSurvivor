@@ -6,7 +6,8 @@ import { MAX_FIELDS, NEEDS, pageKindsFor } from '../../shared/page.ts';
 import type { TrickId } from '../../shared/types.ts';
 import { TOKEN_FIELD, isFieldId } from '../../shared/profile.ts';
 import type { FieldId } from '../../shared/profile.ts';
-import { hasBrand, hasOffExampleLink, strangeNames } from './card.ts';
+import { hasBrand, strangeNames } from './card.ts';
+import { isGameHost, linkHostsIn, registrableOf } from '../../shared/links.ts';
 
 export type PageReason =
   | 'page_missing'
@@ -59,12 +60,10 @@ const TITLE_MAX = 40;
 const LINES_MAX = 3;
 const LINE_MAX = 90;
 const MINUTES = { min: 1, max: 60 };
-const HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.example$/;
 const DIGIT_RUN = /\d{5,}/;
 const EM_DASH = String.fromCharCode(0x2014);
 const MARKUP = /[<>]/;
 const BRACKET = /\[([^\]]*)\]/g;
-const LINK_HOST = /\b((?:[a-z0-9-]+\.)+example)\b/gi;
 const PAGE_BRACKETS = new Set(['institution', ...Object.keys(TOKEN_FIELD)]);
 
 const str = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -91,8 +90,10 @@ const fieldReasons = (page: RawPage, side: Side): PageReason[] => {
 
 const hostReasons = (page: RawPage, side: Side, realHost: string): PageReason[] => {
   const host = str(page.host).toLowerCase();
-  const matches = host === realHost.toLowerCase();
-  const ok = HOST.test(host) && !hasBrand(host.replace(/[.-]/g, ' ')) && (side === 'twin' ? matches : !matches);
+  const real = realHost.toLowerCase();
+  // The scam is never on the institution's own name, not even a subdomain of it ("pay.northgate-parcel.com").
+  const fits = side === 'twin' ? host === real : registrableOf(host) !== registrableOf(real);
+  const ok = isGameHost(host) && !hasBrand(host.replace(/[.-]/g, ' ')) && fits;
   return ok ? [] : ['page_host'];
 };
 
@@ -101,8 +102,7 @@ const badText = (text: string, host: string, allowed: Set<string>): boolean =>
   text.includes(EM_DASH) ||
   MARKUP.test(text) ||
   hasBrand(text) ||
-  hasOffExampleLink(text) ||
-  [...text.matchAll(LINK_HOST)].some((match) => match[1].toLowerCase() !== host) ||
+  linkHostsIn(text).some((link) => link !== host) ||
   strangeNames(text, allowed).length > 0 ||
   [...text.matchAll(BRACKET)].some((match) => !PAGE_BRACKETS.has(match[1].trim().toLowerCase()));
 
@@ -174,7 +174,7 @@ const REASON_TEXT: Record<PageReason | LeakReason, string> = {
   page_kind: 'Each page kind must be one the message names for this card: the scam page one of its scam kinds, the real twin page one of its real kinds.',
   page_fields: 'Page fields must come from the field list, each once, at most five.',
   page_needs: 'The real twin page asks exactly what its kind needs (tracking: the tracking number; bank_app_note and info_page: nothing). The scam page asks for at least one field its task does not need.',
-  page_host: 'Page hosts end in .example with no real brand. The real twin page host is exactly the institution site given; the scam page host is a different look-alike host.',
+  page_host: 'Page hosts end in .com, .net, .top or .info with no real brand. The real twin page host is exactly the institution site given; the scam page host is a different look-alike host, never the institution site or a subdomain of it.',
   page_grounding: 'Each side\'s message text must write its own page host, as a plain-text link.',
   page_text: 'Page title 1 to 40 characters; at most three lines of 1 to 90 characters; no run of five digits, no em dash, no real brand, no markup, no link but the page host, no name outside the allowed list, no brackets but [institution] and the profile tokens.',
   page_countdown: 'A page countdown is a whole number of minutes from 1 to 60, or left out.',

@@ -13,7 +13,7 @@ const ROMANCE_EARLY = 'For this message, ignore the pressure move: stay loving a
 const INVEST: readonly string[] = [
   'For this message, ignore the pressure move: mention in passing how well you have been doing lately (a trip, a new phone, a loan paid off), as if it just came up. No link, no money, no figure.',
   'For this message, ignore the pressure move: credit it casually to a mentor, an uncle or a small trading group. If they ask for proof, a small excuse about a screenshot that will not load. No link yet, no figure.',
-  'For this message, ignore the pressure move: drop the group link casually, as an aside, "here if you are curious, no pressure", on a host ending in .example. No amount, no deadline.',
+  'For this message, ignore the pressure move: drop the group link casually, as an aside, "here if you are curious, no pressure", by name only: offer to send it and write no web address. No amount, no deadline.',
 ];
 const ROMANCE: readonly string[] = [
   'For this message, ignore the pressure move: stay loving, and mention a worry in passing (a gift you sent is held at customs, a small accident, your account is frozen), no ask yet.',

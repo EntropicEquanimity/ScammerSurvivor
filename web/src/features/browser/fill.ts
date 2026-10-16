@@ -1,6 +1,7 @@
 import { PROFILE, autofillFor } from '../../../../shared/profile.ts';
 import type { FieldId } from '../../../../shared/profile.ts';
 import type { PageKind } from '../../../../shared/page.ts';
+import { withoutTld } from '../../../../shared/links.ts';
 
 // The practice page's rows, filled only by tapping the autofill suggestion built from the pretend
 // profile (AGENTS.md rule 3, the 16 Oct exception). Pure: the form state, what each row and chip
@@ -91,14 +92,14 @@ export function outcomeOf(status: number, error: string | undefined): SendOutcom
   return error === 'already_acted' || error === 'no_page' ? 'leave' : 'failed';
 }
 
-// The pack codes a host can end in ("northgate-parcels-au.example"): the site writes them in capitals.
+// The pack codes a host can end in ("northgate-parcels-au.com"): the site writes them in capitals.
 // ponytail: "in" is left out, since "sign-in" and "log-in" end hosts too; an India host reads "In".
 const COUNTRY_TAIL = ['au', 'hk', 'id', 'jp', 'my', 'ph', 'sg'];
 
-// "harbour-secure.example" reads as "Harbour Secure", the way a site names itself in its header. A
+// "harbourline-secure.net" reads as "Harbourline Secure", the way a site names itself in its header. A
 // last word that is a country code after two or more words reads in capitals ("Northgate Parcels AU").
 export const siteName = (host: string): string => {
-  const words = host.replace(/\.example$/, '').split(/[-.]/).filter(Boolean);
+  const words = withoutTld(host).split(/[-.]/).filter(Boolean);
   return words
     .map((word, index) => (index === words.length - 1 && index >= 2 && COUNTRY_TAIL.includes(word) ? word.toUpperCase() : word[0].toUpperCase() + word.slice(1)))
     .join(' ');

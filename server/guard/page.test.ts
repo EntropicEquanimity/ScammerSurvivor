@@ -134,3 +134,20 @@ test('a page trick takes only its own kinds', () => {
   assert.ok(reasons(withPage({ kind: 'case_portal' })).includes('page_kind'), 'a bank check never opens a case portal');
   assert.ok(reasons(withTwinPage({ kind: 'info_page' })).includes('page_kind'));
 });
+
+// The Builder (Oct 17): ".example gives it away". Realistic endings on both sides; the scam never on
+// the institution's own name, an ending off the list never at all.
+test('realistic hosts: .com, .net, .top and .info pass; .co, a subdomain of the real site and other endings fail', () => {
+  const REAL_COM = 'northgate-parcel.com';
+  const real = (scamHost: string): PageDraft => ({
+    ...clean,
+    ask: [{ text: `[ask line] ${scamHost}/fee` }],
+    page: { ...clean.page, host: scamHost },
+    realTwin: { parts: [{ text: `[twin line] ${REAL_COM}` }], page: { ...clean.realTwin?.page, host: REAL_COM } },
+  });
+  const own = { realHost: REAL_COM };
+  for (const host of ['northgate-parcel-help.com', 'northgate-secure.net', 'parcel-fee.top', 'northgate-desk.info']) assert.deepEqual(reasons(real(host), own), [], host);
+  for (const host of ['northgate-parcel.co', 'pay.northgate-parcel.com', 'northgate-parcel.xyz']) assert.ok(reasons(real(host), own).includes('page_host'), host);
+  const otherLink = { ...real('parcel-fee.top'), page: { ...real('parcel-fee.top').page, lines: [{ text: 'Or use other-site.com', tellIds: [] }] } } as PageDraft;
+  assert.ok(reasons(otherLink, own).includes('page_text'), 'a page line links only its own host');
+});

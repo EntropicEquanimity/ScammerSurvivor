@@ -31,3 +31,9 @@ test('a payment request on money coming in is not grounded (the Builder, Oct 16)
   const incoming = [{ id: 'r1', text: 'My share was PHP 2,000 for dinner, transferring it over now.'.replace(',', '') }];
   assert.deepEqual(cluesReasons([{ kind: 'payment_request', partId: 'r1', title: 'Dinner split', detail: 'From a friend', amount: 2000 }], incoming), ['clue_grounding']);
 });
+
+test('a link preview grounds on a realistic host the part writes', () => {
+  const real = [{ id: 'a1', text: 'Track your parcel at northgate-parcel-help.top/fee today.' }];
+  assert.deepEqual(cluesReasons([{ kind: 'link_preview', partId: 'a1', title: 'Parcel page', detail: 'Opens northgate-parcel-help.top' }], real), []);
+  assert.deepEqual(cluesReasons([{ kind: 'link_preview', partId: 'a1', title: 'Parcel page', detail: 'Opens northgate-parcel.com' }], real), ['clue_grounding']);
+});

@@ -64,7 +64,7 @@ test('a SIM swap names a telco and a pre-order a marketplace, on the card, the c
   assert.equal(institutionOf('sim_swap'), 'Westbay Mobile');
   assert.equal(callerFor('sim_swap').displayName, institutionOf('sim_swap'));
   assert.equal(callerFor('preorder_deposit').displayName, institutionOf('preorder_deposit'));
-  assert.equal(realHostFor('preorder_deposit'), 'meridian-market.example');
+  assert.equal(realHostFor('preorder_deposit'), 'meridian-market.net');
   assert.equal(institutionOf('toll_fine'), 'Civic Notice Desk');
   assert.notEqual(callerFor('slow_add').displayName, 'Westbay Clinic');
 });
@@ -129,7 +129,7 @@ test('the rapport arc: small talk for two replies, then doing well, a mentor, an
   assert.match(slowStage(slowCard(), false, thread(2)) ?? '', /no favour, no tip, no money/);
   assert.match(slowStage(slowCard(), false, thread(3)) ?? '', /how well you have been doing/);
   assert.match(slowStage(slowCard(), false, thread(4)) ?? '', /mentor, an uncle or a small trading group.*screenshot/);
-  assert.match(slowStage(slowCard(), false, thread(5)) ?? '', /drop the group link casually.*\.example/);
+  assert.match(slowStage(slowCard(), false, thread(5)) ?? '', /drop the group link casually.*no web address/);
   assert.match(slowStage(slowCard({ trickId: 'wrong_number' }), false, thread(5)) ?? '', /drop the group link/);
   assert.match(slowStage(slowCard({ trickId: 'fast_romance' }), false, thread(1)) ?? '', /stay loving/);
   assert.match(slowStage(slowCard({ trickId: 'fast_romance' }), false, thread(4)) ?? '', /out of love, never pressure/);

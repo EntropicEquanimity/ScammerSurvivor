@@ -1,5 +1,6 @@
 import type { PublicPage } from '../../../../shared/page.ts';
 import type { PublicCard } from '../../../../shared/types.ts';
+import { hostsIn } from '../../../../shared/links.ts';
 
 // The page a link opens when the card has no practice page of its own (the Builder, Oct 16: "open link
 // says just select tells"). Built in code from what both sides of a pair share, so a scam and its
@@ -7,7 +8,6 @@ import type { PublicCard } from '../../../../shared/types.ts';
 // cannot be filled or sent, since the server has no page to score (it answers no_page). Nothing here
 // changes a score; leaving it is the card's open_link, as on a page card.
 
-const HOST = /\b(?:[a-z0-9-]+\.)+(?:example|invalid)\b/i;
 const SIGN_IN = /\b(bank|wallet|pay|prize|reward|card|account|tax|police)\b/i;
 const PARCEL = /\b(parcels?|post|couriers?|express|deliver\w*|freight|logistics)\b/i;
 const SIGN_IN_IDS = ['bank', 'wallet', 'prize_office', 'police'];
@@ -15,7 +15,7 @@ const SIGN_IN_IDS = ['bank', 'wallet', 'prize_office', 'police'];
 export const NOT_PRACTICE = "This site isn't part of the practice yet.";
 
 const hostIn = (card: Pick<PublicCard, 'setup' | 'ask'>): string | undefined =>
-  [...card.setup, ...card.ask].map((part) => HOST.exec(part.text)?.[0]).find(Boolean)?.toLowerCase();
+  [...card.setup, ...card.ask].flatMap((part) => hostsIn(part.text))[0];
 
 // The pair shares its buttons, so Open link can show on a message with no link of its own. The page
 // then says so: a fact the player can check against the message on screen, the same on both sides.

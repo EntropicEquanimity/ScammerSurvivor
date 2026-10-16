@@ -21,6 +21,7 @@ export function PrivacyNotice({ t }: { t: Strings }) {
         <ul className="inset">
           <li className="inset-row inset-body"><p>{t.notices.brand}</p></li>
           <li className="inset-row inset-body"><p>{t.notices.ai}</p></li>
+          <li className="inset-row inset-body"><p>{t.notices.sites}</p></li>
         </ul>
       </section>
       <section className="inset-group">

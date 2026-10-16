@@ -66,3 +66,11 @@ test('Open link needs a link on both sides; a page behind the message counts as 
   assert.deepEqual(pairExtras('[ask line]', '[real line]', { scam: true, twin: true }), ['open_link']);
   assert.deepEqual(pairExtras('[ask line]', '[real line]', { scam: true, twin: false }), []);
 });
+
+// The Builder (Oct 17): links are on realistic endings now, and each one still offers Open link.
+test('a host on any realistic ending offers Open link', () => {
+  for (const host of ['northgate-parcel.com', 'harbourline-secure.net', 'parcel-fee.top', 'prize-desk.info', 'kestrel-jobs.co', 'pay.example']) {
+    assert.ok(extras(`Details at ${host} today.`).includes('open_link'), host);
+  }
+  assert.ok(!extras('See you at the cafe today.').includes('open_link'));
+});

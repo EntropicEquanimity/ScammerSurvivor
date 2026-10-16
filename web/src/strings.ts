@@ -32,6 +32,7 @@ const en = {
   notices: {
     brand: NON_AFFILIATION,
     ai: 'Some messages here may be written by AI.',
+    sites: 'Every website and link in this game is invented. Do not visit them outside the game.',
     privacy: 'Privacy notice',
     contact: 'Ask the team on the project page',
   },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Clue } from '../../../../shared/clues.ts';
+import { HOST_IN_TEXT } from '../../../../shared/links.ts';
 import type { Layout, PublicCard } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
 import { appLookFor } from '../day/appNames.ts';
@@ -31,10 +32,12 @@ interface Props {
   history?: PublicCard['history']; // earlier days of a rapport chat, drawn above today (History.tsx)
 }
 
-// Fixture links use .example or .invalid hosts, or a bracketed placeholder. Nothing here navigates.
-const LINK = /https?:\/\/|www\.|\.(example|invalid)\b|^\[a link\b/i;
+// A link is a host on a realistic ending (.com, .net, .co, .top, .info; shared/links.ts), a scheme,
+// www, or a bracketed placeholder; fixtures keep .example and .invalid. It is drawn as a plain span:
+// nothing here navigates, the game's own browser is the only place a link opens.
+const LINK = /https?:\/\/|www\.|^\[a link\b/i;
 
-const looksLikeLink = (text: string): boolean => LINK.test(text);
+const looksLikeLink = (text: string): boolean => LINK.test(text) || HOST_IN_TEXT.test(text);
 
 // The read line under the last bubble, in words: never a pair of blue ticks (docs/ux-plan.md).
 const READ_LINE: Partial<Record<Layout, string>> = {
