@@ -40,7 +40,7 @@ fits at 390 by 844; shorter viewports scroll the phone content while retaining b
 ### Shared rules
 
 1. Anyone, any age, any JAPAC country. Large type and plain words are the default, not an accessibility mode.
-2. Act, never label. No screen ever asks "real or fake?". The buttons are the real options, and the consequences show on the phone.
+2. Act first, then decide Scam or Real, then flag (ruled by the Builder on 16 Oct 2026; it replaced "act, never label"). Going along with a message skips both. The buttons are the real options, and the consequences show on the phone.
 3. Calm, not scary. The frame uses ink on paper with one warm notice colour. Red appears nowhere in the frame.
 4. The made-up apps feel like the real ones through layout, never through names, logos or brand colours.
 5. The practice label and the non-affiliation sentence are visible in the same viewport as every mock, including calls.

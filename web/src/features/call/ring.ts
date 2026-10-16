@@ -30,11 +30,14 @@ export type RingEvent =
 
 export const IDLE: Ring = { stage: 'idle', start: null, lock: false, banner: false, via: null, noBeats: false };
 
-// The screens a call can interrupt. Never the recovery window, a lesson or the end.
-const RINGS_OVER: readonly string[] = ['card', 'tells', 'notifications'];
+// The screens a call can interrupt. Never the recovery window, a lesson or the end, and never a
+// screen that is itself a modal step: Scam or real and the flag picker (tells), the aftermath. One
+// modal at a time (Skeptic round 5): an open overlay (the in-app browser) holds the ring until it
+// closes; the pending ring's timer restarts then (useInterrupt.ts).
+const RINGS_OVER: readonly string[] = ['card', 'notifications'];
 
-export function shouldRing({ stage, phase, handled }: { stage: Stage; phase: string; handled: number }): boolean {
-  if (stage !== 'idle') return false;
+export function shouldRing({ stage, phase, handled, overlay = false }: { stage: Stage; phase: string; handled: number; overlay?: boolean }): boolean {
+  if (stage !== 'idle' || overlay) return false;
   if (phase === 'call') return true; // the end-of-day call, when none came earlier
   return handled > 0 && RINGS_OVER.includes(phase);
 }

@@ -5,6 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Firestore } from '@google-cloud/firestore';
 import { PAGE_TRICKS } from '../shared/page.ts';
+import type {} from './guard/domains.ts'; // the Card fields the domain checks add (domains, servable)
 import type { Card } from '../shared/types.ts';
 
 const COLLECTION = 'cards';
@@ -24,11 +25,15 @@ export const withPagedFirst = (cards: readonly Card[]): Card[] => {
   return cards.filter((card) => card.page || !PAGE_TRICKS.includes(card.trickId) || !paged.has(card.trickId));
 };
 
+// A card the pre-deploy domain recheck held back (servable false: a link domain now registered or
+// unchecked, scripts/recheck-domains.ts) is never dealt, like an unapproved one.
+export const servable = (card: Card): boolean => card.approved && card.servable !== false;
+
 // Country codes are normalised to upper case here, once, so both backends agree.
 export const readCards = async (country: string): Promise<Card[]> => {
   const code = country.toUpperCase();
   const all = cacheBackend() === 'firestore' ? await readFirestore(code) : await readFile_(code);
-  return withPagedFirst(all.filter((card) => card.approved));
+  return withPagedFirst(all.filter(servable));
 };
 
 // Every card for a country, approved or not. For review scripts only; the day

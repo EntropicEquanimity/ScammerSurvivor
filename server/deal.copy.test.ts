@@ -8,12 +8,15 @@ import { dealDay, fillCard, lessonFor, redealSlot } from './deal.ts';
 import { collapse, renamed, secondPerson } from './fill.ts';
 
 // Nothing raw reaches a screen (Skeptic round 4): no look id ("green-chat"), no doubled word
-// ("Civic Notice Notices"), no production word ("the player"), no empty token ("[]" or a space before a full stop), no X-masked number.
+// ("Civic Notice Notices"), no production word ("the player"), no empty token ("[]" or a space before a full stop), no X-masked number, no dialable number (Oct 17).
 const LOOK_ID = /\b(?:green|blue|sticker|cloud|purple)-chat\b/i;
 const DOUBLED = /\b([A-Za-z]{3,})\s+\1(?:s|es)?\b/i;
 const EMPTY = /\[\s*\]|\s[.,;:!?](?=\s|$)/;
 const X_MASK = /X{2,}/;
 const PLAYER = /\bplayer\b/i;
+// A number someone could dial (the Builder, Oct 17): a +country prefix, or five or more digits in one run.
+const DIALABLE = /\+\d|\d(?:[\s-]?\d){4,}/;
+const ID_KEYS = new Set(['id', 'slotId', 'cardId', 'dayId']);
 
 const strings = (value: unknown, key = ''): { key: string; text: string }[] => {
   if (typeof value === 'string') return key === 'layout' ? [] : [{ key, text: value }];
@@ -30,6 +33,7 @@ function faults(value: unknown): string[] {
       EMPTY.test(text) && 'empty token',
       X_MASK.test(text) && 'X mask',
       PLAYER.test(text) && 'production word',
+      !ID_KEYS.has(key) && DIALABLE.test(text) && 'dialable number',
     ].filter((fault): fault is string => typeof fault === 'string');
     return found.map((fault) => `${fault} in ${key}: ${text}`);
   });
@@ -77,7 +81,7 @@ test('the faults the Skeptic saw are repaired at deal time', () => {
   const card = fillCard(raw);
   assert.equal(card.layout, raw.layout, 'the look id itself stays');
   assert.equal(card.sender.displayName, 'Civic Notices');
-  assert.match(card.sender.maskedNumber, /^9\d{3} 8124$/);
+  assert.equal(card.sender.maskedNumber, '9••• •124', 'dot-masked, never dialable (Oct 17)');
   assert.deepEqual(faults(card), []);
   assert.equal(collapse('Northgate Parcel Parcels'), 'Northgate Parcels');
   assert.equal(secondPerson("Every contact gets the same message in the player's name."), 'Every contact gets the same message in your name.');

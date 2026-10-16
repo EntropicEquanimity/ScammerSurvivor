@@ -12,28 +12,26 @@ export function maskNumber(number: string, mask: string): string {
   return out.join('');
 }
 
-// The header number in the pack's own local mobile format: a plausible invented number, never an
-// X-mask (lesson 23). The card's last four digits are kept, so a scam and its twin still differ; the
-// digits before them are invented from those four, so every sender does not share one prefix.
-// d keeps a digit from the end of the masked number, m is an invented digit, the rest is copied.
+// The number a play screen shows, in the pack's own local format, dot-masked so no one can dial it
+// (the Builder's ruling, Oct 17, Skeptic round 5; it replaces lesson 23's whole invented number).
+// d keeps a digit from the end of the number, every other character is copied, at most four digits
+// show in all. The card's last digits are kept, so a scam and its twin still differ.
 export const LOCAL_FORMAT: Readonly<Record<string, string>> = {
-  AU: '04mm mmd ddd',
-  HK: '9mmm dddd',
-  ID: '08mm-mmmm-dddd',
-  IN: '9mmmm mdddd',
-  JP: '090-mmmm-dddd',
-  MY: '01m-mmm dddd',
-  PH: '09mm mmm dddd',
-  SG: '9mmm dddd',
+  AU: '04•• ••• •dd',
+  HK: '9••• •ddd',
+  ID: '08••-••••-••dd',
+  IN: '9•••• ••ddd',
+  JP: '0•0-••••-••dd',
+  MY: '01•-••• ••dd',
+  PH: '09•• ••• ••dd',
+  SG: '9••• •ddd',
 };
-
-const invented = (kept: string[], index: number): string => String((Number(kept[index % kept.length] ?? 0) * 3 + index + 1) % 10);
+const ANY_PACK = '•••• ••dd';
+const DOT = '•';
 
 export function localNumber(masked: string, country: string): string {
-  const format = LOCAL_FORMAT[country.toUpperCase()];
-  const kept = masked.replace(/\D/g, '').slice(-4).split('');
-  if (!format || kept.length < 4 || !/X/.test(masked)) return masked;
-  let m = 0;
-  const shown = maskNumber(kept.join(''), format.replace(/m/g, 'M'));
-  return shown.replace(/M/g, () => invented(kept, m++));
+  const digits = masked.replace(/\D/g, '');
+  if (digits.length === 0) return masked;
+  const format = LOCAL_FORMAT[country.toUpperCase()] ?? ANY_PACK;
+  return maskNumber(digits, format).replace(/X/g, DOT);
 }

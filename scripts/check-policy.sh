@@ -13,7 +13,10 @@ ALL=("${DIRS[@]}" package.json vite.config.ts scripts/run-check.mjs)
 
 # Whole words only: the Tagalog word "mamaya" (later) must pass.
 # When lesson copy starts naming real brands in plain text, exclude that one folder here.
-BRANDS='whatsapp|zapzap|gcash|maya|paymaya|viber|telegram|imessage|gmail|facebook|instagram|tiktok|paypal|shopee|lazada|bdo|bpi|metrobank|landbank|unionbank|pesopay'
+# The Guard's list is server/guard/denylist.ts, the one file this grep skips. Keep the two in step.
+BRANDS='whatsapp|zapzap|gcash|maya|paymaya|viber|telegram|wechat|imessage|gmail|facebook|instagram|tiktok|paypal|shopee|lazada|bdo|bpi|metrobank|landbank|unionbank|pesopay|dbs|posb|ocbc|uob|paynow|grabpay|paytm|phonepe|upi|sbi|hdfc|icici|paypay|rakuten|gopay|ovo|bca|mandiri|maybank|cimb|octopus|hsbc|payme|fps|commbank|anz|westpac|payid|google pay|line pay|touch .?n.? go'
+# Brands that are also English words or names, in their own capitals only.
+BRANDS_CASED='LINE|DANA|NAB'
 
 # @google/genai and Google's ADK are the only AI SDKs allowed.
 AI_SDKS='openai|@openai/[^"]*|anthropic|@anthropic-ai/[^"]*|cohere-ai|@mistralai/[^"]*|groq-sdk|ollama|replicate|@huggingface/[^"]*|together-ai|langchain|@langchain/[^"]*|llamaindex|ai|@ai-sdk/[^"]*'
@@ -51,7 +54,8 @@ if [ -f "$TYPED_FILE" ]; then
     echo "FAIL  the typed reply holds one input only ($typed_inputs inputs, $typed_other other)"
   fi
 fi
-scan "no real brand names in code or copy" -iwE "$BRANDS" "${ALL[@]}"
+scan "no real brand names in code or copy" --exclude=denylist.ts -iwE "$BRANDS" "${ALL[@]}"
+scan "no real brand names in their own capitals" --exclude=denylist.ts -wE "$BRANDS_CASED" "${ALL[@]}"
 scan "no non-Google AI SDK in package.json" -E "\"($AI_SDKS)\"[[:space:]]*:" package.json
 scan "no answer key in web code" -E 'plantedTells|safeReplies|unsafeReplies|callBeats|realTwin' web
 scan "no copy, share or download control" -E 'navigator\.(clipboard|share)|execCommand|[[:space:]]download[=>[:space:]]' web

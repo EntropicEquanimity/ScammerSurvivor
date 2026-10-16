@@ -107,6 +107,16 @@ The run table, kept for the order of work:
 | [ ] | README: the video link and the team email (both placeholders today) | Deck lead, 18 Oct |
 | [ ] | Submit on the dashboard by noon UTC+8 unless Discord gave a later hour. Open the video link in a private window | Builder, 18 Oct |
 
+## Before each deploy (Builder, added 17 Oct after Skeptic round 5)
+
+Run in this order, from the image of the commit being deployed. A running instance keeps the About total it read at boot, so the reset goes before the deploy. The day route reads the card cache per request, so a held card stops being dealt as soon as the recheck writes it.
+
+1. Reset the About counter, once, before the deploy that judges will see: `GOOGLE_CLOUD_PROJECT=<project> node scripts/reset-stats.ts`. It zeroes `stats/global` (counts only, no player data). The About page hides the aggregate until 50 real days are recorded (`DISPLAY_FROM` in `server/routes/stats.ts`), so test traffic never shows. Run it again only if test traffic lands after it.
+2. Recheck every cached link domain: the Cloud Run job `recheck-domains` runs `node scripts/recheck-domains.ts`. It asks RDAP again for every domain on every cached card (the `domains` field plus any host in the card's text); a card whose domain is now registered, or whose check fails, gets `servable: false` and `readCards` never deals it; a card that passes again is cleared. It prints counts per pack and the number held back. `--dry` prints without writing.
+   - Create once (not verified against the flags of the existing jobs): `gcloud run jobs deploy recheck-domains --image <image of the commit> --region asia-southeast1 --command node --args scripts/recheck-domains.ts --set-env-vars GOOGLE_CLOUD_PROJECT=<project> --max-retries 0 --task-timeout 15m`
+   - Run before each deploy: `gcloud run jobs execute recheck-domains --region asia-southeast1 --wait`, then read the job log. If the held-back count leaves a pack short of a full day, the deal falls back to that pack's fixtures (`server/routes/deck.ts` cardsFor); regenerate before the deploy.
+3. Deploy from a clean worktree of the commit.
+
 ## F. Automations already in place, and what runs them
 
 - `npm test` and `npm run check` are the gate before any commit and any deploy. The coding agent runs both before calling a run done. The policy grep covers `shared`, `server`, `web`, `content` and the config files; it does not scan `docs/` or the README, so the words there get their own em dash and banned-word grep before a push. Last run 16 Oct evening: 119 tests, 119 pass; policy check passes; `npm run build` passes. One earlier run in the same hour failed `server/routes/room.test.ts` (the debrief fallback assertion at line 175) while that file and `server/routes/room.ts` were mid-edit by another run; it passed once the edit landed.

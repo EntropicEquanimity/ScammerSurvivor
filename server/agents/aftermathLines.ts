@@ -2,6 +2,8 @@
 // model is off, slow, refuses or fails the check. Code-written, short and generic (AGENTS.md rule 6):
 // no number, no link, no real brand. {name} is the sender's display name. Twin lines never say what
 // the sender would never ask for (the Guard's twin rule).
+// Scam-side lines are pressure, excuses and emotion only, never a call to action: no code, link, page,
+// amount, account detail, app or transfer (the Builder, Oct 17; fixedLines.test.ts holds it).
 import type { AftermathFrom, AftermathKind } from '../../shared/aftermath.ts';
 import type { Action } from '../../shared/types.ts';
 import type { SenderKind } from './chatterLines.ts';
@@ -162,8 +164,8 @@ export const FALLBACK: Record<Group, { real: Lines; scam: Lines }> = {
       courier: ['FINAL NOTICE: Your Parcel will be Returned to Sender today.'],
       bank: ['FINAL NOTICE: Your Account will be Suspended today.'],
       wallet: ['FINAL NOTICE: Your Account will be Suspended today.'],
-      buyer: ['hello? you there? I pay now, just confirm please'],
-      boss: ['need this done now. confirm asap'],
+      buyer: ['hello? you there? pls reply, I am waiting'],
+      boss: ['need this done now. reply asap'],
     },
   },
   reply: {
@@ -178,17 +180,17 @@ export const FALLBACK: Record<Group, { real: Lines; scam: Lines }> = {
       wallet: ['Thank you. Your request is recorded.'],
     },
     scam: {
-      default: ['Thank you! Just one more small fee and its done.'],
-      relative: ["thank u!! can u send it now? I'll explain later"],
+      default: ['Thank You! Almost done, kindly stay with us.'],
+      relative: ["thank u!! pls hurry, I'll explain later"],
       friend: ["omg thanks! just one more small thing and we're set"],
       police: ['Noted. Remain in this chat and inform no one. The case is sealed.'],
-      bank: ['Thank You. Kindly confirm the Code sent to you now.'],
-      wallet: ['Thank You. Kindly confirm the Code sent to you now.'],
-      courier: ['Thank You. Kindly pay the small Handling Fee to release.'],
-      mentor: ['amazing!! top up a little more to unlock your profit'],
-      recruiter: ['Great dear! First task needs small deposit to start.'],
-      buyer: ['ok good. you open my payment page to receive money ok'],
-      boss: ['thanks. keep this between us, send it before noon'],
+      bank: ['Thank You. Kindly act now, the case closes Today.'],
+      wallet: ['Thank You. Kindly act now, the case closes Today.'],
+      courier: ['Thank You. Your Parcel stays on Hold until today is sorted.'],
+      mentor: ['amazing!! you are so close to your profit, dear'],
+      recruiter: ['Great dear! You are almost in, just a little more!'],
+      buyer: ['ok good. we finish today ok? pls be quick'],
+      boss: ['thanks. keep this between us, needs doing before noon'],
     },
   },
   check: {
@@ -213,7 +215,7 @@ export const FALLBACK: Record<Group, { real: Lines; scam: Lines }> = {
   },
   pay: {
     real: { default: ['got it, thanks!'], courier: ['Payment received. Thank you.'], bank: ['Payment received. Thank you.'] },
-    scam: { default: ['Received. Kindly wait for Confirmation.'], relative: ["got it thank u!! I'll explain later"], buyer: ['ok received. wait'] },
+    scam: { default: ['Noted. Kindly wait, it is Processing.'], relative: ["got it thank u!! I'll explain later"], buyer: ['ok received. wait'] },
   },
   code: {
     real: { default: ['got it, thanks!'] },
@@ -221,11 +223,11 @@ export const FALLBACK: Record<Group, { real: Lines; scam: Lines }> = {
   },
   refuse: {
     real: { default: ['no worries!'], bank: ['Understood. No action is needed.'], wallet: ['Understood. No action is needed.'] },
-    scam: { default: ['Code expire in one minute. Kindly send it Now.'], relative: ['please just send it, it expires soon!!'], friend: ['pls just send it, it expires soon!!'] },
+    scam: { default: ['Time is Running Out. Kindly do it Now.'], relative: ["please just do it, there's no time!!"], friend: ["pls just help me, there's no time!!"] },
   },
   link: {
     real: { default: ['thanks for checking!'], courier: ['Thank you. Your delivery details are updated.'], bank: ['Thank you. You can view this in the app.'] },
-    scam: { default: ['Did it open? Kindly enter the Code we sent.'], relative: ['did it open? just put in the code I sent'], friend: ['did it open? just put in the code I sent'] },
+    scam: { default: ['Did it open? Kindly hurry, Time is Running Out.'], relative: ["did it open? pls hurry, I'm waiting"], friend: ["did it open? pls hurry, I'm waiting"] },
   },
   block: {
     real: {
@@ -241,7 +243,7 @@ export const FALLBACK: Record<Group, { real: Lines; scam: Lines }> = {
   },
   freeze: {
     real: { default: ['hey did u see my message?'] },
-    scam: { default: ['Transfer Failed. Kindly try again Now.'], relative: ["why isn't it going through?? try again now"], friend: ["why isn't it going through?? try again now"] },
+    scam: { default: ['Process Failed. Kindly try again Now.'], relative: ["why isn't it going through?? try again now"], friend: ["why isn't it going through?? try again now"] },
   },
   tell: {
     real: { default: ["looks normal to me, it's really them"] },

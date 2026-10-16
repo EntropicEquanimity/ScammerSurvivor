@@ -1,4 +1,5 @@
 import { useEffect, useReducer } from 'react';
+import { useOverlay } from '../../shell/overlay.ts';
 import { pauseClock, resumeClock } from '../juice/speedClock.ts';
 import { NoBeatsError, startCall } from './api.ts';
 import { BANNER_MS, IDLE, RING_AFTER_MS, RING_MS, covers, ringReducer, shouldRing } from './ring.ts';
@@ -15,7 +16,10 @@ export interface Interrupt {
 // call came earlier. The start is fetched first so the banner can name the caller; a failed start
 // never rings.
 function useTrigger(dayId: string | null, phase: string, handled: number, enabled: boolean, ring: Ring, send: (e: RingEvent) => void) {
-  const due = Boolean(dayId) && enabled && shouldRing({ stage: ring.stage, phase, handled });
+  // An open overlay (the in-app browser) holds the ring: due turns false, the pending timer clears,
+  // and it starts again once the overlay closes.
+  const overlay = useOverlay() !== null;
+  const due = Boolean(dayId) && enabled && shouldRing({ stage: ring.stage, phase, handled, overlay });
   useEffect(() => {
     if (!due || !dayId) return undefined;
     let live = true;

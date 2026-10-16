@@ -77,12 +77,6 @@ const ROW_STAGGER_MS = 60; // matches --row-stagger in end.css
 // The real messages checked by a call: handled, but not trusted (shared/score.ts scoreDay).
 export const checkedOf = (results: readonly SlotResult[]): number => results.filter((r) => !r.isScam && r.cautious).length;
 
-// "Scam or real?" answered right, out of the messages it was asked on.
-const verdictsOf = (results: readonly SlotResult[]): { right: number; asked: number } => ({
-  right: results.filter((r) => r.verdictCorrect).length,
-  asked: results.filter((r) => r.verdict).length,
-});
-
 // The rates and the wallet, counting up once the last row has landed.
 function RatesNote({ score, results, money }: { score: DayScore; results: SlotResult[]; money: (n: number) => string }) {
   const rows = results.length;
@@ -91,10 +85,11 @@ function RatesNote({ score, results, money }: { score: DayScore; results: SlotRe
   const trusted = useCountUp(score.realTrusted.handled, delay);
   const wallet = useCountUp(score.wallet, delay);
   const checked = checkedOf(results);
-  const { right, asked } = verdictsOf(results);
+  // The ticks over every row, so the lead line and the rows share one denominator (Skeptic round 5).
+  const { right } = ledgerFrom(results, {}, { wallet: score.walletStart, people: score.peopleStart, money });
   return (
     <div className="end-note" style={{ '--n': rows } as CSSProperties}>
-      {asked > 0 && <p className="end-note-lead">{right} of {asked} read right</p>}
+      {right.total > 0 && <p className="end-note-lead">{right.handled} of {right.total} handled right</p>}
       <p>
         Caught {caught} of {score.scamsCaught.total} scams · Trusted {trusted} of {score.realTrusted.total} real messages
         {checked > 0 && <> · {checked} checked first</>}

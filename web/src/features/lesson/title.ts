@@ -83,8 +83,13 @@ const REAL_SLIPS: Partial<Record<Action, string>> = {
 };
 const REAL_NOT_SAFEST = 'It was real, but that was not the safest move.';
 
+// A real message that could wait, left unanswered: fine, so its line is not the turned-away one
+// (Skeptic round 5: the same sentence sat beside a tick on one row and a cross on another).
+export const REAL_LEFT_FINE = 'You left a real message for later. It could wait.';
+
 function realLine(result: SlotResult, action: Action | undefined): string {
   if (!action) return verdictLine(result);
+  if (action === 'ignore' && result.actionCorrect) return REAL_LEFT_FINE;
   if (result.actionCorrect || result.falseAlarm) return ACTION_LINES[action][0];
   return goesAlong(action) ? (REAL_SLIPS[action] ?? REAL_UNASKED) : REAL_NOT_SAFEST;
 }

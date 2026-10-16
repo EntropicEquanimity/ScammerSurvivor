@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { ACTIONS } from '../../../../shared/types.ts';
 import type { SlotResult } from '../../../../shared/types.ts';
 import { TRICK_IDS, TRICK_TITLES } from '../../../../shared/taxonomy.ts';
-import { ACTION_LINES, flagsOf, tellOrder, tellRows, lessonTitle, outcomeLine, parseNotes, quoteOf, secondPerson, verdictSaid, flagSummary } from './title.ts';
+import { ACTION_LINES, REAL_LEFT_FINE, flagsOf, tellOrder, tellRows, lessonTitle, outcomeLine, parseNotes, quoteOf, secondPerson, verdictSaid, flagSummary } from './title.ts';
 
 const base = (over: Partial<SlotResult> = {}): SlotResult => ({
   slotId: 's1',
@@ -51,7 +51,9 @@ test('every action has a line for a real message and a scam, never "You trusted 
       const { text } = outcomeLine(base({ action, isScam, leaked: [] }));
       assert.ok(text.length > 0 && text.length <= 64, `${action} ${isScam}: ${text}`);
       assert.ok(!/trusted it/i.test(text), `${action} ${isScam}`);
-      assert.ok(text.startsWith(ACTION_LINES[action][isScam ? 1 : 0]), `${action} ${isScam}`);
+      // base() is actionCorrect: a real message that could wait gets the fine line (Skeptic round 5).
+      const expected = action === 'ignore' && !isScam ? REAL_LEFT_FINE : ACTION_LINES[action][isScam ? 1 : 0];
+      assert.ok(text.startsWith(expected), `${action} ${isScam}`);
     }
   }
   assert.equal(outcomeLine(base({ action: 'reply', isScam: false })).text, 'You answered a real message.');

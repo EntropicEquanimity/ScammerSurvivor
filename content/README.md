@@ -19,7 +19,7 @@ Real twins are ordinary real text (a real parcel update, a real "which gate?").
 
 No real brand, app, bank, wallet or courier name anywhere, not even in a
 comment. Senders are roles from `INSTITUTIONS` in `shared/brands.ts`
-("Courier", "Your bank"). Links, when a real twin needs one, use `.example`.
+("Courier", "Your bank"). Links, when a card needs one, use an invented name on a realistic ending (`.com`, `.net`, `.top`, `.info`). The Director's check confirms over RDAP that no one has registered it when the card is written, and `scripts/recheck-domains.ts` checks every cached card again before each deploy; a card whose name is now registered, or cannot be checked, is never dealt. Links are plain text, never clickable, and the About page says every site in the game is invented. Ruled by the Builder on 17 Oct 2026; it replaced `.example` only.
 
 ## A fixture card (`content/fixtures/<cc>.json`)
 

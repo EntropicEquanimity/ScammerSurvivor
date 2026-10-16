@@ -7,7 +7,8 @@ import { ThinkingLevel, Type } from '@google/genai';
 import type { GoogleGenAI, Schema } from '@google/genai';
 import { GeminiError, MODELS, makeClient } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
-import { BRAND_DENYLIST, DISCLAIMER } from '../guard/card.ts';
+import { DISCLAIMER } from '../guard/card.ts';
+import { hasBrand } from '../guard/denylist.ts';
 import { bareNameSpots, stiffVoice } from '../guard/subtle.ts';
 import { identityReasons } from './caller.ts';
 import type { Generate } from './caller.ts';
@@ -92,7 +93,6 @@ const EM_DASH = String.fromCharCode(0x2014);
 const CURLY = String.fromCharCode(0x2019);
 const straight = (text: string): string => text.replaceAll(CURLY, "'");
 const words = (text: string): string[] => text.trim().split(/\s+/).filter(Boolean);
-const hasBrand = (text: string): boolean => (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 const offExampleLink = (text: string): boolean => [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
 
 // The opener positions plus the bare ones (a sign-off, "Marco here", "Marco, ..."): Oct 17, a name

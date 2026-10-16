@@ -1,8 +1,9 @@
 // The registry check: every domain a Director card writes must be unregistered when it is written,
 // so a fake link in the game never names a real site (the Builder, Oct 17). RDAP answers it: a
 // registry says 404 for a name no one holds. This runs only where the Director writes (writeCard:
-// pregenerate, the personalising jobs, the Judge Lab), never when a cached card is dealt. A name
-// that is registered, or whose check fails, rejects the card; the Director repairs once.
+// pregenerate, the personalising jobs, the Judge Lab). A name that is registered, or whose check
+// fails, rejects the card; the Director repairs once. Cached cards are checked again before each
+// deploy (scripts/recheck-domains.ts); one that fails then is held back from every deal.
 import type { Draft } from '../agents/director.ts';
 import { hostsIn, isReservedHost, registrableOf } from '../../shared/links.ts';
 
@@ -13,8 +14,10 @@ export type DomainReason = 'link_registered' | 'link_unchecked';
 // One domain a card writes, checked unregistered on that date (YYYY-MM-DD). Only passing cards keep the list.
 export interface DomainCheck { name: string; checked: string }
 
+// servable false: a link domain was registered, or could not be checked, when scripts/recheck-domains.ts
+// last ran (before each deploy); readCards never deals it. recheckedOn: that run's date.
 declare module '../../shared/types.ts' {
-  interface Card { domains?: DomainCheck[] }
+  interface Card { domains?: DomainCheck[]; servable?: boolean; recheckedOn?: string }
 }
 
 const RDAP_ORG = 'https://rdap.org/domain/';

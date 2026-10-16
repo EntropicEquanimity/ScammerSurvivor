@@ -73,8 +73,8 @@ const CALLER_BY_TRICK: Partial<Record<TrickId, CallerIdentity>> = {
 export const callerFor = (trickId: TrickId): CallerIdentity => ({ ...(CALLER_BY_TRICK[trickId] ?? CALLER_FOR[trickCategory(trickId)]) });
 
 // What the phone shows for the call, which the caller can fake: the name they claim, a local
-// number, or Unknown. The number: a plausible invented local mobile number in the pack's own format, never a
-// mask of X or dots (lesson 23, Ruler r8). The last four are fixed per pack, the rest invented (shared/mask.ts).
+// number, or Unknown. The number: the pack's own local format, dot-masked so it cannot be dialled, four
+// digits at most (the Builder's ruling, Oct 17, Skeptic round 5; shared/mask.ts localNumber).
 const CALLER_LAST_FOUR: Record<string, string> = { AU: '4817', HK: '2936', ID: '7152', IN: '6021', JP: '4803', MY: '5184', PH: '3963', SG: '7741' };
 export const CALLER_NUMBERS: Record<string, string> = Object.fromEntries(
   Object.entries(CALLER_LAST_FOUR).map(([code, last]) => [code, localNumber(`+0 XXXX ${last}`, code)]),

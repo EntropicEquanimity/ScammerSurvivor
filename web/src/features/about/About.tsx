@@ -14,7 +14,7 @@ const ROUTE = 'Gemini 3.8 Flash runs on Vertex AI through the global endpoint, c
 
 const AGENTS = [
   { name: 'Director', model: 'Gemini 3.8 Flash', job: 'Writes each card and its real twin from an approved pattern note and the people you picked. Structured JSON output.' },
-  { name: 'Guard', model: 'code, no model', job: 'Checks every card against thirteen rules: tells on the ask, masked numbers, no digit runs, no brand names, links only on invented sites, each checked unregistered with the domain registries when it is written. A failed card gets one repair turn, then is dropped.' },
+  { name: 'Guard', model: 'code, no model', job: 'Checks every card against thirteen rules: tells on the ask, masked numbers, no digit runs, no brand names, links only on invented sites, each checked unregistered with the domain registries when it is written and again before every release. A failed card gets one repair turn, then is dropped.' },
   { name: 'Coach', model: 'Gemini 3.8 Flash', job: 'Explains the tells after a scam, streamed. It never scores.' },
   { name: 'Caller', model: 'Gemini 3.8 Flash TTS', job: 'Voices the practice call, beat by beat, generated before the call starts.' },
 ] as const;

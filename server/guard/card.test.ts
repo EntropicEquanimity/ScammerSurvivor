@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BRAND_DENYLIST, guardDraft, reasonText } from './card.ts';
+import { BRAND_CASED } from './denylist.ts';
 import type { Draft, GuardReason } from './card.ts';
 import type { TellId } from '../../shared/types.ts';
 
@@ -100,6 +101,13 @@ test('links on .com, .net, .top and .info pass, with or without scheme and www',
 test('a schemeless .example link and an abbreviation pass', () => {
   const ok = { ...clean(), usualEnding: 'Go to pay.example/Verify at 9 a.m. e.g. today.' };
   assert.deepEqual(guardDraft(ok, OPTIONS), { ok: true, reasons: [] });
+});
+
+test('brand_name: every JAPAC bank, wallet and messaging app on the list (Skeptic round 5)', () => {
+  for (const word of [...BRAND_DENYLIST, ...BRAND_CASED]) {
+    const brand = word === word.toUpperCase() ? word : word[0].toUpperCase() + word.slice(1);
+    expectOnly({ ...clean(), usualEnding: `[usual ending] via ${brand}.` }, 'brand_name');
+  }
 });
 
 test('brand_name: a real brand as a whole word', () => {

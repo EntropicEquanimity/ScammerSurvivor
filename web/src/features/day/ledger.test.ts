@@ -156,8 +156,32 @@ test('rows read as a sender, a Scam or Real tag and one plain sentence', async (
   const scamIgnored = { ...base, slotId: 's2', isScam: true, actionCorrect: true, action: 'ignore', verdict: 'scam', verdictCorrect: true };
   const ledger = ledgerFrom([realIgnored, scamIgnored] as never, { s1: 'Prize Desk', s2: 'Parcel Support' }, { wallet: 5000, people: 3 });
   assert.equal(ledger.rows[0].kind, 'Real');
-  assert.equal(ledger.rows[0].right, true);
+  assert.equal(ledger.rows[0].right, false, 'read right, but they did not hear back: no tick');
   assert.equal(ledger.rows[0].sentence, 'You left a real message unanswered. They did not hear back.'); // the lesson's own line
   assert.equal(ledger.rows[1].sentence, 'You ignored it. Safe.');
   assert.ok(ledger.rows.every((row) => !row.sentence.includes(', you said')));
+});
+
+// Skeptic round 5: "Scam ✗" beside "You did not fall for it", and "0 of 1 read right" over four rows.
+test('a row never pairs a cross with a safe sentence alone, and every row counts in one denominator', async () => {
+  const { ledgerFrom } = await import('./ledger.ts');
+  const base = { walletAfter: 5000, peopleAfter: 3, lesson: { scam: { sender: { displayName: 'X' } }, real: { sender: { displayName: 'X' } } } };
+  const rows = [
+    { ...base, slotId: 'a', isScam: true, actionCorrect: true, action: 'ignore', verdict: 'real', verdictCorrect: false },
+    { ...base, slotId: 'b', isScam: true, actionCorrect: true, action: 'block_report', verdict: 'scam', verdictCorrect: true },
+    { ...base, slotId: 'c', isScam: false, actionCorrect: true, action: 'reply', wentAlong: true },
+    { ...base, slotId: 'd', isScam: true, actionCorrect: false, action: 'pay', wentAlong: true, walletAfter: 4500 },
+  ];
+  const ledger = ledgerFrom(rows as never, {}, { wallet: 5000, people: 3 });
+  const [wrongCall, caught, trusted, fell] = ledger.rows;
+  assert.equal(wrongCall.right, false);
+  assert.match(wrongCall.sentence, /^You said Real \u2717\. /, 'the cross has its reason first');
+  assert.equal(caught.right, true);
+  assert.doesNotMatch(caught.sentence, /You said/, 'a right call is not repeated beside its tick');
+  assert.equal(trusted.right, true, 'going along with a real message skips the question and is right');
+  assert.equal(fell.right, false);
+  for (const row of ledger.rows) {
+    if (!row.right) assert.ok(/\u2717|not|fell|lost|gone|slip|never|anyway|money/i.test(row.sentence), `${row.slotId}: ${row.sentence}`);
+  }
+  assert.deepEqual(ledger.right, { handled: 2, total: 4 }, 'the ticks over every row');
 });

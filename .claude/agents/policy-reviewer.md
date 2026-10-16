@@ -21,6 +21,6 @@ Check each of these and report on every one, even when it passes:
 9. Translations come only from approved English cards, part by part; no generation in another language.
 10. The under-18 path reaches no model, no sign-in and no call.
 11. No non-Google AI SDK in `package.json` or imports.
-12. Links use `.example` or `.invalid`; numbers are masked in the country's pattern; the Guard's denylist matches whole words.
+12. Links use invented names on realistic endings, RDAP-checked unregistered at write time and again before each deploy (`scripts/recheck-domains.ts`), never clickable; numbers are dot-masked, four digits at most; the Guard's denylist (`server/guard/denylist.ts`) matches whole words, brand capitals and multi-word names (17 Oct 2026).
 
 Report format: a verdict line (PASS or FAIL), then one line per check with the file path and line number for each failure and the rule it breaks. Do not fix anything. Do not soften a failure.

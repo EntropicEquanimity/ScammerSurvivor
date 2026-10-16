@@ -1,6 +1,6 @@
 import type { Action, SlotResult, Tally } from '../../../../shared/types.ts';
 import { trusts } from '../../../../shared/score.ts';
-import { actionOutcome } from '../lesson/title.ts';
+import { actionOutcome, verdictSaid } from '../lesson/title.ts';
 
 // The end of the day as a ledger: one row per message, by sender, in the order they were handled.
 // Pure, no React, no CSS, so node can test it directly. Message text never enters a row.
@@ -20,7 +20,7 @@ export interface LedgerRow {
   detail: string; // "caught", "fell for it, 500 gone"
   line: string; // "Courier: fell for it, 500 gone"
   kind: 'Scam' | 'Real'; // the tag on the row's right
-  right: boolean; // the tag's tick: the player's call when asked, else the action
+  right: boolean; // the tag's tick: the move was right, and so was the call when one was asked
   sentence: string; // one plain sentence under the sender: "You ignored it, so they never heard back."
   walletDelta: number;
   peopleDelta: number;
@@ -30,6 +30,7 @@ export interface Ledger {
   rows: LedgerRow[];
   caught: Tally; // scams with actionCorrect, equals DayScore.scamsCaught
   trusted: Tally; // real messages with actionCorrect and not checked by a call, equals DayScore.realTrusted
+  right: Tally; // the rows with a tick, out of every row: the one denominator Day over shows
   walletDelta: number;
   peopleDelta: number;
 }
@@ -90,6 +91,13 @@ function sentenceOf(r: SlotResult, lost: number, money: (n: number) => string): 
 // The player's answer to "Scam or real?", when they gave one.
 const saidOf = (r: SlotResult): string => (r.verdict ? `, you said ${r.verdict}${r.verdictCorrect ? '' : ' (wrong)'}` : '');
 
+// Skeptic round 5: a cross beside "You did not fall for it" read as a contradiction when the call was
+// wrong, and "N of M read right" counted only the rows that were asked. A tick now needs the right
+// move and, when "Scam or real?" was asked, the right call; a wrong call leads the sentence, so a
+// cross always has its reason beside it.
+const rightOf = (r: SlotResult): boolean => r.actionCorrect && (r.verdict ? Boolean(r.verdictCorrect) : true);
+const wrongCall = (r: SlotResult): string => (r.verdict && !r.verdictCorrect ? verdictSaid(r) : '');
+
 export function ledgerFrom(results: SlotResult[], senders: Record<string, string>, start: LedgerStart): Ledger {
   const money = start.money ?? String;
   const rows = results.map((r, i): LedgerRow => {
@@ -110,8 +118,8 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
       detail,
       line: `${sender}: ${detail}`,
       kind: r.isScam ? 'Scam' : 'Real',
-      right: r.verdict ? Boolean(r.verdictCorrect) : r.actionCorrect,
-      sentence: `${sentenceOf(r, lost, money)}${r.questioned ? ' You asked questions first.' : ''}`,
+      right: rightOf(r),
+      sentence: [wrongCall(r), sentenceOf(r, lost, money), r.questioned ? 'You asked questions first.' : ''].filter(Boolean).join(' '),
       walletDelta,
       peopleDelta: r.peopleAfter - peopleBefore,
     };
@@ -124,6 +132,7 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
     rows,
     caught: tally(true, 'caught'),
     trusted: tally(false, 'trusted'),
+    right: { handled: rows.filter((row) => row.right).length, total: rows.length },
     walletDelta: rows.reduce((sum, row) => sum + row.walletDelta, 0),
     peopleDelta: rows.reduce((sum, row) => sum + row.peopleDelta, 0),
   };

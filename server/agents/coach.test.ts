@@ -5,7 +5,7 @@ import { recordAct, scoreTap, startDay } from '../routes/day.ts';
 import { lessonFor, readTrace } from '../routes/lesson.ts';
 import type { DayQuery } from '../routes/day.ts';
 import { COACH_MODEL, COACH_SYSTEM, buildPrompt, checkNotes, fixedNotes, lessonText, lineOk } from './coach.ts';
-import { REAL_WHY, TELLS, TELL_IDS } from '../../shared/taxonomy.ts';
+import { REAL_WHY, TELLS, TELL_IDS, realWhyFor } from '../../shared/taxonomy.ts';
 import { BRAND_DENYLIST } from '../guard/card.ts';
 import type { StreamText } from './coach.ts';
 
@@ -133,7 +133,8 @@ test('the fixed notes carry one taxonomy line per tell of the card, and the fixe
   const ids = new Set([...result.caught, ...result.missed, ...result.lesson.scam.parts.flatMap((part) => part.tellIds)]);
   assert.deepEqual(new Set(notes.tells.map((entry: { tellId: string }) => entry.tellId)), ids);
   for (const entry of notes.tells) assert.equal(entry.why, TELLS[entry.tellId as keyof typeof TELLS].why);
-  assert.deepEqual(notes.real, [...REAL_WHY]);
+  // The real pair is the trick's own when it has one (taxonomy.ts realWhyFor), so the dealt trick decides.
+  assert.deepEqual(notes.real, [...realWhyFor(result.lesson.trickId)]);
   const emDash = String.fromCharCode(0x2014);
   assert.ok(!COACH_SYSTEM.includes(emDash));
   assert.ok(COACH_SYSTEM.split(/\s+/).length < 250);

@@ -8,6 +8,7 @@ import { hasOffListLink } from '../../shared/links.ts';
 import { cluesReasons } from '../../shared/clues.ts';
 import type { Clue, ClueReason } from '../../shared/clues.ts';
 import { asks } from '../offered.ts';
+import { BRAND_WORDS, hasBrand } from './denylist.ts';
 import { MAX_TAGS, TWIN_OVERLAP_MIN, amountsIn, bareNameSpots, historyReasons, overlap, stiffVoice, tagCount } from './subtle.ts';
 
 export type GuardReason =
@@ -108,17 +109,10 @@ export interface GuardResult {
   reasons: GuardReason[];
 }
 
-// ponytail: a denylist is plain data, not a mock, so these words sit here in the
-// open. The policy grep (scripts/check-policy.sh) bans the messaging-app and bank
-// names it lists from every file under server/, so those cannot be added and the
-// Guard does not catch them. Upgrade path, two steps outside this file: exclude one
-// server/guard/denylist.ts in check-policy.sh, then move this list there and merge
-// the grep's list in. Exported so the test fixture never holds a brand literal.
-export const BRAND_DENYLIST = [
-  'google', 'microsoft', 'amazon', 'netflix', 'mastercard', 'dhl', 'fedex', 'interpol',
-  'samsung', 'binance', 'coinbase', 'youtube', 'linkedin', 'twitter', 'snapchat', 'wechat',
-  'alipay', 'grabpay', 'spotify', 'uber', 'facetime', 'skype',
-];
+// The brand list lives in denylist.ts, the one file the policy grep skips, so the Guard and the grep
+// share one list. Re-exported here so the tests and the Chatter keep one import.
+export const BRAND_DENYLIST = BRAND_WORDS;
+export { hasBrand };
 
 // Capitalised words that are not names: the people roles, the institution labels,
 // the made-up app names, family and office words, greetings, days and months.
@@ -204,8 +198,6 @@ const textFields = (draft: Draft): string[] => [
   str(draft.realTwin?.sender?.displayName),
 ];
 
-export const hasBrand = (text: string): boolean =>
-  (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 
 export const strangeNames = (text: string, allowed: Set<string>): string[] => {
   const cleaned = text.replace(PLACEHOLDER, ' ').replace(LINK, ' ');

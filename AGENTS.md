@@ -1,6 +1,6 @@
 # Scammer Survivor: agent contract
 
-A practice phone for spotting scams, for anyone in the JAPAC region, any age, built for AI Builder Cup 2026 (Google Cloud JAPAC, Hack2skill). The player plays a day on a phone: messages and calls arrive in the apps people in their country use, some real and some scams; they act, never label; they tap the tells. Code scores. Gemini writes the day and explains the tells. The product is Scammer Survivor. Design of record: `docs/superpowers/specs/2026-10-03-practice-phone-design.md`.
+A practice phone for spotting scams, for anyone in the JAPAC region, any age, built for AI Builder Cup 2026 (Google Cloud JAPAC, Hack2skill). The player plays a day on a phone: messages and calls arrive in the apps people in their country use, some real and some scams; they act first, then decide Scam or Real, then flag the tells; going along with a message skips both (ruled by the Builder on 16 Oct 2026, replacing "act, never label"). Code scores. Gemini writes the day and explains the tells. The product is Scammer Survivor. Design of record: `docs/superpowers/specs/2026-10-03-practice-phone-design.md`.
 
 ## Rules that never bend
 

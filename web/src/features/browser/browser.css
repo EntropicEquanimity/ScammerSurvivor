@@ -9,6 +9,17 @@
   z-index: 3; /* over the screen, under the call layer (4) and the status bar (5) */
 }
 
+/* One modal at a time (Skeptic round 5): while the call banner rings, the card's buttons wait, so
+   no link opens a browser under the call. The belt: a call that rings or is on screen hides any
+   browser under it, Done included, and it comes back as it was once the call is over. */
+.phone:has(.ring-banner) .screen .app .actions {
+  pointer-events: none;
+}
+
+.phone:has(.call-layer, .ring-banner) > .overlay-host {
+  visibility: hidden;
+}
+
 /* The card under the browser is covered, so it leaves the tab order and the game layer steps away. */
 .phone:has(> .overlay-host) .screen .app,
 .phone:has(> .overlay-host) .game-hud {

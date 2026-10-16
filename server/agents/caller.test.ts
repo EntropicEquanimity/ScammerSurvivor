@@ -107,13 +107,15 @@ test('the end buttons, the code button and a single remaining pushback never rea
   assert.deepEqual(schemaFor(['a']).required, ['beatId', 'meterDelta', 'safetyStop', 'caption']);
 });
 
-test('caller ID lies: a claimed name, a plausible local number or Unknown, never a mask or a +XX', () => {
+test('caller ID lies: a claimed name, a dot-masked local number or Unknown, never dialable (Oct 17)', () => {
   const identity = callerFor('bank_check');
   const kinds = new Set<string>();
+  assert.equal(Object.keys(CALLER_NUMBERS).length, 8, 'all eight packs');
   for (const country of Object.keys(CALLER_NUMBERS)) {
     const { number } = callerIdFor('day-x', country, identity);
-    assert.ok((number.match(/\d/g) ?? []).length >= 8, `${country} shows a whole local number`);
-    assert.doesNotMatch(number, /X|•|\+/, `${country} has no mask and no plus prefix`);
+    assert.ok((number.match(/\d/g) ?? []).length <= 4, `${country}: ${number} shows four digits at most`);
+    assert.match(number, /•/, `${country} is dot-masked`);
+    assert.doesNotMatch(number, /X|\+/, `${country} has no X and no plus prefix`);
   }
   for (let i = 0; i < 60; i += 1) {
     const id = callerIdFor(`day-${i}`, 'SG', identity);

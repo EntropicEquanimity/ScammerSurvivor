@@ -29,7 +29,7 @@ One Cloud Run service in asia-southeast1 (one instance): Node 24 and Express ser
 | Agent | Model | Job |
 |---|---|---|
 | Director | `gemini-3.8-flash`, structured output | Writes one card with its real twin from an approved pattern note and the people you picked |
-| Guard | code, no model | 13 checks on every Director draft: tells on the ask parts, planted tells match, no digit runs, masked numbers, distinct last four, twin carries no tells, twin has an acceptable reply, allowed replies, `.example` links only, no real brand, allowed names, a non-empty ask, known tell ids |
+| Guard | code, no model | 13 checks on every Director draft: tells on the ask parts, planted tells match, no digit runs, masked numbers, distinct last four, twin carries no tells, twin has an acceptable reply, allowed replies, invented link hosts checked unregistered over RDAP at write time and again before each deploy, no real brand, allowed names, a non-empty ask, known tell ids |
 | Coach | `gemini-3.8-flash`, streamed | Writes the lesson after code has scored the slot; never scores |
 | Caller | `gemini-3.8-flash-tts` ahead of time, `gemini-3.8-flash` at play time | The six beats of each practice call are written and voiced before any call (`scripts/tts-beats.ts`); at play time the model picks which beat answers your button, from ids and roles only, and code moves the meter |
 

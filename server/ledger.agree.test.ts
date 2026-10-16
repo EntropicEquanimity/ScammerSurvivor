@@ -77,7 +77,7 @@ test('ignoring a real message is not trusted; ignoring a code grab is caught and
   assert.deepEqual(ledger.trusted, { handled: 0, total: 1 });
   assert.deepEqual(ledger.caught, { handled: 1, total: 1 });
   assert.equal(ledger.rows[0].verdict, 'left');
-  assert.match(ledger.rows[0].sentence, /did not hear back/);
+  assert.equal(ledger.rows[0].sentence, 'You left a real message for later. It could wait.');
   assert.doesNotMatch(ledger.rows[0].sentence, /trust/i);
   assert.equal(ledger.rows[1].verdict, 'caught');
   assert.equal(ledger.rows[1].sentence, 'You ignored it. Safe.');
@@ -100,6 +100,26 @@ test('the ledger tallies equal the day score for every action pair', () => {
       const day = scoreDay(pair.map((p) => p.score), { wallet: WALLET, people: 3 });
       assert.deepEqual(ledger.trusted, day.realTrusted, `${realAction} / ${scamAction}`);
       assert.deepEqual(ledger.caught, day.scamsCaught, `${realAction} / ${scamAction}`);
+    }
+  }
+});
+
+// Skeptic round 5: the tag and the sentence never disagree, for every action and every answer to
+// "Scam or real?" (none when the action went along).
+test('every action and every call: a tick never sits beside a loss, a cross always gives its reason', () => {
+  for (const key of [real, codeGrab]) {
+    for (const action of ACTIONS) {
+      const { result } = resultOf(key, action);
+      const calls = goesAlong(action) ? [undefined] : (['scam', 'real'] as const);
+      for (const verdict of calls) {
+        const truth = key.isTwin ? 'real' : 'scam';
+        const said = verdict ? { verdict, verdictCorrect: verdict === truth } : {};
+        const [row] = ledgerFrom([{ ...result, ...said }], {}, { wallet: WALLET, people: 3, money }).rows;
+        const label = `${truth} ${action} said ${verdict ?? 'nothing'}`;
+        if (row.right) assert.doesNotMatch(row.sentence, /fell for it|gone|went along|✗/, label);
+        if (verdict && verdict !== truth) assert.match(row.sentence, /^You said (Scam|Real) ✗\./, label);
+        if (!row.right && !(verdict && verdict !== truth)) assert.equal(result.actionCorrect, false, label);
+      }
     }
   }
 });

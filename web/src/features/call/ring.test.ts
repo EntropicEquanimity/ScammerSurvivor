@@ -15,13 +15,23 @@ const ringing = ringReducer(IDLE, { type: 'ring', start: START, lock: false });
 test('a call rings mid-day once a slot is handled, in an app or on the lock screen, never twice', () => {
   assert.equal(shouldRing({ stage: 'idle', phase: 'card', handled: 0 }), false, 'never on the first message');
   assert.equal(shouldRing({ stage: 'idle', phase: 'card', handled: 1 }), true);
-  assert.equal(shouldRing({ stage: 'idle', phase: 'tells', handled: 1 }), true);
+  assert.equal(shouldRing({ stage: 'idle', phase: 'tells', handled: 1 }), false, 'never over Scam or real and the flag picker');
+  assert.equal(shouldRing({ stage: 'idle', phase: 'aftermath', handled: 1 }), false, 'never over the aftermath');
   assert.equal(shouldRing({ stage: 'idle', phase: 'notifications', handled: 2 }), true);
   assert.equal(shouldRing({ stage: 'idle', phase: 'recovery', handled: 2 }), false, 'never over the recovery window');
   assert.equal(shouldRing({ stage: 'idle', phase: 'end', handled: 4 }), false);
   assert.equal(shouldRing({ stage: 'idle', phase: 'call', handled: 4 }), true, 'the end-of-day call when none came earlier');
   assert.equal(shouldRing({ stage: 'done', phase: 'card', handled: 2 }), false);
   assert.equal(shouldRing({ stage: 'none', phase: 'call', handled: 4 }), false, 'a failed start is not retried');
+});
+
+// Skeptic round 5: the call rang over the open in-app browser and its Done stayed clickable. One
+// modal at a time: the ring waits while an overlay is open and comes once it closes.
+test('a call never rings while the in-app browser is open, and rings once it closes', () => {
+  for (const phase of ['card', 'notifications', 'call']) {
+    assert.equal(shouldRing({ stage: 'idle', phase, handled: 2, overlay: true }), false, phase);
+    assert.equal(shouldRing({ stage: 'idle', phase, handled: 2, overlay: false }), true, phase);
+  }
 });
 
 test('ringing out after the ring time leaves a missed call with a voicemail banner', () => {
