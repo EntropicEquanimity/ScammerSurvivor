@@ -7,8 +7,11 @@ import type { MessagePart, TellId, TrickId } from './types.ts';
 export type { FieldId } from './profile.ts';
 
 // Scam pages ask for more than the task needs; real pages ask only for what it needs.
-export const SCAM_PAGE_KINDS = ['sign_in', 'redelivery', 'id_check', 'card_confirm', 'attachment_gate'] as const;
-export const TWIN_PAGE_KINDS = ['tracking', 'bank_app_note'] as const;
+// The UX fixer (Oct 16) added a kind per linked trick that had none: a case portal sign-in (digital
+// arrest), a trading sign-up or deposit (investment), a video chat or verify page (romance), a task
+// platform deposit (paid task); their real twins get info_page, which only shows what the message said.
+export const SCAM_PAGE_KINDS = ['sign_in', 'redelivery', 'id_check', 'card_confirm', 'attachment_gate', 'case_portal', 'trading_signup', 'video_verify', 'task_deposit'] as const;
+export const TWIN_PAGE_KINDS = ['tracking', 'bank_app_note', 'info_page'] as const;
 export const PAGE_KINDS = [...SCAM_PAGE_KINDS, ...TWIN_PAGE_KINDS] as const;
 export type PageKind = (typeof PAGE_KINDS)[number];
 
@@ -23,8 +26,13 @@ export const NEEDS: Record<PageKind, readonly FieldId[]> = {
   id_check: [],
   card_confirm: [],
   attachment_gate: [],
+  case_portal: [],
+  trading_signup: [],
+  video_verify: [],
+  task_deposit: [],
   tracking: ['tracking'],
   bank_app_note: [],
+  info_page: [],
 };
 
 export const FIELD_WEIGHT: Record<FieldId, number> = {
@@ -40,9 +48,34 @@ export const FIELD_WEIGHT: Record<FieldId, number> = {
 
 export const MAX_FIELDS = 5;
 
+export interface PageKinds {
+  scam: readonly PageKind[];
+  twin: readonly PageKind[];
+}
+
+// The first six linked tricks keep every kind they were written with (Gemini picks among them).
+const FIRST_KINDS: PageKinds = { scam: ['sign_in', 'redelivery', 'id_check', 'card_confirm', 'attachment_gate'], twin: ['tracking', 'bank_app_note'] };
+
+// The page kinds each linked trick may open, scam side and real side. The Director is told them and
+// the page Guard holds the draft to them.
+const KINDS_BY_TRICK: Partial<Record<TrickId, PageKinds>> = {
+  app_in_chat: FIRST_KINDS,
+  bank_check: FIRST_KINDS,
+  listing_leaver: FIRST_KINDS,
+  parcel_fee: FIRST_KINDS,
+  prize_fee: FIRST_KINDS,
+  refund_payment: FIRST_KINDS,
+  digital_arrest: { scam: ['case_portal'], twin: ['info_page'] },
+  investment_group: { scam: ['trading_signup'], twin: ['info_page'] },
+  fast_romance: { scam: ['video_verify'], twin: ['info_page'] },
+  paid_task: { scam: ['task_deposit'], twin: ['info_page'] },
+};
+
+export const pageKindsFor = (trick: TrickId): PageKinds | undefined => KINDS_BY_TRICK[trick];
+
 // The tricks whose open_link hands off to a page (rule 7 change): open_link is neutral there and
 // what the page sends decides the slot.
-export const PAGE_TRICKS: readonly TrickId[] = ['app_in_chat', 'bank_check', 'listing_leaver', 'parcel_fee', 'prize_fee', 'refund_payment'];
+export const PAGE_TRICKS: readonly TrickId[] = Object.keys(KINDS_BY_TRICK) as TrickId[];
 
 export interface CardPage {
   kind: PageKind;
@@ -83,6 +116,8 @@ export const leakedOf = (given: readonly FieldId[]): FieldId[] => given.filter((
 export const isSlip = (given: readonly FieldId[]): boolean =>
   given.some((id) => FIELD_WEIGHT[id] >= 2) || given.filter((id) => FIELD_WEIGHT[id] === 1).length >= 2;
 
-// The card plus a code, or the card on a confirm-card page, lets money move at once.
+// The card plus a code, or the card alone on a page that charges it (a card confirm, a trading or
+// task deposit), lets money move at once.
+const CHARGES_CARD: readonly PageKind[] = ['card_confirm', 'trading_signup', 'task_deposit'];
 export const movesMoney = (kind: PageKind, given: readonly FieldId[]): boolean =>
-  given.includes('card') && (given.includes('code') || kind === 'card_confirm');
+  given.includes('card') && (given.includes('code') || CHARGES_CARD.includes(kind));

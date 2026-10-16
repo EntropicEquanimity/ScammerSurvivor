@@ -97,7 +97,7 @@ Links, attachments and some mails open the in-app browser that iOS apps use for 
 
 ### Data model
 
-- `shared/page.ts`: `PageKind` (sign_in, redelivery, id_check, card_confirm, tracking, bank_app_note, attachment_gate, free_play), `FieldId`, `NEEDS: Record<PageKind, FieldId[]>`, `FIELD_WEIGHT`.
+- `shared/page.ts`: `PageKind` (scam: sign_in, redelivery, id_check, card_confirm, attachment_gate, case_portal, trading_signup, video_verify, task_deposit; real: tracking, bank_app_note, info_page), `pageKindsFor(trick)` (the kinds each of the ten linked tricks may open: digital arrest a case portal, investment a trading sign-up or deposit, romance a video chat or verify page, paid task a task deposit, each real twin an info_page that asks nothing), `FieldId`, `NEEDS: Record<PageKind, FieldId[]>`, `FIELD_WEIGHT`.
 - On a card: `page?: { kind, host, title, lines: MessagePart[], fields: FieldId[], minutes?: number }` for the scam side and the twin side. Lines are parts with ids, so taps score per part as today.
 - Per slot on the server: `given: FieldId[]` and the page's planted tells. Per day: `leaked: FieldId[]`, `infected: boolean`. Ids and flags only. No values on the server: they exist only in `shared/profile.ts`.
 - `POST /api/day/:dayId/page` with `{ slotId, given }`; `given` must be a subset of the page's fields, else 400; recorded once, before the act.

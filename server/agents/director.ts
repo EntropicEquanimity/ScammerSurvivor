@@ -15,8 +15,8 @@ import { PAGE_TRICKS } from '../../shared/page.ts';
 import type { CardPage } from '../../shared/page.ts';
 import type { FieldId } from '../../shared/profile.ts';
 import { PAGE_SYSTEM, draftTexts, leakLine, pageLines, realHostFor, toPage, withPages, withoutPages } from './page.ts';
-// The page host follows the trick's taxonomy category, the same one deal.ts fills [institution] from.
-import { TELL_IDS, TRICKS, trickCategory } from '../../shared/taxonomy.ts';
+// The page host and the page kinds follow the trick (agents/page.ts realHostFor, shared/page.ts pageKindsFor).
+import { TELL_IDS, TRICKS } from '../../shared/taxonomy.ts';
 import { ACTIONS } from '../../shared/types.ts';
 import { APP_NAME } from '../fill.ts';
 import { CLUE_KINDS } from '../../shared/clues.ts';
@@ -183,7 +183,7 @@ export function userMessage(note: PatternNote, pack: CountryPack, level: number,
     `Allowed first names: ${allowedNames.join(', ')}.`,
     peopleSender ? SENDER_LINE.people : SENDER_LINE.stranger,
     'The real twin has exactly as many parts as setup and ask together.',
-    ...(hasPages(note) ? [pageLines(trickCategory(trickFor(note)))] : []),
+    ...(hasPages(note) ? [pageLines(trickFor(note))] : []),
     ...(leak ? [leak] : []),
   ].join('\n');
 }
@@ -302,7 +302,7 @@ interface Pass {
 // The card Guard, the page Guard on page tricks, and the leak check on every card.
 const guardAll = (draft: Draft, input: WriteCardInput, allowedNames: string[]): DirectorReason[] => [
   ...guardDraft(draft, { noteTells: input.note.tells, allowedNames, allowedReplies: [...ACTIONS] }).reasons,
-  ...(hasPages(input.note) ? guardPages(draft, { realHost: realHostFor(trickCategory(trickFor(input.note))), allowedNames }) : []),
+  ...(hasPages(input.note) ? guardPages(draft, { realHost: realHostFor(trickFor(input.note)), allowedNames, trickId: trickFor(input.note) }) : []),
   ...leakReasons(draftTexts(draft), input.leaked ?? []),
 ];
 

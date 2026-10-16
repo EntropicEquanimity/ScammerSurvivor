@@ -126,7 +126,8 @@ test('the day is 400 on an unknown slot, action, tap before act, bad part id or 
   assert.equal(scoreTap(dayId, { slotId: card.slotId, tappedPartIds: [...ids, ...ids] }).status, 400);
   assert.equal(scoreTap(dayId, { slotId: card.slotId, tappedPartIds: 'a1' }).status, 400);
   assert.equal(scoreTap(dayId, { slotId: card.slotId, tappedPartIds: [] }).status, 200);
-  assert.equal(recordAct(dayId, { slotId: card.slotId, action: 'reply' }).status, 400);
+  // An act after the tap is a retry after a lost reply: the stored result comes back (day.retry.test.ts).
+  assert.equal(recordAct(dayId, { slotId: card.slotId, action: 'reply' }).status, 200);
   assert.equal(scoreTap('nope', { slotId: card.slotId, tappedPartIds: [] }).status, 404);
   assert.equal(finishDay('nope').status, 404);
 });

@@ -2,7 +2,8 @@
 // section 3). Pure code, no model. A page that still fails after the one repair is dropped, never
 // the card: the link then behaves as it does on a card without a page.
 import { isTellId } from '../../shared/taxonomy.ts';
-import { MAX_FIELDS, NEEDS, SCAM_PAGE_KINDS, TWIN_PAGE_KINDS } from '../../shared/page.ts';
+import { MAX_FIELDS, NEEDS, pageKindsFor } from '../../shared/page.ts';
+import type { TrickId } from '../../shared/types.ts';
 import { TOKEN_FIELD, isFieldId } from '../../shared/profile.ts';
 import type { FieldId } from '../../shared/profile.ts';
 import { hasBrand, hasOffExampleLink, strangeNames } from './card.ts';
@@ -51,6 +52,7 @@ export interface PageDraft {
 export interface PageGuardOptions {
   realHost: string; // the invented institution's own site, from agents/page.ts
   allowedNames: readonly string[];
+  trickId: TrickId; // the card's trick: its pages take only that trick's kinds (shared/page.ts)
 }
 
 const TITLE_MAX = 40;
@@ -73,8 +75,8 @@ const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.lengt
 
 type Side = 'scam' | 'twin';
 
-const kindReasons = (page: RawPage, side: Side): PageReason[] => {
-  const kinds: readonly string[] = side === 'scam' ? SCAM_PAGE_KINDS : TWIN_PAGE_KINDS;
+const kindReasons = (page: RawPage, side: Side, trickId: TrickId): PageReason[] => {
+  const kinds: readonly string[] = pageKindsFor(trickId)?.[side] ?? [];
   return kinds.includes(str(page.kind)) ? [] : ['page_kind'];
 };
 
@@ -128,7 +130,7 @@ const tellReasons = (page: RawPage, side: Side): PageReason[] => {
 function sideReasons(page: RawPage, side: Side, cardText: string, options: PageGuardOptions): PageReason[] {
   const host = str(page.host).toLowerCase();
   return [
-    ...kindReasons(page, side),
+    ...kindReasons(page, side, options.trickId),
     ...fieldReasons(page, side),
     ...hostReasons(page, side, options.realHost),
     ...(host && cardText.includes(host) ? [] : (['page_grounding'] as PageReason[])),
@@ -169,9 +171,9 @@ export function leakReasons(texts: readonly string[], leaked: readonly FieldId[]
 
 const REASON_TEXT: Record<PageReason | LeakReason, string> = {
   page_missing: 'Both the scam and the real twin need a page object.',
-  page_kind: 'The scam page kind must be one of sign_in, redelivery, id_check, card_confirm, attachment_gate; the real twin page kind one of tracking, bank_app_note.',
+  page_kind: 'Each page kind must be one the message names for this card: the scam page one of its scam kinds, the real twin page one of its real kinds.',
   page_fields: 'Page fields must come from the field list, each once, at most five.',
-  page_needs: 'The real twin page asks exactly what its kind needs (tracking: the tracking number; bank_app_note: nothing). The scam page asks for at least one field its task does not need.',
+  page_needs: 'The real twin page asks exactly what its kind needs (tracking: the tracking number; bank_app_note and info_page: nothing). The scam page asks for at least one field its task does not need.',
   page_host: 'Page hosts end in .example with no real brand. The real twin page host is exactly the institution site given; the scam page host is a different look-alike host.',
   page_grounding: 'Each side\'s message text must write its own page host, as a plain-text link.',
   page_text: 'Page title 1 to 40 characters; at most three lines of 1 to 90 characters; no run of five digits, no em dash, no real brand, no markup, no link but the page host, no name outside the allowed list, no brackets but [institution] and the profile tokens.',

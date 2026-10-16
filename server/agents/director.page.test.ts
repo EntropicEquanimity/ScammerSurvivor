@@ -116,3 +116,23 @@ test('no profile token without a leak', async () => {
   const { trace } = await writeCard({ note, pack, people: {}, level: 1, generate: fakeGenerate([withToken, clean]) });
   assert.ok(trace.some((event) => event.reasons?.includes('leak_token_extra')));
 });
+
+// The UX fixer (Oct 16): a digital arrest card's link now opens a case portal, and its real twin
+// an honest notice page on the civic desk's own site.
+test('a digital arrest note asks for a case portal and an honest notice page, and keeps them', async () => {
+  const arrestNote: PatternNote = { ...note, id: 'digital-arrest', category: 'F', app: 'green-chat' };
+  const CIVIC = 'civic-notice-desk.example';
+  const LOOK = 'civic-case-check.example';
+  const arrest = {
+    ...clean,
+    ask: [{ ...clean.ask[0], text: `[case line] ${LOOK}` }],
+    page: { ...scamPage, kind: 'case_portal', host: LOOK },
+    realTwin: { ...clean.realTwin, parts: [{ text: '[notice line]' }, { text: `[visit the office line] ${CIVIC}` }], page: { ...twinPage, kind: 'info_page', host: CIVIC } },
+  };
+  const generate = fakeGenerate([arrest]);
+  const { card } = await writeCard({ note: arrestNote, pack, people: {}, level: 1, generate });
+  assert.ok(userText(generate.requests[0]).includes('case_portal'));
+  assert.ok(userText(generate.requests[0]).includes(CIVIC));
+  assert.equal(card?.page?.kind, 'case_portal');
+  assert.equal(card?.realTwin.page?.kind, 'info_page');
+});

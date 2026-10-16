@@ -271,6 +271,9 @@ export interface ActBody {
   action: Action;
 }
 
+// POST /act's reply. A repeat on a slot already scored carries the stored result (a retry after a lost reply).
+export type ActReply = { ok: true; result?: SlotResult };
+
 // POST /api/day/:dayId/page: the fields the page's send button sent, ids only, before the act.
 export interface PageBody {
   slotId: string;
@@ -290,7 +293,7 @@ export interface SlotResult {
   slotId: string;
   isScam: boolean;
   actionCorrect: boolean;
-  falseAlarm: boolean; // real twin met with block_report or ignore
+  falseAlarm: boolean; // real twin met with block_report or ignore when its acceptable list does not hold them
   caught: TellId[];
   missed: TellId[];
   falseTaps: string[]; // part ids with no tell

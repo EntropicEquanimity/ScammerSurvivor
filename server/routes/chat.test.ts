@@ -8,6 +8,7 @@ import type { ChatChipId } from '../../shared/types.ts';
 import { readDay } from '../store.ts';
 import { recordAct, startDay } from './day.ts';
 import { replySlot } from './chat.ts';
+import { pairOffered } from '../deal.ts';
 
 const TRACE: TraceEvent = { agent: 'director', model: 'fake', ms: 2, outcome: 'ok' };
 
@@ -101,17 +102,21 @@ test('a scam and a twin answer in the same shape, so the reply never gives the a
   if (twin.status === 200) assert.deepEqual(twin.body.chips, pickChips(slotOf(dayId, twinSlot(dayId))!.public, [said]));
 });
 
-test('a new ask in the answer adds its button, and /act accepts it', async () => {
+// The UX fixer (Oct 16): an answer's new asks added buttons on one side only, so a scam that pushed
+// for money mid-chat showed a money button its real twin never could. The buttons stay the pair's
+// one list (deal.ts pairOffered) on both sides, whatever an answer asks for.
+test('an answer never adds a button: scam and real twin keep the pair list through the chat', async () => {
   const { dayId } = startDay({ country: 'SG' });
-  const slotId = scamSlot(dayId);
-  const before = slotsOf(dayId).find((slot) => slot.slotId === slotId)?.public.offered ?? [];
-  const reply = await replySlot(dayId, slotId, { turn: 1, said: 'ok_what_do_i_do' }, { generate: fixed('Tap the link soon, please.') });
-  assert.equal(reply.status, 200);
-  if (reply.status !== 200) return;
-  assert.ok(before.every((action) => reply.body.offered.includes(action)));
-  assert.ok(reply.body.offered.includes('open_link'));
-  assert.deepEqual(slotsOf(dayId).find((slot) => slot.slotId === slotId)?.public.offered, reply.body.offered);
-  assert.equal(recordAct(dayId, { slotId, action: 'open_link' }).status, 200);
+  for (const slotId of [scamSlot(dayId), twinSlot(dayId)]) {
+    const slot = slotOf(dayId, slotId)!;
+    const before = [...slot.public.offered];
+    assert.deepEqual(before, pairOffered(slot.card));
+    const reply = await replySlot(dayId, slotId, { turn: 1, said: 'ok_what_do_i_do' }, { generate: fixed('Tap the link, install the app and transfer the deposit today.') });
+    assert.equal(reply.status, 200);
+    if (reply.status !== 200) return;
+    assert.deepEqual(reply.body.offered, before, slotId);
+    assert.deepEqual(slotOf(dayId, slotId)?.public.offered, before);
+  }
 });
 
 test('the quick day and under 18 never reach the model: the fixed line', async () => {

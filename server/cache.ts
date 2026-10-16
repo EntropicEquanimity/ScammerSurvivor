@@ -4,6 +4,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Firestore } from '@google-cloud/firestore';
+import { PAGE_TRICKS } from '../shared/page.ts';
 import type { Card } from '../shared/types.ts';
 
 const COLLECTION = 'cards';
@@ -14,11 +15,20 @@ export type CacheBackend = 'firestore' | 'file';
 export const cacheBackend = (): CacheBackend =>
   process.env.GOOGLE_CLOUD_PROJECT && process.env.CARD_CACHE !== 'file' ? 'firestore' : 'file';
 
+// Cards from before pages kept their random ids, so a regeneration adds a paged card beside the old
+// pageless one (mergeById never matches them). A linked trick's pageless card steps aside once the
+// pack holds a paged card of that trick; alone, it stays the floor (the link then opens no page).
+// ponytail: the stale card stays stored; delete it from the cache once regenerations settle.
+export const withPagedFirst = (cards: readonly Card[]): Card[] => {
+  const paged = new Set(cards.filter((card) => card.page).map((card) => card.trickId));
+  return cards.filter((card) => card.page || !PAGE_TRICKS.includes(card.trickId) || !paged.has(card.trickId));
+};
+
 // Country codes are normalised to upper case here, once, so both backends agree.
 export const readCards = async (country: string): Promise<Card[]> => {
   const code = country.toUpperCase();
   const all = cacheBackend() === 'firestore' ? await readFirestore(code) : await readFile_(code);
-  return all.filter((card) => card.approved);
+  return withPagedFirst(all.filter((card) => card.approved));
 };
 
 // Every card for a country, approved or not. For review scripts only; the day

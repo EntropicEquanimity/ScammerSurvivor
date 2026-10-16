@@ -235,3 +235,15 @@ test('a practice page left unsent keeps the steps; sent, or any other going-alon
   assert.equal(skipsSteps('pay', true, false), true);
   assert.equal(skipsSteps('block_report', false, false), false);
 });
+
+// The UX fixer (Oct 16): Ignore on a parcel, prize or refund twin whose fitting replies list Ignore
+// was scored a slip. An action the twin's acceptable list holds is never a slip, for every action.
+test('an action on the real twin acceptable list is never a slip, whatever it is', () => {
+  for (const action of ['ignore', 'block_report', 'reply', 'open_link', 'verify_known_number'] as const) {
+    const key: SlotKey = { ...parcelTwin, acceptable: [action, 'reply'] };
+    const score = scoreSlot(key, action, []);
+    assert.deepEqual([score.actionCorrect, score.falseAlarm, score.peopleDelta], [true, false, 0], action);
+  }
+  const notListed = scoreSlot({ ...parcelTwin, acceptable: ['reply'] }, 'ignore', []);
+  assert.deepEqual([notListed.actionCorrect, notListed.falseAlarm, notListed.peopleDelta], [false, true, -1]);
+});

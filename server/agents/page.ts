@@ -3,12 +3,13 @@
 // structured call as the card; the page Guard (server/guard/page.ts) checks it.
 import { Type } from '@google/genai';
 import type { Schema } from '@google/genai';
-import { PAGE_KINDS, isPageKind } from '../../shared/page.ts';
-import type { CardPage } from '../../shared/page.ts';
+import { PAGE_KINDS, isPageKind, pageKindsFor } from '../../shared/page.ts';
+import type { CardPage, PageKind } from '../../shared/page.ts';
 import { FIELD_IDS, TOKEN_FIELD, isFieldId } from '../../shared/profile.ts';
 import type { FieldId } from '../../shared/profile.ts';
 import { TELL_IDS } from '../../shared/taxonomy.ts';
-import type { Category, TellId } from '../../shared/types.ts';
+import { trickCategory } from '../../shared/taxonomy.ts';
+import type { TellId, TrickId } from '../../shared/types.ts';
 import { INVENTED_INSTITUTION } from '../deal.ts';
 import type { Draft } from './director.ts';
 
@@ -16,8 +17,8 @@ export const PAGE_SYSTEM = `
 
 Pages: this card's link opens a practice page in the game's own browser. Write one page for the scam ("page") and one for the real twin ("realTwin.page").
 - Hosts: the user message gives the institution's own site. The real twin's text writes exactly that host as its plain-text link, and its page uses that host. The scam's text writes a different look-alike host on .example, and its page uses that host.
-- kind: the scam page is sign_in, redelivery, id_check, card_confirm or attachment_gate. The real twin page is tracking (a courier) or bank_app_note (any other sender: the page only says to open the official app).
-- fields: the details the page asks for, from the field list. The real twin page asks exactly what its kind needs: tracking asks only "tracking", bank_app_note asks nothing. The scam page asks for more than its task needs (a login, the code, the card, an ID photo, a birthday), at most five, and it may also ask for what the task needs.
+- kind: the user message names the kinds this card may use, one list for the scam page and one for the real twin page, with what each kind is.
+- fields: the details the page asks for, from the field list. The real twin page asks exactly what its kind needs: tracking asks only "tracking", bank_app_note and info_page ask nothing. The scam page asks for more than its task needs (a login, the code, the card, an ID photo, a birthday), at most five, and it may also ask for what the task needs.
 - title: the page heading, at most 40 characters. lines: one to three short lines under it, at most 90 characters each, in the register of the sender's site. Tag scam page lines with the tells they carry; real twin page lines carry none.
 - minutes: a countdown from 1 to 60 that the page shows, on either side or neither, so a timer never gives the answer away.
 - Page text follows the card's text rules; "[institution]" may stand for the sender's name.`;
@@ -54,12 +55,37 @@ export function withPages(base: Schema): Schema {
   };
 }
 
-// The invented institution's own site: "Northgate Parcel" gives northgate-parcel.example.
-export const realHostFor = (category: Category): string =>
-  `${INVENTED_INSTITUTION[category].toLowerCase().replace(/\s+/g, '-')}.example`;
+// A trick whose real twin is not from its category's institution: a romance twin is a friend
+// planning the next meetup, so its link is a meetup and video app, never the invented bank.
+const SITE_BY_TRICK: Partial<Record<TrickId, string>> = { fast_romance: 'Lantern Meet' };
 
-export const pageLines = (category: Category): string =>
-  `Pages: the institution's own site is ${realHostFor(category)}. The real twin links there; the scam links to a look-alike host.`;
+// The invented institution's own site: "Northgate Parcel" gives northgate-parcel.example.
+export const realHostFor = (trick: TrickId): string =>
+  `${(SITE_BY_TRICK[trick] ?? INVENTED_INSTITUTION[trickCategory(trick)]).toLowerCase().replace(/\s+/g, '-')}.example`;
+
+// What each kind is, for the Director: the scam kinds ask for more than the task needs.
+const KIND_TEXT: Record<PageKind, string> = {
+  sign_in: 'a sign-in page',
+  redelivery: 'a redelivery booking page',
+  id_check: 'an identity check page',
+  card_confirm: 'a card confirmation page',
+  attachment_gate: 'a sign-in gate in front of a file',
+  case_portal: 'an official-looking case portal sign-in to view the case',
+  trading_signup: 'a trading app sign-up or first deposit page',
+  video_verify: 'a "video chat" or "verify you are real" page before the call opens',
+  task_deposit: 'a task platform page that asks a deposit to unlock the next task',
+  tracking: 'a courier tracking page',
+  bank_app_note: 'a page that only says to open the official app',
+  info_page: 'an honest page that only shows what the message said (an office to visit, a talk, a meetup, an interview time) and asks nothing',
+};
+
+const kindList = (kinds: readonly PageKind[]): string => kinds.map((kind) => `${kind} (${KIND_TEXT[kind]})`).join(', ');
+
+export function pageLines(trick: TrickId): string {
+  const kinds = pageKindsFor(trick);
+  const host = `Pages: the institution's own site is ${realHostFor(trick)}. The real twin links there; the scam links to a look-alike host.`;
+  return kinds ? `${host}\nPage kinds: the scam page is one of ${kindList(kinds.scam)}. The real twin page is one of ${kindList(kinds.twin)}.` : host;
+}
 
 // For a rewrite after a leak: the tokens the card may use, for the fields that have one.
 export function leakLine(leaked: readonly FieldId[]): string | null {

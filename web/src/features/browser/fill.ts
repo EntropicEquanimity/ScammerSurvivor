@@ -47,8 +47,13 @@ const SEND_LABEL: Record<PageKind, string> = {
   id_check: 'Verify',
   card_confirm: 'Confirm card',
   attachment_gate: 'View file',
+  case_portal: 'View case',
+  trading_signup: 'Open account',
+  video_verify: 'Join video chat',
+  task_deposit: 'Start task',
   tracking: 'Track parcel',
   bank_app_note: 'Continue',
+  info_page: 'Continue',
 };
 
 export const sendLabel = (kind: PageKind): string => SEND_LABEL[kind];

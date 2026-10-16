@@ -6,7 +6,7 @@ import type { PageDraft } from './page.ts';
 
 // Ids, hosts and bracketed placeholders only: no message text lives in tests (rule 6).
 const REAL = 'harbourline.example';
-const options = { realHost: REAL, allowedNames: ['Mira'] };
+const options = { realHost: REAL, allowedNames: ['Mira'], trickId: 'bank_check' as const };
 
 const clean: PageDraft = {
   setup: [{ text: '[setup line]' }],
@@ -114,4 +114,23 @@ test('a rewrite carries a token for a field the player gave away, and no other p
 
 test('every reason has a repair line', () => {
   for (const reason of PAGE_REASONS) assert.ok(pageReasonText(reason).length > 20, reason);
+});
+
+// The UX fixer (Oct 16): the page fits the trick. A digital arrest opens a case portal and its real
+// twin an honest notice page; a redelivery page or a bank note on it is the wrong kind.
+test('a page trick takes only its own kinds', () => {
+  const CIVIC = 'civic-notice-desk.example';
+  const LOOK = 'civic-case-check.example';
+  const arrest: PageDraft = {
+    ...clean,
+    ask: [{ text: `[ask line] ${LOOK}` }],
+    page: { ...clean.page, kind: 'case_portal', host: LOOK },
+    realTwin: { parts: [{ text: `[twin line] ${CIVIC}` }], page: { ...clean.realTwin?.page, kind: 'info_page', host: CIVIC } },
+  };
+  const own = { realHost: CIVIC, trickId: 'digital_arrest' as const };
+  assert.deepEqual(reasons(arrest, own), []);
+  assert.ok(reasons({ ...arrest, page: { ...arrest.page, kind: 'redelivery' } }, own).includes('page_kind'));
+  assert.ok(reasons({ ...arrest, realTwin: { ...arrest.realTwin, page: { ...arrest.realTwin?.page, kind: 'bank_app_note' } } }, own).includes('page_kind'));
+  assert.ok(reasons(withPage({ kind: 'case_portal' })).includes('page_kind'), 'a bank check never opens a case portal');
+  assert.ok(reasons(withTwinPage({ kind: 'info_page' })).includes('page_kind'));
 });

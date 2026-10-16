@@ -95,3 +95,19 @@ test('Firestore is selected only when the project env is set', () => {
   if (savedProject === undefined) delete process.env.GOOGLE_CLOUD_PROJECT;
   else process.env.GOOGLE_CLOUD_PROJECT = savedProject;
 });
+
+// The UX fixer (Oct 16): cards from before pages kept their random ids, so a regeneration added a
+// paged card beside the old pageless one and the day could deal either. A linked trick's pageless
+// card is set aside once the same pack holds a paged one; alone, it stays the floor.
+test('a pageless card of a linked trick is set aside once a paged one of that trick exists', async () => {
+  const scamPage = { kind: 'redelivery' as const, host: 'northgate-check.example', title: 'T', lines: [], fields: ['card' as const] };
+  const twinPage = { ...scamPage, kind: 'tracking' as const, host: 'northgate-parcel.example', fields: ['tracking' as const] };
+  const base = card('page-new', 'NZ', true, ['urgency']);
+  const paged: Card = { ...base, page: scamPage, realTwin: { ...base.realTwin, page: twinPage } };
+  const old = card('page-old', 'NZ', true, ['urgency']);
+  const otherTrick: Card = { ...card('family-old', 'NZ', true, ['urgency']), trickId: 'family_trouble' };
+  const lonely: Card = { ...card('bank-old', 'NZ', true, ['urgency']), trickId: 'bank_check' };
+  await writeCards([old, paged, otherTrick, lonely]);
+  const ids = (await readCards('NZ')).map((c) => c.id).sort();
+  assert.deepEqual(ids, ['bank-old', 'family-old', 'page-new']);
+});

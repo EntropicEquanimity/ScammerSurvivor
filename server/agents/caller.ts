@@ -28,7 +28,7 @@ const LABELS: Partial<Record<Action, string>> = {
   ask_reference: 'Ask for a reference number',
   refuse_code: 'Refuse the code',
   call_back: "I'll call you back",
-  read_code: 'Read the code',
+  read_code: 'Read code',
   hang_up: 'Hang up',
   hang_up_call_official: 'Hang up and call the official number',
 };

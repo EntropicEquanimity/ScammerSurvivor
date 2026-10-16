@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId, TraceEvent, Verdict } from '../../../../shared/types.ts';
+import type { Action, ActReply, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId, TraceEvent, Verdict } from '../../../../shared/types.ts';
 import { fetchDay, fetchTrace, postAct, postFinish, postOpen, postTap } from '../../api.ts';
 import { prepareAftermath } from '../aftermath/api.ts';
 import { skipsSteps } from '../../../../shared/score.ts';
@@ -184,6 +184,35 @@ function endTransitions(day: DayPayload | null, phase: Phase, remaining: number,
   return { next };
 }
 
+// The player picked an action on the card.
+function actTransition(day: DayPayload | null, phase: Phase, options: DayOptions, setState: SetState) {
+  return (action: Action) => {
+    if (!day || phase.kind !== 'card') return;
+    const { slotId } = phase;
+    // Going along skips "Scam or real?" and the flags on every card (shared/score.ts GOES_ALONG): the
+    // slot is scored at once and the aftermath shows what happened. Anything else decides, then flags.
+    const scoreNow = (): Promise<SlotResult | null> => {
+      prepareAftermath(day.dayId, slotId); // the lines are written while the player decides and flags
+      const page = Boolean(day.cards.find((card) => card.slotId === slotId)?.page);
+      if (!skipsSteps(action, page, pageWasSent(slotId))) return Promise.resolve(null);
+      return postTap(day.dayId, { slotId, tappedPartIds: [] }).then((result) => {
+        options.onResult?.(result);
+        return result;
+      });
+    };
+    // A retry after a lost reply: the server already scored the slot and returns that result, so the
+    // game hears it now (the first reply never arrived) and the day moves on with it.
+    const settle = (reply: ActReply): Promise<SlotResult | null> => {
+      if (!reply.result) return scoreNow();
+      options.onResult?.(reply.result);
+      return Promise.resolve(reply.result);
+    };
+    request(setState, () => postAct(day.dayId, { slotId, action }).then(settle), (result, s) =>
+      result ? { ...s, results: [...s.results, result], phase: { kind: 'aftermath', slotId } } : { ...s, phase: { kind: 'tells', slotId } },
+    );
+  };
+}
+
 // The transitions inside one slot: open, act, tap, and the recovery result.
 function transitions(day: DayPayload | null, phase: Phase, remaining: number, options: DayOptions, setState: SetState) {
   // The server marks the slot seen and returns the card it holds, so what the player reads is
@@ -198,24 +227,7 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
       (card, s) => ({ ...withCard(s, slotId, card), opened: [...new Set([...s.opened, slotId])], phase: { kind: 'card', slotId } }),
     );
   };
-  const act = (action: Action) => {
-    if (!day || phase.kind !== 'card') return;
-    const { slotId } = phase;
-    // Going along skips "Scam or real?" and the flags on every card (shared/score.ts GOES_ALONG): the
-    // slot is scored at once and the aftermath shows what happened. Anything else decides, then flags.
-    const scoreNow = (): Promise<SlotResult | null> => {
-      prepareAftermath(day.dayId, slotId); // the lines are written while the player decides and flags
-      const page = Boolean(day.cards.find((card) => card.slotId === slotId)?.page);
-      if (!skipsSteps(action, page, pageWasSent(slotId))) return Promise.resolve(null);
-      return postTap(day.dayId, { slotId, tappedPartIds: [] }).then((result) => {
-        options.onResult?.(result);
-        return result;
-      });
-    };
-    request(setState, () => postAct(day.dayId, { slotId, action }).then(scoreNow), (result, s) =>
-      result ? { ...s, results: [...s.results, result], phase: { kind: 'aftermath', slotId } } : { ...s, phase: { kind: 'tells', slotId } },
-    );
-  };
+  const act = actTransition(day, phase, options, setState);
   const tap = (tappedPartIds: string[], verdict?: Verdict) => {
     if (!day || phase.kind !== 'tells') return;
     const { slotId } = phase;

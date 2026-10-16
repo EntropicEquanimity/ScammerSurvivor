@@ -41,7 +41,8 @@ export const MONEY_MOVES: readonly Action[] = ['pay', 'send_money', 'share_code'
 // cautious: fewer points and no speed bonus, so checking everything never beats trusting what is real.
 const VERIFY: Action = 'verify_known_number';
 
-// On a real message these two actions mean the player did not trust it.
+// On a real message these two actions mean the player did not trust it, unless the real message's
+// own acceptable list holds them (a courier update may fittingly be ignored): acceptable is never a slip.
 const DISTRUST: readonly Action[] = ['block_report', 'ignore'];
 
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
@@ -59,10 +60,10 @@ export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[],
   const taps = unique(tappedPartIds);
   const { tells, falseTaps } = tellsOfTaps(key, taps);
   if (key.page && action === 'open_link') return scorePage(key, key.page, tells, falseTaps, given);
-  const falseAlarm = key.isTwin && DISTRUST.includes(action);
+  const falseAlarm = key.isTwin && DISTRUST.includes(action) && !key.acceptable.includes(action);
   const moves = MONEY_MOVES.includes(action);
   const actionCorrect = key.isTwin
-    ? key.acceptable.includes(action) && !falseAlarm
+    ? key.acceptable.includes(action)
     : key.safeReplies.includes(action) && !moves;
   const caught = key.plantedTells.filter((id) => tells.includes(id));
   return {

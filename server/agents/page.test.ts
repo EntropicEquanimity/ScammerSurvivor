@@ -19,9 +19,13 @@ test('the page schema adds a required page to the scam and to the twin, and leav
   assert.ok(!base.properties?.realTwin?.required?.includes('page'));
 });
 
-test('the real host comes from the invented institution of the trick\'s category', () => {
-  assert.equal(realHostFor('C'), 'harbourline.example');
-  assert.equal(realHostFor('D'), 'northgate-parcel.example');
+test("the real host comes from the invented institution of the trick's category, or the trick's own site", () => {
+  assert.equal(realHostFor('bank_check'), 'harbourline.example');
+  assert.equal(realHostFor('parcel_fee'), 'northgate-parcel.example');
+  assert.equal(realHostFor('digital_arrest'), 'civic-notice-desk.example');
+  assert.equal(realHostFor('paid_task'), 'kestrel-hiring.example');
+  // A romance twin is a friend: its link is a meetup and video app, never the invented bank.
+  assert.equal(realHostFor('fast_romance'), 'lantern-meet.example');
 });
 
 test('toPage keeps only page fields, numbers its lines, and drops tells on the twin', () => {
@@ -42,8 +46,12 @@ test('the leak line lists only tokens for what was given away; nothing tokenable
 });
 
 test('the page lines name the real host and the kinds', () => {
-  const lines = pageLines('C');
+  const lines = pageLines('bank_check');
   assert.ok(lines.includes('harbourline.example'));
+  assert.ok(lines.includes('sign_in') && lines.includes('bank_app_note'));
+  const arrest = pageLines('digital_arrest');
+  assert.ok(arrest.includes('civic-notice-desk.example') && arrest.includes('case_portal') && arrest.includes('info_page'));
+  assert.ok(!arrest.includes('redelivery') && !arrest.includes('bank_app_note'));
 });
 
 test('withoutPages drops both pages and keeps the rest', () => {

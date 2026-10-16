@@ -8,7 +8,6 @@ import { CHIP_LABELS, MAX_EXCHANGES, chatterReply, pickChips } from '../agents/c
 import { isChip } from '../../shared/chips.ts';
 import type { ChatLine } from '../agents/chatter.ts';
 import type { Generate } from '../agents/caller.ts';
-import { offeredFor } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
 import { SKIP_NAMES, readPersonalState } from './trace.ts';
@@ -41,13 +40,11 @@ const threadOf = (turns: readonly ChatTurn[], said: ChatChipId): ChatLine[] => [
   { from: 'player', text: CHIP_LABELS[said] },
 ];
 
-// The buttons fit the words of the whole thread: the message's own buttons stay, so nothing the
-// player saw disappears and POST /act accepts every one, and the answers add theirs. The answers
-// are fitted on their own so the message's three extras never crowd out a new ask.
-export const offeredForThread = (slot: StoredSlot, turns: readonly ChatTurn[]): Action[] => {
-  const answers = turns.map((turn) => ({ text: turn.text }));
-  return [...new Set([...slot.public.offered, ...offeredFor(answers, slot.card.unsafeReplies)])];
-};
+// The buttons stay the pair's one list (deal.ts pairOffered, lesson 20): what either side's words ask
+// for. An answer's new asks add nothing, since a scam pushes harder than its twin ever would and a
+// button only one side could gain would give the answer away. The list is copied, never shared.
+// ponytail: an answer may ask for something with no button; the safe buttons always answer it.
+export const offeredForThread = (slot: StoredSlot): Action[] => [...slot.public.offered];
 
 const asRecord = (body: unknown): Record<string, unknown> =>
   typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
@@ -100,7 +97,7 @@ export async function replySlot(dayId: string, slotId: string, body: unknown, de
   const again = refusal(now, fields);
   if (again) return fail(400, again);
   const chat = [...chatOf(now), { said, text: reply.text }];
-  const offered = offeredForThread(now, chat);
+  const offered = offeredForThread(now);
   const next: ChattedSlot = { ...now, chat, public: { ...now.public, offered } };
   saveDay(withSlot(fresh, next));
   const final = chat.length >= MAX_EXCHANGES;

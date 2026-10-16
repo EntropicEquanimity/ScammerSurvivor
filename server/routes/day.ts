@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, isVerdict, skipsSteps, recoveryFor, scoreDay, scoreSlot, verdictRight } from '../../shared/score.ts';
 import type { SlotScore } from '../../shared/score.ts';
 import { ACTIONS, PEOPLE_ROLES } from '../../shared/types.ts';
-import type { Action, AgeGroup, Card, TellId, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
+import type { Action, ActReply, AgeGroup, Card, TellId, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
 import { isChipName } from '../../shared/people.ts';
 import { isTellId } from '../../shared/taxonomy.ts';
 import { readCards } from '../cache.ts';
@@ -247,13 +247,13 @@ export function recordOpen(dayId: string, body: unknown): Reply<PublicCard> {
   return ok(slot.public);
 }
 
-export function recordAct(dayId: string, body: unknown): Reply<{ ok: true }> {
+export function recordAct(dayId: string, body: unknown): Reply<ActReply> {
   const state = readDay(dayId);
   if (!state) return fail(404, 'unknown_day');
   const fields = asRecord(body);
   const slot = fields && findSlot(state, fields.slotId);
   if (!slot) return fail(400, 'unknown_slot');
-  if (slot.result) return fail(400, 'already_scored');
+  if (slot.result) return ok({ ok: true, result: slot.result }); // a retry after a lost reply moves on
   const action = fields.action as Action;
   if (!ACTIONS.includes(action) || !slot.public.offered.includes(action)) return fail(400, 'unknown_action');
   saveDay(withSlot(state, { ...slot, action }));
@@ -380,7 +380,6 @@ export function finishDay(dayId: string): Reply<DayScore> {
 }
 
 export const dayRouter = Router();
-
 // Express 5 passes a rejected handler to the error handler.
 dayRouter.get('/day', async (req, res) => {
   res.json((await beginDay(req.query)).payload);

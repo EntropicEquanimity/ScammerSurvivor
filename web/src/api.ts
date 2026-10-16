@@ -1,4 +1,4 @@
-import type { ActBody, AgeGroup, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TapBody, TraceEvent } from '../../shared/types.ts';
+import type { ActBody, ActReply, AgeGroup, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TapBody, TraceEvent } from '../../shared/types.ts';
 import { pickBoss, readTally } from '../../shared/boss.ts';
 import { getPeople } from './features/setup/storage.ts';
 
@@ -68,7 +68,8 @@ export const postOpen = (dayId: string, body: { slotId: string }): Promise<Publi
   return postJson(`/api/day/${encodeURIComponent(dayId)}/open`, body);
 };
 
-export const postAct = (dayId: string, body: ActBody): Promise<{ ok: true }> =>
+// A repeat on a slot already scored (a retry after a lost reply) carries the stored result.
+export const postAct = (dayId: string, body: ActBody): Promise<ActReply> =>
   postJson(`/api/day/${encodeURIComponent(dayId)}/act`, body);
 
 export const postTap = (dayId: string, body: TapBody): Promise<SlotResult> =>
