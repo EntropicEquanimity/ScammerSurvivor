@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { PublicCard, Verdict } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
@@ -18,6 +19,11 @@ interface Props {
 // every card, no hint either way, and no timer: deciding is unhurried.
 export function VerdictStep({ card, onPick }: Props) {
   const colour = { '--app-colour': appLookFor(card.layout).colour } as CSSProperties;
+  // Open on the latest message, as a thread does, not at the top of a long history.
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (body.current) body.current.scrollTop = body.current.scrollHeight;
+  }, []);
   const pick = (verdict: Verdict) => {
     haptic();
     onPick(verdict);
@@ -26,7 +32,7 @@ export function VerdictStep({ card, onPick }: Props) {
     <section className="app verdict anim-zoom" data-look={card.layout} style={colour}>
       <ScreenTitle className="visually-hidden">Scam or real?</ScreenTitle>
       <AppHeader card={card} />
-      <div className="app-body scroll">
+      <div ref={body} className="app-body scroll">
         <MessageView history={card.history} sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
       </div>
       <div className="actions">

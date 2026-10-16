@@ -155,3 +155,8 @@
     animation: am-fade 200ms ease-out both !important;
   }
 }
+
+/* The scroll target sits clear of the floating Continue, so the scene's last line is never under it. */
+.am-tail-end {
+  scroll-margin-bottom: calc(var(--page-end-bottom) + 5rem);
+}

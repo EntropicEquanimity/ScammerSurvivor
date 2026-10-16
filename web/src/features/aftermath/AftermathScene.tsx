@@ -90,7 +90,7 @@ function ThreadTail({ items, view, sender }: { items: readonly AftermathItem[]; 
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, [view.shown, view.leading]);
+  }, [view]); // every step, Continue's arrival included, so the last line stays above the floating button
   const typing = view.leading !== null && items[view.leading]?.kind === 'bubble';
   return (
     <div className="chat am-thread" aria-live="polite">
@@ -113,7 +113,7 @@ function ThreadTail({ items, view, sender }: { items: readonly AftermathItem[]; 
           <span className="chat-dot" aria-hidden="true" />
         </p>
       )}
-      <div ref={end} aria-hidden="true" />
+      <div ref={end} className="am-tail-end" aria-hidden="true" />
     </div>
   );
 }

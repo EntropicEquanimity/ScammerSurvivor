@@ -41,7 +41,8 @@
 
 /* The More sheet's scrim dims the whole app; the capsule sits over the scrim's layer, so it steps
    away while the sheet is open instead of staying bright above the dim. */
-.phone:has(.action-sheet) .game-hud {
+.phone:has(.action-sheet) .game-hud,
+.phone:has(.alert-scrim) .game-hud {
   visibility: hidden;
 }
 
