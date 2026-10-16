@@ -61,7 +61,7 @@
         },
         {
           "id": "r2",
-          "text": "Can you send me the dentist's address? I will call you after the meeting.",
+          "text": "Can you send me 300 for the dentist? I will give it back on Friday.",
           "tellIds": []
         },
         {
@@ -221,7 +221,7 @@
         },
         {
           "id": "r2",
-          "text": "Open the app to approve or decline it. Nothing is sent until you choose.",
+          "text": "Your approval code is in the app. Never share it with anyone.",
           "tellIds": []
         }
       ],
@@ -293,7 +293,7 @@
         },
         {
           "id": "r2",
-          "text": "Which gate should the rider use, front or side?",
+          "text": "There is a 150.00 import duty to pay the rider on delivery, cash only.",
           "tellIds": []
         }
       ],

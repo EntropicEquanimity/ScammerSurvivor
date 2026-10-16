@@ -98,7 +98,7 @@ test('read_code fills the meter and ends the call; the record names the card of 
   assert.ok(state);
   const scams = state.slots.filter((slot) => !slot.isTwin);
   const worst = scams[1];
-  recordAct(dayId, { slotId: worst.slotId, action: worst.card.unsafeReplies[0] });
+  recordAct(dayId, { slotId: worst.slotId, action: (worst.public.offered.find((a) => worst.card.unsafeReplies.includes(a)) ?? 'reply') });
   scoreTap(dayId, { slotId: worst.slotId, tappedPartIds: [] });
   assert.equal(worstScam(readDay(dayId)?.slots ?? [])?.slotId, worst.slotId);
   const start = await startCall(dayId, deps);
@@ -137,7 +137,7 @@ test('the call passes over a silent worst trick for the next worst one with audi
   const state = readDay(dayId);
   assert.ok(state);
   const worst = state.slots.filter((slot) => !slot.isTwin)[1];
-  recordAct(dayId, { slotId: worst.slotId, action: worst.card.unsafeReplies[0] });
+  recordAct(dayId, { slotId: worst.slotId, action: (worst.public.offered.find((a) => worst.card.unsafeReplies.includes(a)) ?? 'reply') });
   scoreTap(dayId, { slotId: worst.slotId, tappedPartIds: [] });
   const order = scamsWorstFirst(readDay(dayId)?.slots ?? []);
   assert.equal(order[0].slotId, worst.slotId);

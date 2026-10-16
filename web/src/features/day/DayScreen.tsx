@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import type { CSSProperties, ComponentType } from 'react';
 import type { Action, AgeGroup, PublicCard, RecoverResult, SlotResult, TraceEvent } from '../../../../shared/types.ts';
+import { recoveryKind } from '../../../../shared/recovery.ts';
+import type { RecoveryKind } from '../../../../shared/recovery.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { CallLayer } from '../call/CallLayer.tsx';
@@ -40,7 +42,8 @@ interface Props {
 interface RecoveryProps {
   dayId: string;
   slotId: string;
-  stake: number;
+  kind: RecoveryKind; // what was given away: the headline and the moves follow it
+  lost: number; // what actually left the wallet
   onDone: (result: RecoverResult) => void;
   onSkip: () => void; // the request failed or was refused: on to the lesson
 }
@@ -143,12 +146,16 @@ type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
 
 // The amount the last slot took, formatted ("SGD 500"), for the lesson's line; nothing when it took nothing.
-function lostText({ day, results }: Day): string | undefined {
+function lostOf({ day, results }: Day): number {
   const last = results.at(-1);
-  if (!day || !last) return undefined;
+  if (!day || !last) return 0;
   const before = results.at(-2)?.walletAfter ?? day.wallet;
-  const lost = before - (last.walletAfter - (last.recovered ?? 0));
-  return lost > 0 ? moneyIn(lost, day.country) : undefined;
+  return Math.max(0, before - (last.walletAfter - (last.recovered ?? 0)));
+}
+
+function lostText(d: Day): string | undefined {
+  const lost = lostOf(d);
+  return d.day && lost > 0 ? moneyIn(lost, d.day.country) : undefined;
 }
 
 // The screens that belong to one slot. The last result exists only once that slot is scored.
@@ -164,7 +171,7 @@ function slotScreen(d: Day, step: Step) {
   if (phase.kind === 'recovery' && Recovery && card) {
     return (
       <Suspense fallback={<Notice title="One moment" line="Seeing what you can still do." />}>
-        <Recovery dayId={day.dayId} slotId={phase.slotId} stake={card.stake} onDone={d.recovered} onSkip={d.skipRecovery} />
+        <Recovery dayId={day.dayId} slotId={phase.slotId} kind={recoveryKind(lastResult?.action, lastResult?.leaked)} lost={lostOf(d) || card.stake} onDone={d.recovered} onSkip={d.skipRecovery} />
       </Suspense>
     );
   }

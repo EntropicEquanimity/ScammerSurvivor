@@ -1,6 +1,7 @@
 import type { ActBody, ActReply, AgeGroup, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TapBody, TraceEvent } from '../../shared/types.ts';
 import { pickBoss, readTally } from '../../shared/boss.ts';
 import { getPeople } from './features/setup/storage.ts';
+import { readProgress } from './shell/progress.ts';
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`request failed: ${response.status}`);
@@ -43,8 +44,12 @@ const focusParam = (): string => {
   return boss ? `&focus=${boss}` : '';
 };
 
+// Only a device with no finished day gets the protected first scam (server/deal.ts FIRST_TRICKS): on
+// every later day that card is a scam or real by the seed like any other, so it tells nothing.
+const firstParam = (): string => (readProgress().n === 0 ? '&first=1' : '');
+
 export const fetchDay = async (country: string, age: AgeGroup, quick: boolean): Promise<DayPayload> =>
-  readJson(await fetch(`/api/day?country=${encodeURIComponent(country)}&age=${age}&quick=${quick ? 1 : 0}${peopleParam()}${focusParam()}`));
+  readJson(await fetch(`/api/day?country=${encodeURIComponent(country)}&age=${age}&quick=${quick ? 1 : 0}${peopleParam()}${focusParam()}${firstParam()}`));
 
 export interface DayCards {
   ready: boolean; // every background personalisation finished or was skipped

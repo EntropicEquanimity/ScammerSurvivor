@@ -37,7 +37,7 @@ async function scoreOne(query: DayQuery) {
   assert.ok(state);
   const slot = state.slots.find((candidate) => !candidate.isTwin);
   assert.ok(slot);
-  assert.equal(recordAct(dayId, { slotId: slot.slotId, action: slot.card.unsafeReplies[0] }).status, 200);
+  assert.equal(recordAct(dayId, { slotId: slot.slotId, action: (slot.public.offered.find((a) => slot.card.unsafeReplies.includes(a)) ?? 'reply') }).status, 200);
   const reply = scoreTap(dayId, { slotId: slot.slotId, tappedPartIds: [] });
   assert.equal(reply.status, 200);
   if (reply.status !== 200) throw new Error('unreachable');
@@ -118,7 +118,7 @@ test('the prompt holds the scored slot only: no text or tells from unscored slot
   return collect(reply.chunks).then(() => {
     const [{ prompt }] = model.calls;
     const { caught, missed, actionCorrect, falseAlarm, lesson } = result;
-    const expected = buildPrompt({ scam: lesson.scam, real: lesson.real, caught, missed, action: slot.card.unsafeReplies[0], actionCorrect, falseAlarm, hotline: lesson.hotline });
+    const expected = buildPrompt({ scam: lesson.scam, real: lesson.real, caught, missed, action: (slot.public.offered.find((a) => slot.card.unsafeReplies.includes(a)) ?? 'reply'), actionCorrect, falseAlarm, hotline: lesson.hotline });
     assert.equal(prompt, expected);
     for (const other of others) {
       for (const part of [...other.card.setup, ...other.card.ask]) assert.ok(!prompt.includes(part.text), `${other.slotId} leaked`);

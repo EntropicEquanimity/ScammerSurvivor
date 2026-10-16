@@ -6,7 +6,7 @@ import { STANDARD_ACTIONS } from '../shared/types.ts';
 import type { Action, Card } from '../shared/types.ts';
 import { FIXTURES, PACKS } from './country.ts';
 import { FIRST_TRICKS, dealDay, fillCard, fillText, firstTrickFor, fitLayout, followUpFor, lessonFor, offeredFor, redealSlot, spreadApps, undouble } from './deal.ts';
-import { recordAct, recoverSlot, scoreTap, startDay } from './routes/day.ts';
+import { recordAct, scoreTap, startDay } from './routes/day.ts';
 import { readDay } from './store.ts';
 import type { StoredSlot } from './store.ts';
 import type { Layout } from '../shared/types.ts';
@@ -182,16 +182,17 @@ test('a message offers only the buttons its own words ask for', () => {
   assert.deepEqual(extras('Install the helper app so I can see your screen.'), ['install']);
 });
 
-test('the scam and its twin share one list: what either side asks for, the scam\'s own first, three at most', () => {
+test('the scam and its twin share one list: only what both sides ask for, the scam\'s own first', () => {
   const card: Card = {
     ...raw,
     unsafeReplies: ['keep_secret', 'pay'],
     ask: [{ id: 'a1', text: 'Pay the fee by transfer at www.x-desk.site, enter the code and keep it quiet.', tellIds: [] }],
+    realTwin: { ...raw.realTwin, parts: [{ id: 'r1', text: 'Please pay the invoice at www.desk.example by Friday.', tellIds: [] }] },
   };
   const { slots } = dealDay({ dayId: 'own-words', pack, cards: [card, { ...card, id: 'twin-2' }], quick: true, seed: 1, firstPlay: false });
   const scam = slots.find((slot) => !slot.isTwin);
   const twin = slots.find((slot) => slot.isTwin);
-  assert.deepEqual(scam?.public.offered, [...STANDARD_ACTIONS, 'keep_secret', 'pay', 'open_link']); // one money button (offered.ts)
+  assert.deepEqual(scam?.public.offered, [...STANDARD_ACTIONS, 'pay', 'open_link']); // no secret and no code: the twin never asks (offered.ts)
   assert.deepEqual(twin?.public.offered, scam?.public.offered); // the UX audit's colour giveaway (Oct 16)
 });
 
@@ -229,12 +230,18 @@ function scamOffering(action: Action): { dayId: string; slot: StoredSlot } {
 }
 
 test('keeping a secret on a scam is a slip that costs nothing; sending money costs the stake', () => {
-  const quiet = scamOffering('keep_secret');
-  recordAct(quiet.dayId, { slotId: quiet.slot.slotId, action: 'keep_secret' });
-  const kept = scoreTap(quiet.dayId, { slotId: quiet.slot.slotId, tappedPartIds: [] });
-  assert.ok(kept.status === 200 && !kept.body.actionCorrect);
-  if (kept.status === 200) assert.equal(kept.body.walletAfter, readDay(quiet.dayId)?.walletStart);
-  assert.deepEqual(recoverSlot(quiet.dayId, { slotId: quiet.slot.slotId, action: 'freeze_account' }), { status: 400, body: { error: 'nothing_to_recover' } });
+  // Keep it secret shows only when both sides ask for quiet (offered.ts): a real surprise party does.
+  const secret: Card = {
+    ...raw,
+    ask: [{ id: 'a1', text: '[ask line] keep this between us', tellIds: [] }],
+    unsafeReplies: ['keep_secret'],
+    realTwin: { ...raw.realTwin, parts: [{ id: 'r1', text: 'Keep it quiet, the party is a surprise.', tellIds: [] }] },
+  };
+  const { slots } = dealDay({ dayId: 'quiet', pack, cards: [secret, { ...secret, id: 'quiet-2' }], quick: true, seed: 3, firstPlay: false });
+  const quiet = slots.find((slot) => !slot.isTwin);
+  assert.ok(quiet && quiet.public.offered.includes('keep_secret'));
+  const kept = scoreSlot(quiet.key, 'keep_secret', []);
+  assert.deepEqual([kept.actionCorrect, kept.walletDelta], [false, 0]);
   const paid = scamOffering('send_money');
   recordAct(paid.dayId, { slotId: paid.slot.slotId, action: 'send_money' });
   const sent = scoreTap(paid.dayId, { slotId: paid.slot.slotId, tappedPartIds: [] });

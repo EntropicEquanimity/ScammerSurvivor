@@ -1,13 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, isVerdict, skipsSteps, recoveryFor, scoreDay, scoreSlot, verdictRight } from '../../shared/score.ts';
+import { isVerdict, skipsSteps, scoreDay, scoreSlot, verdictRight } from '../../shared/score.ts';
+import { RECOVERY_MOVES, RECOVERY_WINDOW_SECONDS, isRecoveryMove, recoveryFor, recoveryKind } from '../../shared/recovery.ts';
 import type { SlotScore } from '../../shared/score.ts';
 import { ACTIONS, PEOPLE_ROLES } from '../../shared/types.ts';
 import type { Action, ActReply, AgeGroup, Card, TellId, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
 import { isChipName } from '../../shared/people.ts';
 import { isTellId } from '../../shared/taxonomy.ts';
 import { readCards } from '../cache.ts';
-import { fixturesFor, resolveCountry } from '../country.ts';
+import { CACHE_WAIT_MS, COLD_WAIT_MS, cardsFor } from './deck.ts';
+import type { CacheWaits, CardSource } from './deck.ts';
+export { deckReadyFor, isWarm, warmCards } from './deck.ts';
+export type { CacheWaits, CardSource } from './deck.ts';
+import { resolveCountry } from '../country.ts';
 import { PEOPLE_START, collectedFrom, dealDay, followUpFor, lessonFor } from '../deal.ts';
 import type { Deal, DealInput } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
@@ -29,15 +34,9 @@ export interface DayQuery {
   quick?: unknown;
   people?: unknown; // JSON object, role to name
   focus?: unknown; // the device's boss: a tell id, or nothing
+  first?: unknown; // '1' when the device has no finished day yet
 }
 
-// After this a slow read is answered from the last good read of the same pack, when there is one.
-const CACHE_WAIT_MS = 8000;
-// With no last good read, a slow read is still awaited this long, since the fixtures are bracketed
-// stage directions (rule 6) and must not reach a screen; the browser shows "Getting your day ready".
-const COLD_WAIT_MS = 30000;
-// The packs list asks every pack at once (Promise.all), so one slow read caps the whole list here.
-const DECK_WAIT_MS = 2000;
 const FULL_DAY = 4;
 const QUICK_DAY = 2;
 
@@ -63,55 +62,6 @@ export function parsePeople(value: unknown): People {
   return Object.fromEntries(
     PEOPLE_ROLES.flatMap((role) => (isChipName(role, fields[role]) ? [[role, fields[role]]] : [])),
   );
-}
-
-const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
-  new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('cache_timeout')), ms);
-    promise.then(resolve, reject).finally(() => clearTimeout(timer));
-  });
-
-export type CardSource = (country: string) => Card[] | Promise<Card[]>;
-
-// The last read per pack that held cards: a slow read is answered from it instead of the fixtures.
-// Server memory, filled at boot by warmCards so a slow first read after a restart never shows fixtures.
-const lastGood = new Map<string, Card[]>();
-
-const remember = (code: string, cards: unknown): Card[] | null => {
-  if (!Array.isArray(cards) || cards.length === 0) return null;
-  lastGood.set(code, cards as Card[]);
-  return cards as Card[];
-};
-
-// At boot: read every pack once in the background so lastGood holds a deck before the first player.
-export function warmCards(codes: Iterable<string>, source: CardSource = readCards): Promise<void> {
-  const reads = [...codes].map((code) => Promise.resolve().then(() => source(code)).then((cards) => void remember(code, cards), () => undefined));
-  return Promise.all(reads).then(() => undefined);
-}
-
-export const isWarm = (code: string): boolean => (lastGood.get(code)?.length ?? 0) > 0;
-
-const enough = (cards: Card[] | null | undefined, need: number): cards is Card[] => Array.isArray(cards) && cards.length >= need;
-
-export interface CacheWaits {
-  first: number;
-  cold: number;
-}
-
-// The cache when it holds a whole day. Slow: the last good read, else keep waiting for the cache.
-// Empty, short or down: the fixtures.
-// ponytail: all or nothing per day. Topping a short cache up with fixtures is the upgrade.
-async function cardsFor(code: string, fixtures: Card[], need: number, source: CardSource, waits: CacheWaits): Promise<Card[]> {
-  const read = Promise.resolve().then(() => source(code)).then((cards) => remember(code, cards));
-  try {
-    const cached = await withTimeout(read, waits.first);
-    return enough(cached, need) ? cached : fixtures;
-  } catch (error) {
-    const warm = lastGood.get(code);
-    if (enough(warm, need)) return warm;
-    if ((error as Error).message !== 'cache_timeout') return fixtures;
-    return withTimeout(read, waits.cold).then((late) => (enough(late, need) ? late : fixtures), () => fixtures);
-  }
 }
 
 export interface DayDeps {
@@ -143,7 +93,8 @@ export function dealFocused(input: DealInput, focus: unknown): Deal {
   return plain;
 }
 
-// ponytail: every day is a first play until progress exists (slice 7).
+// The protected first scam only when the device says it has no finished day (`first=1`): dealt on
+// every day, it was a scam on every card it showed on, and its app and buttons told the answer (N3).
 // `onSkip` personalises an adult full day with no people chosen too, around neutral names: the
 // day route sets it so the Gemini chip flips on the Skip path; rooms and test seams leave it off,
 // since a room's phones must hold the same cards. A room passes its own seed.
@@ -152,7 +103,7 @@ function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDe
   const age = toAge(query.age);
   const dayId = randomUUID();
   const seed = roomSeed ?? Number.parseInt(dayId.slice(0, 8), 16);
-  const { payload, slots } = dealFocused({ dayId, pack, cards, quick, seed }, query.focus);
+  const { payload, slots } = dealFocused({ dayId, pack, cards, quick, seed, firstPlay: query.first === '1' }, query.focus);
   // Only an adult full day is personalised; the quick day and younger players never reach a model.
   const modelAllowed = age === 'adult' && !quick;
   const people = modelAllowed ? parsePeople(query.people) : {};
@@ -203,22 +154,6 @@ export async function beginDay(query: DayQuery, deps: DayDeps = {}): Promise<Beg
 // room holds the same deal, pages included (routes/room.ts).
 export const dealRoomDay = (age: unknown, deck: Deck, seed: number): Begun =>
   dealFrom({ age, quick: '0' }, deck.pack, deck.cards, {}, false, seed);
-
-// A pack's deck is ready when its own fixtures exist or the cache holds a whole full day for it
-// (the day route deals the cache first). A slow or broken cache reads as not ready.
-// Call it for every pack in one Promise.all: the list then waits DECK_WAIT_MS at most, not per pack.
-export async function deckReadyFor(code: string, source: CardSource = readCards): Promise<boolean> {
-  if (fixturesFor(code).length > 0) return true;
-  // The deck warmed at boot answers first, so the home's packs list costs no cache read.
-  if ((lastGood.get(code)?.length ?? 0) >= FULL_DAY) return true;
-  try {
-    const cached = await withTimeout(Promise.resolve(source(code)), DECK_WAIT_MS);
-    return Array.isArray(cached) && cached.length >= FULL_DAY;
-  } catch {
-    return false;
-  }
-}
-
 // Fixtures only, no cache read: the synchronous seam other routes' tests start a day with.
 export function startDay(query: DayQuery, deps: DayDeps = {}): DayPayload {
   const { pack, cards } = resolveCountry(toCountry(query.country));
@@ -346,7 +281,7 @@ const recoverable = (slot: StoredSlot): string | null => {
   return null;
 };
 
-// One try per slip. Too late is not an error: the sheet shows "Too late" and the slot is closed.
+// One try per slip; too late is not an error: the sheet shows "Too late" and the slot is closed.
 export function recoverSlot(dayId: string, body: unknown, now = Date.now()): Reply<RecoverResult> {
   const state = readDay(dayId);
   if (!state) return fail(404, 'unknown_day');
@@ -355,11 +290,12 @@ export function recoverSlot(dayId: string, body: unknown, now = Date.now()): Rep
   if (!slot) return fail(400, 'unknown_slot');
   const refusal = recoverable(slot);
   if (refusal || !slot.result) return fail(400, refusal ?? 'not_scored');
-  const action = fields.action as Action;
-  if (!RECOVERY_ACTIONS.includes(action)) return fail(400, 'unknown_action');
+  // The moves fit what was given away (shared/recovery.ts): a code shared has no Freeze card.
+  const kind = recoveryKind(slot.result.action, slot.result.leaked);
+  if (!isRecoveryMove(fields.action) || !RECOVERY_MOVES[kind].includes(fields.action)) return fail(400, 'unknown_action');
   const { scoredAt, lost } = scoredFields(slot);
   const secondsSince = (now - scoredAt) / 1000;
-  const recovered = recoveryFor({ stakeLost: lost, secondsSince, action });
+  const recovered = recoveryFor({ kind, move: fields.action, stakeLost: lost, secondsSince });
   const walletAfter = runningTotals(state).wallet + recovered;
   const result: SlotResult = { ...slot.result, walletAfter, recovered };
   saveDay(withSlot(state, { ...slot, result }));

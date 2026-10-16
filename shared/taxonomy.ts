@@ -157,6 +157,12 @@ const REAL_WHY_BY_TRICK: Partial<Record<TrickId, readonly string[]>> = {
   toll_fine: ["It names the operator's own site and says to pay in the app you already use.", 'Nothing in it rushes you or asks for card details.'],
   preorder_deposit: ['The seller meets in person or uses the marketplace checkout.', 'Nothing is paid to a personal account before you see the item.'],
   sim_swap: ['It asks for no code and no reply.', 'It says to visit a store or open the official app if it was not you.'],
+  // The real sender is a number you never saved, so the phone shows "not in your contact list" on these
+  // (server/deal.ts STRANGER_TRICKS); what shows it is real is what it does not ask.
+  paid_task: ['It asks for nothing up front: no fee, no deposit, no code.', 'It names a place and a time you can check with the company yourself.'],
+  listing_leaver: ['They keep the deal on the marketplace and pay on handover.', 'Nothing in it asks you to move to another app or open a link.'],
+  fast_romance: ['It stays a chat: no money, no gift card, no app to install.', 'Nothing in it rushes you or asks you to keep it quiet.'],
+  overseas_job: ['It asks for no fee and never for your passport.', 'It points you to the official agency list you can check yourself.'],
 };
 
 export const realWhyFor = (trickId?: TrickId): readonly string[] => (trickId && REAL_WHY_BY_TRICK[trickId]) || REAL_WHY;

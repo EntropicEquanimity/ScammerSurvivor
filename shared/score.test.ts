@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GOES_ALONG, RECOVERY_WINDOW_SECONDS, goesAlong, isVerdict, skipsSteps, mostMissed, recoveryFor, scoreDay, scoreSlot, verdictRight } from './score.ts';
+import { GOES_ALONG, goesAlong, isVerdict, skipsSteps, mostMissed, scoreDay, scoreSlot, verdictRight } from './score.ts';
 import type { SlotKey } from './score.ts';
 import type { Action, MessagePart, TellId } from './types.ts';
 import { NEEDS } from './page.ts';
@@ -104,19 +104,7 @@ test('the wallet never drops below zero and the most-missed tell is reported', (
   assert.equal(mostMissed([]), null);
 });
 
-test('recovery inside 90 seconds: freeze 60 percent, official call 40 percent, report nothing', () => {
-  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 10, action: 'freeze_account' }), 300);
-  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 10, action: 'hang_up_call_official' }), 200);
-  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 10, action: 'block_report' }), 0);
-  assert.equal(recoveryFor({ stakeLost: 125, secondsSince: 0, action: 'freeze_account' }), 75);
-});
-
-test('recovery at the window edge counts, after it nothing, and only the three actions recover', () => {
-  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: RECOVERY_WINDOW_SECONDS, action: 'freeze_account' }), 300);
-  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: RECOVERY_WINDOW_SECONDS + 1, action: 'freeze_account' }), 0);
-  assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 5, action: 'send_money' }), 0);
-  assert.equal(recoveryFor({ stakeLost: 0, secondsSince: 5, action: 'freeze_account' }), 0);
-});
+// Recovery moved to shared/recovery.ts, with its own tests in recovery.test.ts.
 
 // Pages (docs/game-design.md section 3): only what is sent counts; open_link alone is neutral.
 const UNSAFE_LINK: Action[] = ['open_link', 'pay'];

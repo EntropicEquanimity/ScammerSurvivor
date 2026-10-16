@@ -1,4 +1,5 @@
-import type { RecoverBody, RecoverResult } from '../../../../shared/types.ts';
+import type { RecoverResult } from '../../../../shared/types.ts';
+import type { RecoveryBody as RecoverBody } from '../../../../shared/recovery.ts';
 
 // How long one try waits before it gives up, and how many tries a choice gets.
 const TIMEOUT_MS = 8000;

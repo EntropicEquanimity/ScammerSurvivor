@@ -47,7 +47,7 @@ function playBadly(dayId: string) {
   const state = readDay(dayId);
   assert.ok(state);
   for (const slot of state.slots) {
-    const action = slot.isTwin ? safeAction(slot) : slot.card.unsafeReplies[0];
+    const action = slot.isTwin ? safeAction(slot) : (slot.public.offered.find((a) => slot.card.unsafeReplies.includes(a)) ?? 'reply');
     assert.equal(recordAct(dayId, { slotId: slot.slotId, action }).status, 200);
     assert.equal(scoreTap(dayId, { slotId: slot.slotId, tappedPartIds: [] }).status, 200);
   }

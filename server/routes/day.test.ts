@@ -73,12 +73,17 @@ test('blocking a real twin costs one person and nothing from the wallet', () => 
 });
 
 test('an unsafe reply on a scam drains the stake, and the lesson names the tells', () => {
-  const { dayId } = startDay({ country: 'SG', quick: '1' });
-  const state = readDay(dayId);
-  assert.ok(state);
-  const scam = state.slots.find((slot) => !slot.isTwin);
-  assert.ok(scam);
-  recordAct(dayId, { slotId: scam.slotId, action: scam.card.unsafeReplies[0] });
+  // A scam offers a money move only when its twin asks for money too (offered.ts), so deal until one does.
+  const MOVES = ['pay', 'send_money', 'share_code', 'read_code'];
+  const dealt = () => {
+    const { dayId } = startDay({ country: 'SG', quick: '1' });
+    const state = readDay(dayId);
+    return { dayId, state, scam: state?.slots.find((slot) => !slot.isTwin && slot.public.offered.some((a) => MOVES.includes(a))) };
+  };
+  let { dayId, state, scam } = dealt();
+  for (let tries = 0; tries < 200 && !scam; tries += 1) ({ dayId, state, scam } = dealt());
+  assert.ok(state && scam);
+  recordAct(dayId, { slotId: scam.slotId, action: scam.public.offered.find((a) => MOVES.includes(a)) });
   const reply = scoreTap(dayId, { slotId: scam.slotId, tappedPartIds: [] });
   assert.equal(reply.status, 200);
   if (reply.status !== 200) return;
@@ -89,7 +94,7 @@ test('an unsafe reply on a scam drains the stake, and the lesson names the tells
 
 test('a first-play trick appears on day one, as the scam, on full and quick days', () => {
   for (const quick of ['0', '1']) {
-    const { dayId } = startDay({ country: 'SG', quick });
+    const { dayId } = startDay({ country: 'SG', quick, first: '1' });
     const slot = readDay(dayId)?.slots.find((candidate) => FIRST_TRICKS.includes(candidate.card.trickId) && !candidate.isTwin);
     assert.ok(slot, `quick=${quick}`);
     assert.equal(slot.isTwin, false);
@@ -463,7 +468,9 @@ test('every going-along action skips the verdict and the flags, on a scam and a 
       }
     }
   }
-  for (const action of ['open_link', 'pay', 'send_money', 'share_code']) {
+  // The fixtures' twins carry no link, so Open link is never offered on them (offered.ts: both sides
+  // must ask); deal.cues.test.ts deals linked pairs.
+  for (const action of ['pay', 'send_money', 'share_code']) {
     assert.ok(found.has(`${action}-false`) && found.has(`${action}-true`), `${action} met on a scam and a twin`);
   }
 });

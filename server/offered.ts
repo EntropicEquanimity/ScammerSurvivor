@@ -36,7 +36,7 @@ const oneMoney = (ranked: Action[]): Action[] => {
 };
 
 // The extras one side's words ask for, in cue order.
-const askedBy = (parts: readonly { text: string }[]): Action[] => {
+export const askedBy = (parts: readonly { text: string }[]): Action[] => {
   const text = parts.map((part) => part.text).join('. '); // a cue never reads across two parts
   const report = moneyComesIn(text);
   return CUES.filter(([action, cue]) => !(report && MONEY.includes(action)) && asks(text, cue)).map(([action]) => action);
@@ -52,9 +52,26 @@ const withExtras = (asked: readonly Action[], preferred: readonly Action[]): Act
 export const offeredFor = (parts: readonly { text: string }[], preferred: readonly Action[] = []): Action[] =>
   withExtras(askedBy(parts), preferred);
 
-// The UX audit (Oct 16): a money button on 63 of 64 scams and 5 of 64 real messages was the answer
-// key. A scam and its real twin get one list: what either side's words ask for, in one order, so the
-// buttons never tell them apart. A button the shown side never asked for is part of the test.
-// This amends lesson 20: the buttons fit the pair's words, not one side's.
-export const offeredForPair = (scam: readonly { text: string }[], twin: readonly { text: string }[], preferred: readonly Action[] = []): Action[] =>
-  withExtras(unique([...askedBy(scam), ...askedBy(twin)]), preferred);
+// Pay and Send money are one ask, as are the two code buttons: either word supports either button.
+const KIN: readonly (readonly Action[])[] = [MONEY, ['share_code', 'read_code']];
+export const kinOf = (action: Action): readonly Action[] => KIN.find((group) => group.includes(action)) ?? [action];
+
+// The asks both sides make, in the real side's words: an exact match, or a kin ask (Pay on one side,
+// Send money on the other). A side with a page behind its link asks to open it.
+export const sharedAsks = (scam: readonly Action[], twin: readonly Action[]): Action[] =>
+  twin.filter((action) => kinOf(action).some((kin) => scam.includes(kin)));
+
+export interface PairPages {
+  scam: boolean;
+  twin: boolean;
+}
+
+const withLink = (asked: Action[], page: boolean): Action[] => (page ? unique([...asked, 'open_link']) : asked);
+
+// The flow review (Oct 16, N2): the union of both sides put Pay on an interview reminder, Send money
+// on a free-talk invite and Open link on a message with no link. A scam and its real twin now get one
+// list: the four standard actions plus only what BOTH sides' words ask for, so every button has a
+// basis in the shown message and none tells the two apart. Money asked on one side only offers no
+// money button: the ask stays in the scam's words, and the standard actions are the test.
+export const offeredForPair = (scam: readonly { text: string }[], twin: readonly { text: string }[], preferred: readonly Action[] = [], pages: PairPages = { scam: false, twin: false }): Action[] =>
+  withExtras(sharedAsks(withLink(askedBy(scam), pages.scam), withLink(askedBy(twin), pages.twin)), preferred);

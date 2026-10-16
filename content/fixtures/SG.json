@@ -61,7 +61,7 @@
         },
         {
           "id": "r2",
-          "text": "Can you check if I left my charger on the kitchen table?",
+          "text": "Can you send me 20 for the taxi? I will give it back at home.",
           "tellIds": []
         },
         {
@@ -393,7 +393,7 @@
         },
         {
           "id": "r2",
-          "text": "Reply 1 to leave it at the door or 2 to hand it over in person.",
+          "text": "There is a 12.50 import duty to pay the rider at the door, cash or card.",
           "tellIds": []
         }
       ],
@@ -558,7 +558,7 @@
         },
         {
           "id": "r2",
-          "text": "Can you book the small meeting room and send the invite?",
+          "text": "Can you pay the venue invoice to the usual account today? It is in the shared folder.",
           "tellIds": []
         },
         {

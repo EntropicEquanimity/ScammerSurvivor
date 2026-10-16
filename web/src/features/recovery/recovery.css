@@ -112,7 +112,13 @@
   gap: var(--gap);
 }
 
-/* Three full-width capsules in the iOS tinted style: the accent at a wash, no outline. */
+/* The best move as the one filled capsule (btn-primary), at the project's 48 px target. */
+.recovery-primary {
+  width: 100%;
+  min-height: 3.125rem;
+}
+
+/* The other moves as full-width capsules in the iOS tinted style: the accent at a wash, no outline. */
 .recovery-btn {
   width: 100%;
   min-height: 3.125rem;
@@ -125,6 +131,20 @@
   backdrop-filter: none;
 }
 
+/* Do nothing: a plain text button, as iOS sets a cancel under a sheet's actions. Accent ink on
+   the white sheet, 48 px tall so it is as easy to hit as the rest. */
+.recovery-plain {
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: var(--t17);
+  cursor: pointer;
+}
+
+.recovery-plain:disabled,
 .recovery-btn:disabled {
   opacity: 0.55;
   cursor: default;
@@ -151,6 +171,37 @@
   width: 100%;
 }
 
+/* The clock in words, so the time is never carried by the ring alone. */
+.recovery-clock {
+  margin: -0.5rem 0 0;
+  font-size: var(--t16);
+  color: var(--ink-2);
+}
+
+/* What came back, as a bar under the result line: the share back in the system green, the rest
+   in the track grey. The line above says the same in words; the bar is decoration. */
+.recovery-bar {
+  display: block;
+  height: 8px;
+  margin-top: 0.5rem;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.recovery-bar-back {
+  display: block;
+  width: var(--back, 0%);
+  height: 100%;
+  background: var(--ok);
+  animation: recovery-fill var(--dur-pop, 400ms) ease-out both;
+}
+
+@keyframes recovery-fill {
+  from { width: 0; }
+  to { width: var(--back, 0%); }
+}
+
 @keyframes recovery-fade {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -166,5 +217,9 @@
 
   .recovery-ring-arc {
     stroke-dashoffset: 0 !important;
+  }
+
+  .recovery-bar-back {
+    animation: none !important;
   }
 }

@@ -71,7 +71,7 @@ test('a scam met with a plain reply loses nothing and still counts as not caught
 });
 
 test('a real message met with a reply outside the acceptable list is not trusted and not blocked', () => {
-  const results = [slot('s1', { actionCorrect: false, falseAlarm: false })];
+  const results = [slot('s1', { action: 'reply', actionCorrect: false, falseAlarm: false })];
   const ledger = ledgerFrom(results, SENDERS, START);
   assert.equal(ledger.rows[0].verdict, 'risky');
   assert.equal(ledger.rows[0].line, 'Mom: real, but that reply was not the safe one');
@@ -83,6 +83,7 @@ test('a real message met with a reply outside the acceptable list is not trusted
 // The tallies must equal the ones shared/score.ts computes from the same flags. The flags are
 // built here as score.ts emits them; the answer key itself never enters web code.
 const scored = (isScam: boolean, actionCorrect: boolean, falseAlarm: boolean): SlotScore => ({
+  action: 'reply',
   isScam,
   actionCorrect,
   falseAlarm,
@@ -96,7 +97,7 @@ const scored = (isScam: boolean, actionCorrect: boolean, falseAlarm: boolean): S
 test('caught and trusted equal the day score tallies for the same flags', () => {
   const scores = [scored(false, true, false), scored(true, true, false), scored(false, false, false), scored(true, false, false), scored(false, false, true)];
   const day = scoreDay(scores, { wallet: 2000, people: 3 });
-  const results = scores.map(({ isScam, actionCorrect, falseAlarm }, i) => slot(`s${i + 1}`, { isScam, actionCorrect, falseAlarm }));
+  const results = scores.map(({ action, isScam, actionCorrect, falseAlarm }, i) => slot(`s${i + 1}`, { action, isScam, actionCorrect, falseAlarm }));
   const ledger = ledgerFrom(results, {}, START);
   assert.deepEqual(ledger.caught, day.scamsCaught);
   assert.deepEqual(ledger.trusted, day.realTrusted);
@@ -125,7 +126,8 @@ test('every action on a real message and a scam names what it meant', () => {
     [real('verify_known_number', { cautious: true }), 'real, you checked'],
     [real('ignore', { actionCorrect: false, falseAlarm: true, peopleAfter: 2 }), 'real, they did not hear back'],
     [real('block_report', { actionCorrect: false, falseAlarm: true, peopleAfter: 2 }), 'real, you blocked them'],
-    [real('pay', { actionCorrect: false }), 'real, but that reply was not the safe one'],
+    [real('pay', { actionCorrect: false }), 'real, but that was not the safe move'],
+    [real('ignore'), 'real, they did not hear back'],
     [scam('block_report'), 'blocked'],
     [scam('ignore'), 'ignored'],
     [scam('verify_known_number'), 'caught'],
@@ -155,7 +157,7 @@ test('rows read as a sender, a Scam or Real tag and one plain sentence', async (
   const ledger = ledgerFrom([realIgnored, scamIgnored] as never, { s1: 'Prize Desk', s2: 'Parcel Support' }, { wallet: 5000, people: 3 });
   assert.equal(ledger.rows[0].kind, 'Real');
   assert.equal(ledger.rows[0].right, true);
-  assert.equal(ledger.rows[0].sentence, 'You ignored it, so they never heard back.');
+  assert.equal(ledger.rows[0].sentence, 'You left a real message unanswered. They did not hear back.'); // the lesson's own line
   assert.equal(ledger.rows[1].sentence, 'You ignored it. Safe.');
   assert.ok(ledger.rows.every((row) => !row.sentence.includes(', you said')));
 });

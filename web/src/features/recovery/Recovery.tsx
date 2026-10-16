@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS } from '../../../../shared/score.ts';
-import type { Action, RecoverResult } from '../../../../shared/types.ts';
+import { RECOVERY_MOVES, RECOVERY_WINDOW_SECONDS } from '../../../../shared/recovery.ts';
+import type { RecoveryKind, RecoveryMove } from '../../../../shared/recovery.ts';
+import type { RecoverResult } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
-import { ACTION_LABELS } from '../card/actionLabels.ts';
 import { AppIcon } from '../day/AppIcon.tsx';
 import { appLookFor } from '../day/appNames.ts';
 import { initialCountry } from '../../shell/country.ts';
 import { moneyIn } from '../day/currency.ts';
 import { postRecover } from './api.ts';
+import { KIND_COPY, MOVE_LABELS, clockLine, outcomeOf } from './copy.ts';
+import type { Outcome } from './copy.ts';
 import './recovery.css';
 
 // Amounts in the player's pack currency ("SGD 1,500").
@@ -18,12 +20,13 @@ const money = (amount: number): string => moneyIn(amount, initialCountry());
 interface Props {
   dayId: string;
   slotId: string;
-  stake: number; // what the transfer took, shown as the amount at stake
+  kind: RecoveryKind; // what was given away (shared/recovery.ts recoveryKind)
+  lost: number; // what actually left the wallet
   onDone: (result: RecoverResult) => void;
-  onSkip: () => void; // the choice did not go through: on to the lesson without it
+  onSkip: () => void; // the choice did not go through, or the clock ran out: on to the lesson
 }
 
-type Step = { kind: 'choose' } | { kind: 'sending' } | { kind: 'failed' } | { kind: 'done'; result: RecoverResult };
+type Step = { kind: 'choose' } | { kind: 'sending'; move: RecoveryMove } | { kind: 'failed' } | { kind: 'done'; move: RecoveryMove; result: RecoverResult };
 
 const RING_R = 54;
 const RING_LENGTH = 2 * Math.PI * RING_R;
@@ -39,8 +42,7 @@ function useCountdown(seconds: number): number {
 }
 
 // The ring drains with the clock: one linear stroke-dashoffset animation over the whole window
-// (recovery.css), smooth rather than a step per second. The global reduced-motion rule in base.css
-// drops the animation, so the twin is a static full ring with the number counting underneath.
+// (recovery.css). Reduced motion keeps it full and still, and the number counts underneath.
 function CountdownRing({ left }: { left: number }) {
   const ring = { '--ring-length': RING_LENGTH, '--window': `${RECOVERY_WINDOW_SECONDS}s` } as CSSProperties;
   return (
@@ -54,109 +56,107 @@ function CountdownRing({ left }: { left: number }) {
   );
 }
 
-// Three endings: money back, reported in time but nothing back, or too late. The server says which.
-type Lines = { line: string; note: string };
+// The best move as the one filled button, the others as tinted capsules under it, and a plain
+// Do nothing last, so leaving it is a real choice and not the only one.
+function Moves({ kind, busy, onChoose }: { kind: RecoveryKind; busy: boolean; onChoose: (move: RecoveryMove) => void }) {
+  const [best, ...rest] = RECOVERY_MOVES[kind];
+  const others = rest.filter((move) => move !== 'do_nothing');
+  return (
+    <div className="recovery-actions" role="group" aria-label="What will you do?">
+      <button type="button" className="btn btn-primary recovery-primary pressable" disabled={busy} onClick={() => onChoose(best)}>
+        {MOVE_LABELS[best]}
+      </button>
+      {others.map((move) => (
+        <button key={move} type="button" className="btn recovery-btn pressable" disabled={busy} onClick={() => onChoose(move)}>
+          {MOVE_LABELS[move]}
+        </button>
+      ))}
+      <button type="button" className="recovery-plain pressable" disabled={busy} onClick={() => onChoose('do_nothing')}>
+        {MOVE_LABELS.do_nothing}
+      </button>
+    </div>
+  );
+}
 
-const tooLateLines = (stake: number): Lines => ({
-  line: `Too late, ${money(stake)} gone`,
-  note: 'Once money has gone, the first minutes matter most.',
-});
-
-function outcomeLines(result: RecoverResult, stake: number): Lines {
-  if (result.tooLate) return tooLateLines(stake);
-  if (result.recovered > 0) {
-    return { line: `You got ${money(result.recovered)} of ${money(stake)} back`, note: 'Acting fast got some of it back. The faster you act, the more comes back.' };
+// The amount while the clock runs; once it stops, the same block shows how much came back as a bar.
+function Amount({ kind, lost, outcome }: { kind: RecoveryKind; lost: number; outcome: Outcome | null }) {
+  if (!outcome) {
+    return (
+      <div className="recovery-balance">
+        <span className="recovery-balance-label">{KIND_COPY[kind].amountLabel}</span>
+        <span className="recovery-balance-amount">{money(lost)}</span>
+      </div>
+    );
   }
-  return { line: `Reported. ${money(stake)} gone`, note: 'Nothing came back this time, but reporting still helps. Freezing your account first gets more back.' };
+  return (
+    <div className="recovery-balance">
+      <p className="recovery-result" role="status">{outcome.line}</p>
+      <span className="recovery-bar" aria-hidden="true">
+        <span className="recovery-bar-back" style={{ '--back': `${Math.round(outcome.back * 100)}%` } as CSSProperties} />
+      </span>
+    </div>
+  );
 }
 
-// The choice did not go through after a retry, or the server had nothing to claw back. The lesson
-// still comes: one way forward, never a dead sheet.
-function Failed({ onSkip }: { onSkip: () => void }) {
+function Result({ outcome, onNext }: { outcome: Outcome; onNext: () => void }) {
   return (
     <div className="recovery-outcome">
-      <p className="recovery-note" role="alert">That did not go through. The lesson is next.</p>
-      <button type="button" className="btn btn-primary pressable" onClick={onSkip}>
+      {outcome.note && <p className="recovery-note">{outcome.note}</p>}
+      <button type="button" className="btn btn-primary pressable" onClick={onNext}>
         Continue
       </button>
     </div>
   );
 }
 
-function Outcome({ lines, onDone }: { lines: Lines; onDone: () => void }) {
-  const { line, note } = lines;
-  return (
-    <div className="recovery-outcome">
-      <p className="recovery-result" role="status">{line}</p>
-      <p className="recovery-note">{note}</p>
-      <button type="button" className="btn btn-primary pressable" onClick={onDone}>
-        Continue
-      </button>
-    </div>
-  );
-}
-
-// The wallet app's header strip.
-function WalletHeader({ name }: { name: string }) {
+// The wallet app's header strip, with what happened as its second line.
+function WalletHeader({ name, status }: { name: string; status: string }) {
   return (
     <div className="app-header">
       <AppIcon layout="wallet" size={44} />
       <div className="app-header-text">
         <span className="app-header-name">{name}</span>
-        <strong>Transfer sent</strong>
+        <strong>{status}</strong>
       </div>
     </div>
   );
 }
 
-// The lead under the header says where the clock stands: running, run out, or the choice made.
-function leadLine(step: Step, left: number, expired: boolean): string {
-  if (expired) return `That transfer went through. The ${RECOVERY_WINDOW_SECONDS} seconds are up.`;
-  if (step.kind === 'done' || step.kind === 'failed') return 'That transfer went through.';
-  return `That transfer went through. You have ${left} ${left === 1 ? 'second' : 'seconds'}.`;
-}
-
-// Shown right after an unsafe action on a scam: the transfer went through, the clock runs, three
-// ways to act. The server scores the choice; this screen only shows the clock and the result.
-export function Recovery({ dayId, slotId, stake, onDone, onSkip }: Props) {
+// Shown right after a slip that cost money: what happened, the clock, the moves that fit it. The
+// server scores the move; this screen only shows the clock and what came back.
+export function Recovery({ dayId, slotId, kind, lost, onDone, onSkip }: Props) {
   const [step, setStep] = useState<Step>({ kind: 'choose' });
   const left = useCountdown(RECOVERY_WINDOW_SECONDS);
   const look = appLookFor('wallet');
-  // The clock ran out before a choice: too late on its own, nothing to send, the wallet stays as scored.
+  const copy = KIND_COPY[kind];
   const expired = left === 0 && step.kind === 'choose';
-
-  const choose = (action: Action) => {
+  const choose = (move: RecoveryMove) => {
     haptic();
-    setStep({ kind: 'sending' });
-    postRecover(dayId, { slotId, action }).then(
-      (result) => setStep({ kind: 'done', result }),
+    setStep({ kind: 'sending', move });
+    postRecover(dayId, { slotId, action: move }).then(
+      (result) => setStep({ kind: 'done', move, result }),
       () => setStep({ kind: 'failed' }),
     );
   };
-
+  const outcome = step.kind === 'done'
+    ? outcomeOf(kind, step.move, step.result.recovered, lost, step.result.tooLate, money)
+    : expired ? outcomeOf(kind, null, 0, lost, true, money) : null;
+  const running = !outcome && step.kind !== 'failed';
   return (
     <section className="recovery-sheet anim-sheet" data-surface="light" style={{ '--app-colour': look.colour } as CSSProperties}>
-      <WalletHeader name={look.name} />
+      <WalletHeader name={look.name} status={copy.status} />
       <div className="recovery-body scroll">
-        <ScreenTitle className="recovery-title">{leadLine(step, left, expired)}</ScreenTitle>
-        <div className="recovery-balance">
-          <span className="recovery-balance-label">At stake</span>
-          <span className="recovery-balance-amount">{money(stake)}</span>
-        </div>
-        {step.kind === 'done' && <Outcome lines={outcomeLines(step.result, stake)} onDone={() => onDone(step.result)} />}
-        {step.kind === 'failed' && <Failed onSkip={onSkip} />}
-        {expired && <Outcome lines={tooLateLines(stake)} onDone={onSkip} />}
-        {!expired && (step.kind === 'choose' || step.kind === 'sending') && (
-          <>
-            <CountdownRing left={left} />
-            <div className="recovery-actions" role="group" aria-label="What will you do?">
-              {RECOVERY_ACTIONS.map((action) => (
-                <button key={action} type="button" className="btn recovery-btn pressable" disabled={step.kind === 'sending'} onClick={() => choose(action)}>
-                  {ACTION_LABELS[action]}
-                </button>
-              ))}
-            </div>
-          </>
+        <ScreenTitle className="recovery-title">{copy.headline(money(lost))}</ScreenTitle>
+        <p className="recovery-clock">{clockLine(left, !running)}</p>
+        <Amount kind={kind} lost={lost} outcome={outcome} />
+        {running && <CountdownRing left={left} />}
+        {running && <Moves kind={kind} busy={step.kind === 'sending'} onChoose={choose} />}
+        {outcome && <Result outcome={outcome} onNext={step.kind === 'done' ? () => onDone(step.result) : onSkip} />}
+        {step.kind === 'failed' && (
+          <div className="recovery-outcome">
+            <p className="recovery-note" role="alert">That did not go through. The lesson is next.</p>
+            <button type="button" className="btn btn-primary pressable" onClick={onSkip}>Continue</button>
+          </div>
         )}
       </div>
     </section>

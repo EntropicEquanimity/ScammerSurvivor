@@ -130,3 +130,18 @@ test('the flag summary: nothing flagged on a real message is correct; flags on o
   assert.equal(flagSummary(base({ isScam: true, caught: ['urgency'], falseTaps: [] })), null);
   assert.equal(flagSummary(base({ isScam: true, caught: [], falseTaps: [], wentAlong: true })), 'You went along with it.');
 });
+
+// The flow review (Oct 16, N2): going along with a real message was "Fine" even when it never asked.
+test('going along with something a real message never asked is a slip, and says so', () => {
+  const real = (action: SlotResult['action'], actionCorrect: boolean) => outcomeLine(base({ isScam: false, action, actionCorrect, wentAlong: true }));
+  assert.equal(real('pay', true).text, 'Fine, it was really them.');
+  assert.deepEqual(real('pay', false), { text: 'They never asked for that. Doing it anyway is how people lose money.', tone: 'slip' });
+  assert.match(real('share_code', false).text, /code/);
+  assert.doesNotMatch(real('send_money', false).text, /Fine/);
+  assert.doesNotMatch(real('open_link', false).text, /Fine/);
+});
+
+test('a real message met with a move that was not the safe one never reads as fine', () => {
+  const line = outcomeLine(base({ isScam: false, action: 'reply', actionCorrect: false })).text;
+  assert.equal(line, 'It was real, but that was not the safest move.');
+});

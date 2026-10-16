@@ -47,13 +47,19 @@ const writer = (): Written => {
   return { inputs, write };
 };
 
-async function day(query = {}) {
-  const { payload } = await beginDay({ country: 'SG', ...query }, { cards: () => CARDS, note: noNote });
-  const state = readDay(payload.dayId);
-  assert.ok(state);
-  return { dayId: payload.dayId, state };
-}
 const scams = (slots: StoredSlot[]) => slots.filter((slot) => !slot.isTwin);
+
+// A page card is a scam only on a coin now (deal.ts), so a full day is dealt until it holds two scams.
+async function day(query: { quick?: string; age?: string } = {}) {
+  const need = query.quick === '1' ? 1 : 2;
+  for (let tries = 0; tries < 200; tries += 1) {
+    const { payload } = await beginDay({ country: 'SG', ...query }, { cards: () => CARDS, note: noNote });
+    const state = readDay(payload.dayId);
+    assert.ok(state);
+    if (scams(state.slots).length >= need) return { dayId: payload.dayId, state };
+  }
+  throw new Error('no day with enough scams');
+}
 
 test('the page route takes field ids from the page only, once, before the act', async () => {
   const { dayId, state } = await day();
@@ -129,7 +135,7 @@ test('open_link with nothing sent is correct; the card and the code take the sta
   assert.deepEqual(lost.body.leaked, ['card', 'code']);
   assert.equal(lost.body.pageCost, 6);
   assert.equal(lost.body.walletAfter, state.walletStart - slipped.card.stake);
-  assert.equal(recoverSlot(dayId, { slotId: slipped.slotId, action: 'freeze_account' }).status, 200);
+  assert.equal(recoverSlot(dayId, { slotId: slipped.slotId, action: 'freeze_card' }).status, 200, 'card details used: freeze the card');
   const twin = state.slots.find((slot) => slot.isTwin);
   assert.ok(twin);
   recordAct(dayId, { slotId: twin.slotId, action: 'open_link' });
@@ -148,10 +154,16 @@ test('a leak rewrite always wins its slot: a slow deal-time job that lands after
     await gate; // the deal-time personalisation, slower than the rewrite
     return { card: pageCard('personal'), trace: [{ agent: 'director' as const, ms: 1, outcome: 'ok' as const }] };
   };
-  const begun = await beginDay({ country: 'SG' }, { cards: () => CARDS, note: () => NOTE, write });
-  const state = readDay(begun.payload.dayId);
-  assert.ok(state);
-  const [first, target] = scams(state.slots);
+  // Two scams with the second past slot 1: a page card is a scam only on a coin now, so deal until then.
+  const deal = async () => {
+    const begun = await beginDay({ country: 'SG' }, { cards: () => CARDS, note: () => NOTE, write });
+    const state = readDay(begun.payload.dayId);
+    assert.ok(state);
+    const [first, target] = scams(state.slots);
+    return { begun, state, first, target };
+  };
+  let { begun, state, first, target } = await deal();
+  for (let tries = 0; tries < 200 && !(target && target.slotId !== 'slot-1'); tries += 1) ({ begun, state, first, target } = await deal());
   assert.ok(first && target && target.slotId !== 'slot-1', 'the target has a deal-time job of its own');
   const sent = recordPage(state.dayId, { slotId: first.slotId, given: ['name'] }, { note: () => NOTE, write });
   await sent.settled;

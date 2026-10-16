@@ -1,11 +1,17 @@
 import type { Action, SlotResult, Tally } from '../../../../shared/types.ts';
+import { trusts } from '../../../../shared/score.ts';
+import { actionOutcome } from '../lesson/title.ts';
 
 // The end of the day as a ledger: one row per message, by sender, in the order they were handled.
 // Pure, no React, no CSS, so node can test it directly. Message text never enters a row.
 
-// risky: a real message met with an action outside the twin's acceptable list that was not a
-// block or an ignore. Not trusted in the score, nothing lost, nobody offended.
-export type Verdict = 'trusted' | 'caught' | 'blocked' | 'fell' | 'risky';
+// The flow review (Oct 16, N1): the ledger counted ignored real messages as trusted and wrote "You
+// went along with it" for an ignored code grab. Every row now reads the same result fields and the
+// same outcome line the lesson shows (lesson/title.ts actionOutcome), and the tallies use the same
+// trust rule as the day score (shared/score.ts trusts).
+// trusted: answered, or went along with what it asked. checked: called to check first. left: a real
+// message ignored or met with another move that was no slip. blocked: turned away. risky: a slip.
+export type Verdict = 'trusted' | 'checked' | 'left' | 'caught' | 'blocked' | 'fell' | 'risky';
 
 export interface LedgerRow {
   slotId: string;
@@ -37,64 +43,48 @@ export interface LedgerStart {
 const shownSender = (r: SlotResult): string =>
   r.isScam ? r.lesson.scam.sender.displayName : r.lesson.real.sender.displayName;
 
-// actionCorrect decides first, exactly as shared/score.ts tallies it, so the rows and the footnote
-// agree; falseAlarm only splits the real-but-wrong rows into blocked and risky. The line then names
-// the action itself (SlotResult.action): ignored, blocked, checked or answered.
-// ponytail: a scam met with a plain reply (nothing lost) still lands in fell; the line text carries that.
+// actionCorrect decides first, exactly as shared/score.ts tallies it; an older result with no action
+// reads a right move on a real message as trusted.
 function verdictOf(r: SlotResult): Verdict {
   if (r.isScam) return r.actionCorrect ? 'caught' : 'fell';
-  if (r.actionCorrect) return 'trusted';
+  if (r.actionCorrect) return r.action === undefined || trusts(r) ? 'trusted' : r.cautious ? 'checked' : 'left';
   return r.falseAlarm ? 'blocked' : 'risky';
 }
 
-// The part after "Sender: ", naming what the tap meant (Angel, Oct 16: an action is not always
-// "you trusted it"). The lesson's one-line outcome uses the same words.
-const REAL_LINE: Partial<Record<Action, string>> = {
-  ignore: 'real, they did not hear back',
+// The short line after "Sender: ", for the row's accessible label and the tests: the verdict, named
+// by the action where the action says more.
+const DETAIL: Record<Verdict, string> = {
+  trusted: 'real, you answered',
+  checked: 'real, you checked',
+  left: 'real, they did not hear back',
+  blocked: 'real, they did not hear back',
+  risky: 'real, but that was not the safe move',
+  caught: 'caught',
+  fell: 'fell for it',
+};
+const REAL_DETAIL: Partial<Record<Action, string>> = {
   block_report: 'real, you blocked them',
   verify_known_number: 'real, you checked',
   open_link: 'real, you opened it',
   pay: 'real, you paid',
   send_money: 'real, you sent it',
 };
-const SCAM_LINE: Partial<Record<Action, string>> = { ignore: 'ignored', block_report: 'blocked' };
+const SCAM_DETAIL: Partial<Record<Action, string>> = { ignore: 'ignored', block_report: 'blocked' };
 
-function detailOf(r: SlotResult, verdict: Verdict, lost: number, money: (n: number) => string): string {
-  const action = r.action;
-  const fallback = verdict === 'blocked' ? 'real, they did not hear back' : 'real, you answered';
-  if (verdict === 'trusted' || verdict === 'blocked') return (action && REAL_LINE[action]) ?? fallback;
-  if (verdict === 'risky') return 'real, but that reply was not the safe one';
-  if (verdict === 'caught') return (action && SCAM_LINE[action]) ?? 'caught';
+function detailOf(r: SlotResult, verdict: Verdict, lost: number, recovered: number, money: (n: number) => string): string {
+  const named = r.action && (r.isScam ? SCAM_DETAIL : REAL_DETAIL)[r.action];
+  if (verdict === 'risky' && r.action === 'reply') return 'real, but that reply was not the safe one';
+  if (named && verdict !== 'fell' && verdict !== 'risky') return named;
+  if (verdict !== 'fell') return DETAIL[verdict];
   if (lost <= 0) return 'fell for it, nothing lost yet';
-  const recovered = r.recovered ?? 0;
-  const back = recovered > 0 ? `, ${money(recovered)} back` : '';
-  return `fell for it, ${money(lost)} gone${back}`;
+  return `fell for it, ${money(lost)} gone${recovered > 0 ? `, ${money(recovered)} back` : ''}`;
 }
 
-// The row's plain sentence (Angel, Oct 16: "please phrase better"): what you did and what it meant.
-const REAL_SENTENCE: Partial<Record<Action, string>> = {
-  ignore: 'You ignored it, so they never heard back.',
-  block_report: 'You blocked them, but they were real.',
-  verify_known_number: 'You called to check. It was real.',
-  reply: 'You replied. That was fine.',
-  open_link: 'You opened it. It was safe.',
-  pay: 'You paid. It was really them.',
-  send_money: 'You sent it. It was really them.',
-};
-const SCAM_SENTENCE: Partial<Record<Action, string>> = {
-  ignore: 'You ignored it. Safe.',
-  block_report: 'You blocked and reported it.',
-  verify_known_number: 'You called to check and caught it.',
-};
-
-function sentenceOf(r: SlotResult, verdict: Verdict, lost: number, money: (n: number) => string): string {
-  const action = r.action;
-  if (verdict === 'risky') return 'It was real, but that was not the safest move.';
-  if (!r.isScam) return (action && REAL_SENTENCE[action]) ?? (verdict === 'blocked' ? 'You turned them away. They were real.' : 'You replied. That was fine.');
-  if (verdict === 'caught') return (action && SCAM_SENTENCE[action]) ?? 'You did not fall for it.';
-  if (lost <= 0) return 'You went along with it. No money lost yet.';
+// The lesson's own outcome line, plus what came back when a recovery brought some.
+function sentenceOf(r: SlotResult, lost: number, money: (n: number) => string): string {
+  const line = actionOutcome({ ...r, recovered: 0 }, lost > 0 ? money(lost) : undefined).text;
   const recovered = r.recovered ?? 0;
-  return `You went along with it. ${money(lost)} gone${recovered > 0 ? `, ${money(recovered)} back` : ''}.`;
+  return recovered > 0 ? `${line} ${money(recovered)} came back.` : line;
 }
 
 // The player's answer to "Scam or real?", when they gave one.
@@ -111,7 +101,8 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
     const sender = senders[r.slotId] ?? shownSender(r);
     const verdict = verdictOf(r);
     // walletAfter already nets a recovery (the server adds it back), so the amount gone is the delta plus what came back.
-    const detail = `${detailOf(r, verdict, -walletDelta + recovered, money)}${r.questioned ? ', asked questions first' : ''}${saidOf(r)}`;
+    const lost = -walletDelta + recovered;
+    const detail = `${detailOf(r, verdict, lost, recovered, money)}${r.questioned ? ', asked questions first' : ''}${saidOf(r)}`;
     return {
       slotId: r.slotId,
       sender,
@@ -119,8 +110,8 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
       detail,
       line: `${sender}: ${detail}`,
       kind: r.isScam ? 'Scam' : 'Real',
-      right: r.verdict ? Boolean(r.verdictCorrect) : verdict === 'caught' || verdict === 'trusted',
-      sentence: `${sentenceOf(r, verdict, -walletDelta + recovered, money)}${r.questioned ? ' You asked questions first.' : ''}`,
+      right: r.verdict ? Boolean(r.verdictCorrect) : r.actionCorrect,
+      sentence: `${sentenceOf(r, lost, money)}${r.questioned ? ' You asked questions first.' : ''}`,
       walletDelta,
       peopleDelta: r.peopleAfter - peopleBefore,
     };

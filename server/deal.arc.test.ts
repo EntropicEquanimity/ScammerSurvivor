@@ -5,8 +5,9 @@ import { FIXTURES, PACKS } from './country.ts';
 import { FIRST_TRICKS, dealDay, scamCountFor } from './deal.ts';
 import type { Deal } from './deal.ts';
 
-// The arc on every full day (docs/game-design.md slice 3): a page scam in the first two slots, a
-// later scam the leak can rewrite, and 1 to 3 scams from the seed. Hosts and placeholders only (rule 6).
+// The arc (docs/game-design.md slice 3): a page scam, a later scam the leak can rewrite, and 1 to 3
+// scams from the seed. Since the flow review (Oct 16, N3) the page card is a scam only on a coin and
+// sits in any slot, so neither the page nor the time tells the answer. Hosts and placeholders only (rule 6).
 const pack = PACKS.get('SG');
 const fixtures = FIXTURES.get('SG');
 if (!pack || !fixtures) throw new Error('SG pack or fixtures missing');
@@ -25,45 +26,15 @@ const full = (cards: Card[], seed: number, firstPlay = true): Deal => dealDay({ 
 const scams = (deal: Deal): number => deal.slots.filter((slot) => !slot.isTwin).length;
 const SEEDS = Array.from({ length: 60 }, (_, index) => index + 1);
 
-// Recorded from the deal before this slice (SG fixtures, full day). Card order is unchanged for
-// every seed; twins and hints are unchanged on every seed that draws two scams.
-const BEFORE: Record<string, string> = {
-  '1': 'sg-bank-check*! sg-investment-group* sg-parcel-fee! sg-paid-task',
-  '2': 'sg-investment-group*! sg-digital-arrest sg-paid-task sg-bank-check*',
-  '3': 'sg-paid-task* sg-bank-check! sg-digital-arrest sg-investment-group*',
-  '4': 'sg-payment-change sg-investment-group sg-digital-arrest* sg-bank-check*',
-  '5': 'sg-bank-check* sg-digital-arrest sg-investment-group! sg-parcel-fee*',
-  '6': 'sg-bank-check sg-digital-arrest* sg-paid-task* sg-payment-change',
-  '7': 'sg-family-trouble* sg-paid-task* sg-parcel-fee sg-bank-check!',
-  '8': 'sg-family-trouble* sg-investment-group sg-parcel-fee*! sg-bank-check!',
-  '9': 'sg-bank-check* sg-family-trouble sg-investment-group sg-parcel-fee*',
-  '10': 'sg-payment-change* sg-parcel-fee! sg-bank-check* sg-family-trouble',
-  '11': 'sg-bank-check! sg-digital-arrest* sg-family-trouble* sg-payment-change',
-  '12': 'sg-paid-task* sg-parcel-fee sg-family-trouble* sg-bank-check',
-  '1f': 'sg-investment-group* sg-digital-arrest* sg-bank-check! sg-paid-task',
-  '2f': 'sg-family-trouble sg-bank-check* sg-investment-group! sg-digital-arrest*',
-  '3f': 'sg-bank-check* sg-parcel-fee sg-paid-task sg-investment-group*',
-  '4f': 'sg-bank-check sg-family-trouble sg-digital-arrest* sg-parcel-fee*',
-  '5f': 'sg-paid-task! sg-payment-change sg-digital-arrest* sg-bank-check*',
-  '6f': 'sg-investment-group! sg-family-trouble sg-bank-check* sg-parcel-fee*',
-  '7f': 'sg-parcel-fee* sg-bank-check* sg-paid-task sg-family-trouble!',
-  '8f': 'sg-family-trouble! sg-bank-check*! sg-digital-arrest sg-paid-task*',
-  '9f': 'sg-family-trouble* sg-bank-check! sg-paid-task sg-digital-arrest*',
-  '10f': 'sg-digital-arrest* sg-payment-change* sg-bank-check sg-family-trouble!',
-  '11f': 'sg-family-trouble sg-paid-task sg-parcel-fee*! sg-bank-check*',
-  '12f': 'sg-bank-check sg-payment-change* sg-family-trouble sg-digital-arrest*',
-};
+// The deal before the flow review was recorded here card by card. It changed on purpose: cards now move
+// between the pack's chat app and texts on a seeded coin (deal.ts movedApp), which moves the picks,
+// and the unknown-sender line follows the trick, not a draw. Purity on the seed is the check now.
+const shape = (deal: Deal): string => deal.slots.map((slot) => `${slot.card.id}${slot.isTwin ? '*' : ''}`).join(' ');
 
-const ids = (line: string): string => line.replace(/[*!]/g, '');
-const shape = (deal: Deal): string => deal.slots.map((slot) => `${slot.card.id}${slot.isTwin ? '*' : ''}${slot.public.bannerHint ? '!' : ''}`).join(' ');
-
-test('a day without pages deals the same cards in the same order as before; two scams deal exactly as before', () => {
-  for (const [label, before] of Object.entries(BEFORE)) {
-    const seed = Number.parseInt(label, 10);
-    const deal = full(fixtures, seed, label.endsWith('f'));
-    assert.equal(ids(shape(deal)), ids(before), `order, seed ${label}`);
-    if (scams(deal) === 2) assert.equal(shape(deal), before, `twins and hints, seed ${label}`);
-  }
+test('a day without pages is pure on the seed and differs across seeds', () => {
+  const shapes = new Set(SEEDS.map((seed) => shape(full(fixtures, seed))));
+  assert.ok(shapes.size > SEEDS.length / 2);
+  for (const seed of SEEDS.slice(0, 12)) assert.equal(shape(full(fixtures, seed)), shape(full(fixtures, seed)));
 });
 
 test('a full day holds 1 to 3 scams from the seed, every count seen; a quick day still holds 1 scam and 1 twin', () => {
@@ -78,30 +49,36 @@ test('a full day holds 1 to 3 scams from the seed, every count seen; a quick day
   assert.equal(scamCountFor(9, 2, 0), 1, 'a short day keeps one scam per two cards');
 });
 
-test('a full day with a page card holds the page scam in the first two slots and a later scam after it', () => {
+test('a page card is a scam on about half the seeds; as one it always has a later scam, in any slot', () => {
   for (const extra of [[paged('page-a')], [paged('page-a'), paged('page-b', 'green-chat')]]) {
     const cards = [...fixtures, ...extra];
+    let asScam = 0;
+    const slotsSeen = new Set<number>();
     for (const seed of SEEDS) {
-      for (const firstPlay of [true, false]) {
-        const { slots } = full(cards, seed, firstPlay);
-        const at = slots.findIndex((slot) => slot.card.page && !slot.isTwin);
-        assert.ok(at === 0 || at === 1, `page scam in slot 1 or 2, seed ${seed}`);
-        assert.ok(slots.slice(at + 1).some((slot) => !slot.isTwin), `a later scam, seed ${seed}`);
-        assert.ok(slots[at].public.page, 'the page reaches the public card');
-        assert.ok(scams({ slots } as Deal) >= 2);
-      }
+      const { slots } = full(cards, seed, false);
+      const page = slots.find((slot) => slot.card.page);
+      assert.ok(page, `a page card is picked, seed ${seed}`);
+      if (!page.isTwin) assert.ok(page.public.page, 'the page reaches the public card');
+      const at = slots.findIndex((slot) => slot.card.page && !slot.isTwin);
+      if (at < 0) continue;
+      asScam += 1;
+      slotsSeen.add(at);
+      assert.ok(slots.slice(at + 1).some((slot) => !slot.isTwin), `a later scam, seed ${seed}`);
     }
+    assert.ok(asScam > SEEDS.length * 0.3 && asScam < SEEDS.length * 0.7, `page scams ${asScam} of ${SEEDS.length}`);
+    assert.ok(slotsSeen.size >= 3, `page scam slots ${[...slotsSeen]}`);
   }
 });
 
-test('the protected first scam and the page scam are both scams on a first play', () => {
+test('the protected first scam is a scam on a first play, and only then', () => {
   const cards = [...fixtures, paged('page-a')];
+  let laterAsTwin = 0;
   for (const seed of SEEDS) {
-    const { slots } = full(cards, seed, true);
-    const first = slots.find((slot) => FIRST_TRICKS.includes(slot.card.trickId) && !slot.isTwin);
+    const first = full(cards, seed, true).slots.find((slot) => FIRST_TRICKS.includes(slot.card.trickId) && !slot.isTwin);
     assert.ok(first, `the first trick stays a scam, seed ${seed}`);
-    assert.ok(slots.some((slot) => slot.card.id === 'page-a' && !slot.isTwin), `the page card is dealt as a scam, seed ${seed}`);
+    laterAsTwin += full(cards, seed, false).slots.filter((slot) => FIRST_TRICKS.includes(slot.card.trickId) && slot.isTwin).length;
   }
+  assert.ok(laterAsTwin > 0, 'on a later day the same tricks come as real twins too');
 });
 
 test('a page deal is pure on the seed: two deals of one seed are equal', () => {

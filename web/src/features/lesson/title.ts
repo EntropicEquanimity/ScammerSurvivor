@@ -1,4 +1,5 @@
 import type { Action, CoachNotes, People, SlotResult, TellId } from '../../../../shared/types.ts';
+import { goesAlong } from '../../../../shared/score.ts';
 import { INSTITUTIONS, isInstitutionId } from '../../../../shared/brands.ts';
 import { TRICK_TITLES, isTellId } from '../../../../shared/taxonomy.ts';
 import { whoReally } from '../../strings.ts';
@@ -72,12 +73,32 @@ export function verdictSaid(result: SlotResult): string {
   return `You said ${result.verdict === 'scam' ? 'Scam' : 'Real'} ${result.verdictCorrect ? '\u2713' : '\u2717'}.`;
 }
 
-function actionOutcome(result: SlotResult, lost?: string): { text: string; tone: OutcomeTone } {
+// A real message met with a move that was not fine (the flow review, Oct 16, N1 and N2): never "Fine".
+// Going along with what it never asked is how people lose money; a code is never handed over.
+const REAL_UNASKED = 'They never asked for that. Doing it anyway is how people lose money.';
+const REAL_SLIPS: Partial<Record<Action, string>> = {
+  share_code: 'You gave out a code. Even a real sender never needs it.',
+  read_code: 'You gave out a code. Even a real sender never needs it.',
+  open_link: 'You opened it, but left out what they needed, so they will follow up.',
+};
+const REAL_NOT_SAFEST = 'It was real, but that was not the safest move.';
+
+function realLine(result: SlotResult, action: Action | undefined): string {
+  if (!action) return verdictLine(result);
+  if (result.actionCorrect || result.falseAlarm) return ACTION_LINES[action][0];
+  return goesAlong(action) ? (REAL_SLIPS[action] ?? REAL_UNASKED) : REAL_NOT_SAFEST;
+}
+
+// The one outcome line for an action: the lesson, the real note and the end-of-day ledger all read it,
+// so they never disagree. Install moves money on a scam, so it reads like a transfer.
+export function actionOutcome(result: SlotResult, lost?: string): { text: string; tone: OutcomeTone } {
   const tone: OutcomeTone = result.actionCorrect ? 'good' : 'slip';
   const sent = (result.leaked ?? []).length > 0;
   const action: Action | undefined = result.action === 'open_link' && sent ? 'pay' : result.action;
-  const line = action ? ACTION_LINES[action][result.isScam ? 1 : 0] : verdictLine(result);
-  if (!result.isScam || line !== FELL) return { text: line, tone };
+  if (!result.isScam) return { text: realLine(result, action), tone };
+  const line = action ? ACTION_LINES[action][1] : verdictLine(result);
+  if (action === 'install' && !result.actionCorrect && lost) return { text: `${line} It took ${lost}.`, tone };
+  if (line !== FELL) return { text: line, tone };
   if (sent) return { text: `${FELL}, your details went to a fake page.`, tone };
   if ((result.recovered ?? 0) > 0) return { text: `${FELL}, then acted fast.`, tone };
   return { text: lost ? `${FELL}, ${lost} gone.` : `${FELL}.`, tone };

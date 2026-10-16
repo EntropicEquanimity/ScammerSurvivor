@@ -10,8 +10,11 @@ import { recordAct, scoreTap, startDay } from './day.ts';
 const slotsOf = (dayId: string) => readDay(dayId)?.slots ?? [];
 
 test('a repeated act after going along returns the stored result, and a repeated tap the same one', () => {
-  const { dayId } = startDay({ country: 'SG' });
-  const slot = slotsOf(dayId).find((candidate) => !candidate.isTwin && candidate.public.offered.some((action) => GOES_ALONG.includes(action) && action !== 'open_link'));
+  // A scam offers a going-along button only when its twin asks the same (offered.ts): deal until one does.
+  const along = (dayId: string) => slotsOf(dayId).find((candidate) => !candidate.isTwin && candidate.public.offered.some((action) => GOES_ALONG.includes(action) && action !== 'open_link'));
+  let { dayId } = startDay({ country: 'SG' });
+  for (let tries = 0; tries < 200 && !along(dayId); tries += 1) ({ dayId } = startDay({ country: 'SG' }));
+  const slot = along(dayId);
   assert.ok(slot);
   const action = slot.public.offered.find((candidate) => GOES_ALONG.includes(candidate) && candidate !== 'open_link')!;
   assert.deepEqual(recordAct(dayId, { slotId: slot.slotId, action }), { status: 200, body: { ok: true } });

@@ -1,8 +1,9 @@
 import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
-import type { Action, Card, CountryPack, DayPayload, DayScore, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
+import type { Action, Card, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
+import { goesAlong } from '../shared/score.ts';
 import type { Clue } from '../shared/clues.ts';
-import { offeredForPair } from './offered.ts';
+import { askedBy, kinOf, offeredForPair } from './offered.ts';
 import { moneyComesIn } from '../shared/money.ts';
 import { NEEDS, pageTells, publicPage } from '../shared/page.ts';
 import { isPageScam, placePage } from './arc.ts';
@@ -58,12 +59,30 @@ const unique = <T>(items: readonly T[]): T[] => [...new Set(items)];
 
 const strip = (parts: Card['setup']) => parts.map(({ id, text }) => ({ id, text }));
 
-// The phone's own "likely scam" banner: a hint, sometimes wrong. Drawn once per slot from the day
-// seed, so it is stable across re-deals and never follows the answer key.
-const HINT_ODDS = { scam: 1 / 3, twin: 1 / 6 };
+// The phone's "not in your contact list" line (the flow review, Oct 16, N3: it showed on 34% of scams
+// and 13% of real cards, and on real ones it contradicted "the number you already have"). It shows
+// only where the real sender is truly a number you never saved, and then on the scam and the twin
+// alike, so it is true on every real card that shows it and tells nothing about the answer.
+// Each has its own real-why lines (shared/taxonomy.ts realWhyFor), none of them "the number you already have".
+export const STRANGER_TRICKS: readonly TrickId[] = ['paid_task', 'listing_leaver', 'fast_romance', 'overseas_job', 'wrong_number', 'slow_add'];
+const UNTHREADED: readonly Layout[] = ['email', 'wallet', 'call'];
+export const bannerFor = (card: Card): PublicCard['bannerHint'] =>
+  STRANGER_TRICKS.includes(card.trickId) && !UNTHREADED.includes(card.layout) ? 'likely_scam' : null;
 
-const drawHint = (isTwin: boolean, random: () => number): PublicCard['bannerHint'] =>
-  random() < (isTwin ? HINT_ODDS.twin : HINT_ODDS.scam) ? 'likely_scam' : null;
+// Texts and chats are one kind of thread: a card written for one shows in the other on a coin from
+// the day seed and the card id, scam and twin alike, so a twin lands in its scam's app about half the
+// time and the app tells nothing (N3). Email and wallet cards stay where they were written.
+const CHAT_LOOKS: readonly Layout[] = ['green-chat', 'blue-chat', 'sticker-chat', 'cloud-chat', 'purple-chat'];
+const APP_SALT = 0xa9915;
+const idHash = (id: string): number => [...id].reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0, 2166136261);
+
+export function movedApp(card: Card, layouts: readonly Layout[], seed: number): Card {
+  const chat = layouts.find((layout) => CHAT_LOOKS.includes(layout));
+  if (!chat) return card; // every phone has texts (fill.ts fitLayout), so only a chat app is needed
+  const other = card.layout === 'sms' ? chat : CHAT_LOOKS.includes(card.layout) ? 'sms' : undefined;
+  if (!other || seededRandom((seed ^ APP_SALT ^ idHash(card.id)) >>> 0)() >= 0.5) return card;
+  return { ...card, layout: other };
+}
 
 // The shown side's clues, field by field, so nothing but the Clue shape reaches the browser. The twin
 // is shown as its own parts sliced in two, ids unchanged (r1, r2...), so its clues need no remap.
@@ -99,10 +118,23 @@ const withPage = <T extends object>(card: Card, isTwin: boolean, pick: (page: No
 const CODE_ACTIONS: readonly Action[] = ['share_code', 'read_code'];
 const withoutCodes = (actions: Action[], isTwin: boolean): Action[] => (isTwin ? actions.filter((action) => !CODE_ACTIONS.includes(action)) : actions);
 
-// One offered list for the pair (offered.ts offeredForPair): the scam's own unsafe replies rank first,
-// then what the twin may fittingly do, so both sides show the same buttons in the same places.
+// One offered list for the pair (offered.ts offeredForPair): only what both sides ask for, the scam's
+// own unsafe replies ranked first, so both sides show the same buttons in the same places.
 export const pairOffered = (card: Card): Action[] =>
-  offeredForPair([...card.setup, ...card.ask], card.realTwin.parts, [...card.unsafeReplies, ...withoutCodes(card.realTwin.acceptable, true)]);
+  offeredForPair([...card.setup, ...card.ask], card.realTwin.parts, [...card.unsafeReplies, ...withoutCodes(card.realTwin.acceptable, true)], {
+    scam: card.page !== undefined,
+    twin: card.realTwin.page !== undefined,
+  });
+
+// What the twin may fittingly do (N2): going along only with what its own words ask for. A going-along
+// move the note lists but the words never asked is a slip; one they ask and the buttons offer is fine.
+// A code is never fine to hand over.
+function twinAcceptable(card: Card): Action[] {
+  const asked = [...askedBy(card.realTwin.parts), ...(card.realTwin.page ? (['open_link'] as Action[]) : [])];
+  const fits = (action: Action): boolean => !goesAlong(action) || kinOf(action).some((kin) => asked.includes(kin));
+  const offered = pairOffered(card).filter((action) => goesAlong(action) && fits(action));
+  return withoutCodes(unique([...card.realTwin.acceptable.filter(fits), ...offered, VERIFY]), true);
+}
 
 function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string, bannerHint: PublicCard['bannerHint']): PublicCard {
   const cut = card.setup.length;
@@ -133,7 +165,7 @@ const toKey = (card: Card, isTwin: boolean): SlotKey => ({
   plantedTells: isTwin ? [] : card.plantedTells,
   safeReplies: unique([...card.safeReplies, VERIFY]),
   unsafeReplies: card.unsafeReplies.filter((action) => action !== VERIFY),
-  acceptable: withoutCodes(unique([...card.realTwin.acceptable, VERIFY]), true),
+  acceptable: twinAcceptable(card),
   checkFits: card.realTwin.acceptable.includes(VERIFY), // the note lists the call as the fitting reply
   stake: card.stake,
   ...withPage(card, isTwin, (page) => ({ page: { kind: page.kind, needs: [...NEEDS[page.kind]], tells: pageTells(page) } })),
@@ -194,29 +226,43 @@ export function scamCountFor(seed: number, count: number, forced: number): numbe
   return Math.min(count, Math.max(drawn, forced));
 }
 
+// The page card is a scam on its own coin from the seed (the flow review, Oct 16, N3: a page that was
+// always a scam, always at 10:40, told the answer). When it is one, a second scam is dealt for its
+// leak to rewrite; when it is not, it is dealt as its real twin, honest page and all.
+const PAGE_SALT = 0x9a6e;
+const pageIsScam = (seed: number): boolean => seededRandom((seed ^ PAGE_SALT) >>> 0)() < 0.5;
+
+// The twins among the picked cards: the same draw as before (one number per card after the lead),
+// with the forced scams skipped and a forced twin added.
+function twinsFor(picked: Card[], lead: Card | undefined, forced: Set<Card>, forcedTwin: Card | undefined, scams: number, random: () => number): Set<string> {
+  const drawn = shuffle(picked.slice(lead ? 1 : 0), random).filter((card) => !forced.has(card) && card !== forcedTwin);
+  const free = picked.length - scams - (forcedTwin ? 1 : 0);
+  return new Set([...drawn.slice(0, free).map((card) => card.id), ...(forcedTwin ? [forcedTwin.id] : [])]);
+}
+
 // Pure given the seed. A full day deals 4 slots with 1 to 3 scams, a quick day 2 with 1 twin.
-// The first-play card is always dealt as the scam, so the player meets the trick; on a full day a
-// page card in the deck is dealt as a scam in the first two slots with a later scam after it.
+// The first-play card is always dealt as the scam, so the player meets the trick. Every card shows in
+// its own app or the pack's other text app (movedApp), and slots are shuffled, so neither the app nor
+// the time tells the answer.
 export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: DealInput): Deal {
   const random = seededRandom(seed);
   const count = Math.min(quick ? 2 : FULL_DAY, cards.length);
   const arc = !quick && count === FULL_DAY;
   const first = firstPlay ? firstTrickFor(cards, seed) : undefined;
-  const picked = pickCards(cards.map((card) => fillCard(fitLayout(card, pack.layouts))), count, first, random, arc);
+  const picked = pickCards(cards.map((card) => fillCard(movedApp(fitLayout(card, pack.layouts), pack.layouts, seed))), count, first, random, arc);
   const lead = first !== undefined && picked[0]?.trickId === first ? picked[0] : undefined;
-  const page = arc ? picked.find((card) => card !== lead && isPageScam(card)) ?? (lead && isPageScam(lead) ? lead : undefined) : undefined;
+  const pageCard = arc ? picked.find((card) => card !== lead && isPageScam(card)) ?? (lead && isPageScam(lead) ? lead : undefined) : undefined;
+  const page = pageCard && (pageCard === lead || pageIsScam(seed)) ? pageCard : undefined;
+  const forcedTwin = pageCard && !page ? pageCard : undefined;
   const forced = new Set([lead, page].filter((card): card is Card => card !== undefined));
-  const scamCount = scamCountFor(seed, count, page ? Math.max(2, forced.size) : forced.size);
-  // The same draw as before (one number per card after the lead); forced scams are skipped after it.
-  const twinIds = new Set(
-    shuffle(picked.slice(lead ? 1 : 0), random).filter((card) => !forced.has(card)).slice(0, count - scamCount).map((card) => card.id),
-  );
+  const scamCount = Math.min(count - (forcedTwin ? 1 : 0), scamCountFor(seed, count, page ? Math.max(2, forced.size) : forced.size));
+  const twinIds = twinsFor(picked, lead, forced, forcedTwin, scamCount, random);
   const ordered = placePage(shuffle(picked, random), page, (card) => !twinIds.has(card.id));
   const slots = ordered.map((card, index): DealtSlot => {
     const isTwin = twinIds.has(card.id);
     const slotId = `slot-${index + 1}`;
     const arrivesAt = CLOCK[index] ?? CLOCK[CLOCK.length - 1];
-    return { slotId, card, isTwin, public: toPublic(card, isTwin, slotId, arrivesAt, drawHint(isTwin, random)), key: toKey(card, isTwin) };
+    return { slotId, card, isTwin, public: toPublic(card, isTwin, slotId, arrivesAt, bannerFor(card)), key: toKey(card, isTwin) };
   });
   return { payload: payloadOf(dayId, pack, quick, slots), slots };
 }
@@ -233,13 +279,14 @@ const payloadOf = (dayId: string, pack: CountryPack, quick: boolean, slots: Deal
 
 // One slot re-dealt with a new card: the slot id, the clock label and the
 // scam-or-twin choice stay; the message, buttons and answer key come from the card.
+// A personalised card keeps the app the slot was dealt in.
 export const redealSlot = (slot: DealtSlot, raw: Card): DealtSlot => {
-  const card = fillCard(raw);
+  const card = fillCard({ ...raw, layout: slot.card?.layout ?? raw.layout });
   return {
     slotId: slot.slotId,
     card,
     isTwin: slot.isTwin,
-    public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt, slot.public.bannerHint ?? null),
+    public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt, bannerFor(card)),
     key: toKey(card, slot.isTwin),
   };
 };

@@ -24,6 +24,12 @@ const pageCard = (id: string): Card => ({
   plantedTells: ['authority'],
   unsafeReplies: ['open_link'],
   page: { kind: 'redelivery', host: FAKE, title: 'Redelivery', lines: [{ id: 'p1', text: 'Line', tellIds: ['urgency'] }], fields: ['address', 'card', 'code'] },
+  // The twin has a link and an honest page too, so Open link is offered on both sides (offered.ts).
+  realTwin: {
+    ...base.realTwin,
+    parts: [{ id: 'r1', text: '[real line] parcel.example', tellIds: [] }],
+    page: { kind: 'tracking', host: 'parcel.example', title: 'Tracking', lines: [{ id: 'p1', text: 'Line', tellIds: [] }], fields: ['tracking'] },
+  },
 });
 const payCard = (id: string): Card => ({
   ...base,
@@ -33,13 +39,18 @@ const payCard = (id: string): Card => ({
   plantedTells: ['authority'],
   unsafeReplies: ['keep_secret'], // the note forgot pay: a payment on a scam still costs the stake
   page: undefined,
+  realTwin: { ...base.realTwin, parts: [{ id: 'r1', text: '[real line] please pay the invoice by Friday', tellIds: [] }] },
 });
 
+// A full day holds 1 to 3 scams, and a page card is a scam only on a coin: deal until there are two.
 async function day(cards: Card[]) {
-  const { payload } = await beginDay({ country: 'SG', quick: '0', age: 'younger' }, { cards: () => cards, note: () => null });
-  const state = readDay(payload.dayId);
-  assert.ok(state);
-  return { dayId: payload.dayId, state };
+  for (let tries = 0; tries < 200; tries += 1) {
+    const { payload } = await beginDay({ country: 'SG', quick: '0', age: 'younger' }, { cards: () => cards, note: () => null });
+    const state = readDay(payload.dayId);
+    assert.ok(state);
+    if (state.slots.filter((slot) => !slot.isTwin).length >= 2) return { dayId: payload.dayId, state };
+  }
+  throw new Error('no day with two scams');
 }
 
 const scams = (slots: StoredSlot[]) => slots.filter((slot) => !slot.isTwin);
