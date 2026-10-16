@@ -48,8 +48,10 @@ const CHAT_LOOKS: readonly Layout[] = ['green-chat', 'blue-chat', 'sticker-chat'
 export function fitLayout(card: Card, layouts: readonly Layout[]): Card {
   if (layouts.includes(card.layout)) return card;
   const chat = layouts.find((layout) => CHAT_LOOKS.includes(layout));
-  const fitted = CHAT_LOOKS.includes(card.layout) ? chat : card.layout === 'wallet' ? 'sms' : undefined;
-  return fitted ? { ...card, layout: fitted } : card;
+  // Every phone has texts: SMS is never refitted, and any app the pack does not list falls back to it.
+  if (card.layout === 'sms') return card;
+  const fitted = CHAT_LOOKS.includes(card.layout) ? (chat ?? 'sms') : 'sms';
+  return { ...card, layout: fitted };
 }
 
 const institutionFor = (card: Card): string =>
@@ -245,7 +247,21 @@ const toKey = (card: Card, isTwin: boolean): SlotKey => ({
 function pickCards(cards: Card[], count: number, firstPlay: boolean, random: () => number): Card[] {
   const first = firstPlay ? cards.find((card) => card.trickId === FIRST_TRICK) : undefined;
   const rest = shuffle(cards.filter((card) => card !== first), random);
-  return [...(first ? [first] : []), ...rest].slice(0, count);
+  return spreadApps([...(first ? [first] : []), ...rest], count);
+}
+
+// A real phone gets its messages across apps: take the next card from an app the day has not used,
+// and repeat an app only when every other one is used up. Order otherwise follows the shuffle.
+export function spreadApps(cards: readonly Card[], count: number): Card[] {
+  const picked: Card[] = [];
+  const left = [...cards];
+  while (picked.length < count && left.length > 0) {
+    const used = new Set(picked.map((card) => card.layout));
+    const index = Math.max(0, left.findIndex((card) => !used.has(card.layout)));
+    picked.push(left[index]);
+    left.splice(index, 1);
+  }
+  return picked;
 }
 
 export interface DealInput {

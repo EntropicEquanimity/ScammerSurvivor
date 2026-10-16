@@ -32,29 +32,35 @@ interface Props {
   onBack?: () => void; // back to the day's lock; without it the chevron is the app's own chrome
 }
 
-// The app's header, the Messages shape: a 44px nav with the back control at left and the app name
-// at right (the practice label lives in the DOM through PhoneShell, never as a chip here), then the sender's avatar centred with the name and number under
-// it. It is a game: no AI trace or developer copy here (the Judge Lab and About carry that). The colour comes from --app-colour on the .app section (card.css reads data-look).
+// The app's header, the Messages shape: the sender's avatar centred with a small app badge on it
+// (how iOS shows which app a message came from; no app name floats in the nav), the name and number
+// under it, and a nav row only when there is a back control. The practice label lives in the DOM
+// through PhoneShell. It is a game: no AI trace or developer copy here (the Judge Lab and About carry that). The colour comes from --app-colour on the .app section (card.css reads data-look).
 export function AppHeader({ card, onBack }: Props) {
   const look = appLookFor(card.layout);
   const { displayName, maskedNumber } = card.sender;
   const avatar = card.layout !== 'wallet';
-  const presence = STATUS_LINE[card.layout] ?? card.arrivesAt;
+  const presence = STATUS_LINE[card.layout];
   return (
     <>
       <div className="app-header" data-look={card.layout}>
-        <div className="nav">
-          <BackControl onBack={onBack} />
-          <span className="app-header-name">{look.name}</span>
-        </div>
+        {onBack && (
+          <div className="nav">
+            <BackControl onBack={onBack} />
+          </div>
+        )}
         {avatar ? (
-          <span className="avatar" aria-hidden="true">
-            {displayName.charAt(0)}
+          <span className="avatar-wrap" aria-hidden="true">
+            <span className="avatar">{displayName.charAt(0)}</span>
+            <span className="avatar-badge">
+              <AppIcon layout={card.layout} size={20} />
+            </span>
           </span>
         ) : (
           <AppIcon layout={card.layout} size={50} />
         )}
         <strong className="app-header-sender">{displayName}</strong>
+        <span className="visually-hidden">in {look.name}</span>
         <span className="app-header-meta">
           <span>{maskedNumber}</span>
           {presence && <span>{presence}</span>}

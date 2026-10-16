@@ -120,11 +120,23 @@
   color: var(--ink-2);
 }
 
-/* The app name with its practice tag, right-aligned in the nav's trailing slot. */
-.app-header .nav .app-header-name {
-  grid-column: 3;
-  justify-self: end;
-  white-space: nowrap;
+/* The app badge sits on the avatar's lower right, ringed in the header colour like iOS. */
+.avatar-wrap {
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.avatar-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  display: grid;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.avatar-badge > * {
+  border-radius: 6px;
 }
 
 .app-header-sender {

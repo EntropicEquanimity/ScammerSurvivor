@@ -15,8 +15,8 @@ const LAYOUT_BRAND: Partial<Record<Layout, BrandId>> = {
   call: 'relay',
 };
 
-// Messages (text messages) have no brand: a neutral grey icon and tint, never a real carrier's colour.
-const SMS_COLOUR = '#4a505a';
+// Messages (text messages) have no brand: the phone's own green, never a real carrier's colour.
+const SMS_COLOUR = '#3ac74c';
 
 export interface AppLook {
   name: string;

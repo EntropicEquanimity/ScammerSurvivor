@@ -5,7 +5,7 @@ import { scoreSlot } from '../shared/score.ts';
 import { STANDARD_ACTIONS } from '../shared/types.ts';
 import type { Action, Card } from '../shared/types.ts';
 import { FIXTURES, PACKS } from './country.ts';
-import { dealDay, fillCard, fillText, fitLayout, followUpFor, lessonFor, offeredFor, redealSlot } from './deal.ts';
+import { dealDay, fillCard, fillText, fitLayout, followUpFor, lessonFor, offeredFor, redealSlot, spreadApps } from './deal.ts';
 import { recordAct, recoverSlot, scoreTap, startDay } from './routes/day.ts';
 import { readDay } from './store.ts';
 import type { StoredSlot } from './store.ts';
@@ -261,4 +261,11 @@ test('an old card has no clues key; a twin slot never shows the scam clues', () 
   assert.ok(!('clues' in slotFor(raw, false).public));
   const scamOnly: Card = { ...clued, realTwin: raw.realTwin };
   assert.ok(!('clues' in slotFor(scamOnly, true).public));
+});
+
+test('a day spreads its cards across apps before it repeats one', () => {
+  const card = (id: string, layout: Card['layout']) => ({ id, layout }) as Card;
+  const cards = [card('a', 'green-chat'), card('b', 'green-chat'), card('c', 'green-chat'), card('d', 'sms'), card('e', 'wallet')];
+  assert.deepEqual(spreadApps(cards, 4).map((c) => c.id), ['a', 'd', 'e', 'b']);
+  assert.deepEqual(spreadApps(cards, 2).map((c) => c.id), ['a', 'd']);
 });

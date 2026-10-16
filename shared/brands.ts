@@ -7,10 +7,10 @@ export interface Brand {
 // Fictional brands only. Colours are sampled from the icons in web/public/art (Oct 16); re-sample if an icon changes. Every name here is a proposal until the trademark
 // check in docs/ux-plan.md is done. The other skins join when their slices do.
 export const BRANDS = {
-  quillo: { name: 'Quillo', colour: '#e06d50', glyph: 'k' },
-  fieldpost: { name: 'Fieldpost', colour: '#dd5e86', glyph: 'f' },
-  fold: { name: 'Fold', colour: '#38ada0', glyph: 'f' },
-  relay: { name: 'Relay', colour: '#aa4a09', glyph: 'r' },
+  quillo: { name: 'Quillo', colour: '#fe8520', glyph: 'k' },
+  fieldpost: { name: 'Fieldpost', colour: '#1789fc', glyph: 'f' },
+  fold: { name: 'Fold', colour: '#1fbfb9', glyph: 'f' },
+  relay: { name: 'Relay', colour: '#5758f0', glyph: 'r' },
 } satisfies Record<string, Brand>;
 
 export type BrandId = keyof typeof BRANDS;
