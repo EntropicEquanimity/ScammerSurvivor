@@ -62,7 +62,15 @@ if (dev) {
   });
   app.use(vite.middlewares);
 } else {
-  app.use(express.static(join(root, 'dist')));
+  // Hashed assets can be cached for good; the page itself is re-checked every load, so an update never
+  // leaves a browser holding a page whose asset files are gone.
+  app.use(
+    express.static(join(root, 'dist'), {
+      setHeaders: (res, path) => {
+        res.set('Cache-Control', path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache');
+      },
+    }),
+  );
 }
 
 const onError: ErrorRequestHandler = (err, _req, res, _next) => {
