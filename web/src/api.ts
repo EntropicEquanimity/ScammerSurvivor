@@ -1,4 +1,5 @@
 import type { ActBody, AgeGroup, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TapBody, TraceEvent } from '../../shared/types.ts';
+import { pickBoss, readTally } from '../../shared/boss.ts';
 import { getPeople } from './features/setup/storage.ts';
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -36,8 +37,14 @@ const peopleParam = (): string => {
   return Object.keys(people).length > 0 ? `&people=${encodeURIComponent(JSON.stringify(people))}` : '';
 };
 
+// The tell this device misses most rides along as the day's boss; no misses yet, nothing sent.
+const focusParam = (): string => {
+  const boss = pickBoss(readTally());
+  return boss ? `&focus=${boss}` : '';
+};
+
 export const fetchDay = async (country: string, age: AgeGroup, quick: boolean): Promise<DayPayload> =>
-  readJson(await fetch(`/api/day?country=${encodeURIComponent(country)}&age=${age}&quick=${quick ? 1 : 0}${peopleParam()}`));
+  readJson(await fetch(`/api/day?country=${encodeURIComponent(country)}&age=${age}&quick=${quick ? 1 : 0}${peopleParam()}${focusParam()}`));
 
 export interface DayCards {
   ready: boolean; // every background personalisation finished or was skipped

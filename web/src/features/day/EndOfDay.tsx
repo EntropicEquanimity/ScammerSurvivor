@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
-import type { AgeGroup, DayScore, SlotResult } from '../../../../shared/types.ts';
+import type { CSSProperties, ReactNode } from 'react';
+import { addMisses, bossOutcome, pickBoss, readTally, saveTally } from '../../../../shared/boss.ts';
+import { TELLS } from '../../../../shared/taxonomy.ts';
+import type { AgeGroup, DayScore, SlotResult, TellId } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { initialCountry } from '../../shell/country.ts';
 import { haptic } from '../../shell/feel.ts';
@@ -41,6 +43,38 @@ function countDay(dayId: string | undefined): number {
   } catch {
     return 1;
   }
+}
+
+// Adds the day's missed tells to the device tally once (the dayId guard), and returns the boss the
+// day was dealt against and the one tomorrow brings. Tell ids only.
+function useBoss(dayId: string | undefined, results: SlotResult[]): { today: TellId | null; tomorrow: TellId | null } {
+  const [tally] = useState(() => {
+    const before = readTally();
+    if (!dayId) return before;
+    const after = addMisses(before, results.flatMap((result) => result.missed), dayId);
+    if (after !== before) saveTally(after);
+    return after;
+  });
+  return { today: tally.dayId === dayId ? tally.boss : null, tomorrow: pickBoss(tally) };
+}
+
+const OUTCOME = { beaten: 'Boss beaten.', lost: 'The boss got you.' } as const;
+
+// One row under the tell to watch: how today's boss went, if a scam planted it, and tomorrow's.
+function BossRow({ dayId, results, rows }: { dayId?: string; results: SlotResult[]; rows: number }) {
+  const { today, tomorrow } = useBoss(dayId, results);
+  const outcome = bossOutcome(today, results);
+  if (!tomorrow && !outcome) return null;
+  return (
+    <li className="inset-row inset-body end-row boss-row" style={{ '--n': rows } as CSSProperties}>
+      {outcome && <span className="boss-outcome">{OUTCOME[outcome]}</span>}
+      {tomorrow && (
+        <span>
+          <span className="boss-label">Tomorrow's boss:</span> {TELLS[tomorrow].label}
+        </span>
+      )}
+    </li>
+  );
 }
 
 const ROW_STAGGER_MS = 60; // matches --row-stagger in end.css
@@ -97,12 +131,13 @@ function Ledger({ results, senders, score }: { results: SlotResult[]; senders: R
   );
 }
 
-function MostMissed({ score, tells }: Pick<Props, 'score' | 'tells'>) {
+function MostMissed({ score, tells, boss }: Pick<Props, 'score' | 'tells'> & { boss: ReactNode }) {
   const id = score.tellMostMissed;
   if (!id) {
     return (
       <InsetGroup header="The tell to watch">
         <li className="inset-row inset-body end-row">No tell slipped past you today.</li>
+        {boss}
       </InsetGroup>
     );
   }
@@ -115,6 +150,7 @@ function MostMissed({ score, tells }: Pick<Props, 'score' | 'tells'>) {
         </span>
         <span>It comes back subtler tomorrow.</span>
       </li>
+      {boss}
     </InsetGroup>
   );
 }
@@ -178,7 +214,7 @@ export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders =
         <Ledger results={results} senders={senders} score={score} />
         <RatesNote score={score} rows={results.length} />
         {hotline && <HotlineGroup hotline={hotline} />}
-        <MostMissed score={score} tells={tells} />
+        <MostMissed score={score} tells={tells} boss={<BossRow dayId={dayId} results={results} rows={results.length} />} />
         <div className="result-card-slot" style={{ '--n': results.length } as CSSProperties}>
           <ResultCard score={score} dayNumber={dayNumber} tells={tells} country={country} />
         </div>

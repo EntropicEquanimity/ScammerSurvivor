@@ -3,11 +3,13 @@ import { Router } from 'express';
 import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, recoveryFor, scoreDay, scoreSlot } from '../../shared/score.ts';
 import type { SlotScore } from '../../shared/score.ts';
 import { ACTIONS, PEOPLE_ROLES } from '../../shared/types.ts';
-import type { Action, AgeGroup, Card, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
+import type { Action, AgeGroup, Card, TellId, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
 import { isChipName } from '../../shared/people.ts';
+import { isTellId } from '../../shared/taxonomy.ts';
 import { readCards } from '../cache.ts';
 import { fixturesFor, resolveCountry } from '../country.ts';
 import { PEOPLE_START, collectedFrom, dealDay, followUpFor, lessonFor } from '../deal.ts';
+import type { Deal, DealInput } from '../deal.ts';
 import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState, StoredSlot } from '../store.ts';
 import { recordDay, statsRouter } from './stats.ts';
@@ -24,6 +26,7 @@ export interface DayQuery {
   age?: unknown;
   quick?: unknown;
   people?: unknown; // JSON object, role to name
+  focus?: unknown; // the device's boss: a tell id, or nothing
 }
 
 // After this a slow read is answered from the last good read of the same pack, when there is one.
@@ -113,6 +116,23 @@ export interface Begun {
   settled: Promise<void>; // every background personalisation finished
 }
 
+// Re-deals with the next seed until a scam slot plants the boss tell, so the day holds the fight.
+// No card plants it, or no seed lands it: the plain deal. The browser learns nothing it did not send.
+// ponytail: a seed search over a pure deal; a `focus` that pickCards in deal.ts prefers is the upgrade.
+const FOCUS_TRIES = 32;
+const holdsBoss = (deal: Deal, focus: TellId): boolean =>
+  deal.slots.some((slot) => !slot.isTwin && slot.card.plantedTells.includes(focus));
+
+export function dealFocused(input: DealInput, focus: unknown): Deal {
+  const plain = dealDay(input);
+  if (!isTellId(focus) || holdsBoss(plain, focus)) return plain;
+  for (let attempt = 1; attempt <= FOCUS_TRIES; attempt += 1) {
+    const next = dealDay({ ...input, seed: (input.seed + attempt) >>> 0 });
+    if (holdsBoss(next, focus)) return next;
+  }
+  return plain;
+}
+
 // ponytail: every day is a first play until progress exists (slice 7).
 // `onSkip` personalises an adult full day with no people chosen too, around neutral names: the
 // day route sets it so the Gemini chip flips on the Skip path; rooms and test seams leave it off,
@@ -122,7 +142,7 @@ function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDe
   const age = toAge(query.age);
   const dayId = randomUUID();
   const seed = Number.parseInt(dayId.slice(0, 8), 16);
-  const { payload, slots } = dealDay({ dayId, pack, cards, quick, seed });
+  const { payload, slots } = dealFocused({ dayId, pack, cards, quick, seed }, query.focus);
   // Only an adult full day is personalised; the quick day and younger players never reach a model.
   const modelAllowed = age === 'adult' && !quick;
   const people = modelAllowed ? parsePeople(query.people) : {};

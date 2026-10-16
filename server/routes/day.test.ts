@@ -10,7 +10,7 @@ import { FIXTURES, PACKS, resolveCountry } from '../country.ts';
 import { dealDay, offeredFor } from '../deal.ts';
 import { readDay } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
-import { beginDay, deckReadyFor, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
+import { beginDay, dealFocused, deckReadyFor, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
 import { SKIP_NAMES, appendTrace, listTrace } from './trace.ts';
 import { lessonFor } from './lesson.ts';
 import { listPacks } from './packs.ts';
@@ -388,4 +388,24 @@ test('a pack is deck-ready on its own fixtures or a cache that holds a full day'
   const started = Date.now();
   assert.equal(await deckReadyFor('JP', () => new Promise<Card[]>(() => {})), false);
   assert.ok(Date.now() - started < 3000, 'a hung cache caps at the short pack-list wait');
+});
+
+// SG: only bank_check plants credential_theft, and family_trouble (always a scam) does not.
+const bossDealt = (dayId: string, tell: string): boolean =>
+  Boolean(readDay(dayId)?.slots.some((slot) => !slot.isTwin && slot.card.plantedTells.includes(tell as never)));
+
+test('a focus tell puts a scam that plants it in the day, and the payload stays key-free', () => {
+  const days = Array.from({ length: 25 }, () => startDay({ country: 'SG', focus: 'credential_theft' }));
+  assert.ok(days.every((day) => bossDealt(day.dayId, 'credential_theft')));
+  for (const day of days) walk(day, (key) => assert.ok(!KEY_FIELDS.includes(key), key));
+  const plain = Array.from({ length: 25 }, () => startDay({ country: 'SG' }));
+  assert.ok(plain.some((day) => !bossDealt(day.dayId, 'credential_theft')), 'without focus the deal is not biased');
+});
+
+test('an invalid focus is ignored: the deal is the plain deal for the seed', () => {
+  const { pack, cards } = resolveCountry('SG');
+  const input = { dayId: 'fixed', pack, cards, quick: false, seed: 12345 };
+  const plain = dealDay(input);
+  for (const focus of ['hacked', '', 42, ['urgency'], undefined]) assert.deepEqual(dealFocused(input, focus), plain);
+  assert.equal(startDay({ country: 'SG', focus: 'not_a_tell' }).cards.length, 4);
 });

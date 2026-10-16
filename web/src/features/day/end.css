@@ -33,7 +33,8 @@
 
 /* Resolved where --n is set: a custom property computed on .end would not see the children's --n. */
 .end-note,
-.result-card-slot {
+.result-card-slot,
+.boss-row {
   --after-rows: calc(var(--n, 0) * var(--row-stagger) + 360ms);
 }
 
@@ -62,7 +63,8 @@
   }
 
   .end-note,
-  .result-card-slot {
+  .result-card-slot,
+  .boss-row {
     animation: ledger-fade 200ms ease-out both !important;
     animation-delay: var(--after-rows) !important;
   }
@@ -141,4 +143,22 @@
   color: var(--accent);
   font-weight: 600;
   text-decoration: none;
+}
+
+/* Tomorrow's boss: one row that lands with a small overshoot once the ledger is in, then holds.
+   The notice tone and weight carry it; no new colour. The reduced-motion twin above fades it. */
+.boss-row {
+  animation: boss-in var(--dur-sheet) var(--spring-out) both;
+  animation-delay: var(--after-rows);
+}
+
+@keyframes boss-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.boss-label,
+.boss-outcome {
+  color: var(--notice);
+  font-weight: 600;
 }
