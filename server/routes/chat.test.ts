@@ -21,6 +21,9 @@ function fixed(text: string): Generate & { requests: JsonRequest[] } {
   return Object.assign(generate, { requests });
 }
 
+// One harmless line that answers every chip, so the turn loop never needs a repair.
+const ON_EVERY_CHIP = "Yes, it's me from the office. Sorry, just call my number today to check the proof page, fine to meet.";
+
 const slotsOf = (dayId: string) => readDay(dayId)?.slots ?? [];
 const scamSlot = (dayId: string) => slotsOf(dayId).find((slot) => !slot.isTwin)?.slotId ?? '';
 const twinSlot = (dayId: string) => slotsOf(dayId).find((slot) => slot.isTwin)?.slotId ?? '';
@@ -30,7 +33,7 @@ const slotOf = (dayId: string, slotId: string) => slotsOf(dayId).find((slot) => 
 test('turns one to five are accepted, the fifth wraps up, turn six is refused and the next pick is scored by /act', async () => {
   const { dayId } = startDay({ country: 'SG' });
   const slotId = scamSlot(dayId);
-  const generate = fixed('Sure, talk soon.');
+  const generate = fixed(ON_EVERY_CHIP);
   const said: ChatChipId[] = [];
   let chips = pickChips(slotOf(dayId, slotId)!.public, []);
   for (let turn = 1; turn <= 5; turn += 1) {
@@ -118,6 +121,17 @@ test('the quick day and under 18 never reach the model: the fixed line', async (
     const generate = fixed('Sure.');
     const reply = await replySlot(dayId, slot.slotId, { turn: 1, said: 'ok_what_do_i_do' }, { generate });
     assert.equal(generate.requests.length, 0);
-    assert.equal(reply.status === 200 && reply.body.message.text, fallbackLine(slot.card, slot.isTwin));
+    assert.equal(reply.status === 200 && reply.body.message.text, fallbackLine(slot.card, slot.isTwin, 'ok_what_do_i_do'));
   }
+});
+
+test("an answer that misses the chip is repaired once, then the fixed line for that chip in that sender's voice", async () => {
+  const { dayId } = startDay({ country: 'SG' });
+  const slotId = twinSlot(dayId);
+  const slot = slotOf(dayId, slotId)!;
+  const chip = pickChips(slot.public, [])[0];
+  const generate = fixed('Hmm.');
+  const reply = await replySlot(dayId, slotId, { turn: 1, said: chip }, { generate });
+  assert.equal(generate.requests.length, 2);
+  assert.equal(reply.status === 200 && reply.body.message.text, fallbackLine(slot.card, true, chip));
 });

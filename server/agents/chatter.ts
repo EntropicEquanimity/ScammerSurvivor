@@ -1,8 +1,8 @@
 // The Chatter: the sender's next chat message after the player taps Reply and sends a chip.
 // The player never types; the chips are fixed ids in shared/chips.ts. On a scam the sender pushes
 // harder with the trick's own move; on a real twin the sender answers like the real person.
-// Code checks every line (the Guard's text rules plus a word cap), one repair turn, then a fixed
-// line per trick category. The whole try is raced against a deadline so the thread never hangs.
+// Code checks every line (the Guard's text rules, a word cap, and that it answers the chip), one
+// repair turn, then a fixed line for that kind of sender and chip (chatterLines.ts). The whole try is raced against a deadline so the thread never hangs.
 import { ThinkingLevel, Type } from '@google/genai';
 import type { GoogleGenAI, Schema } from '@google/genai';
 import { GeminiError, MODELS, makeClient } from '../gemini.ts';
@@ -10,18 +10,23 @@ import type { JsonRequest } from '../gemini.ts';
 import { BRAND_DENYLIST } from '../guard/card.ts';
 import { identityReasons } from './caller.ts';
 import type { Generate } from './caller.ts';
-import { INSTITUTIONS, BRANDS } from '../../shared/brands.ts';
-import { TELLS, TRICKS, trickCategory } from '../../shared/taxonomy.ts';
-import type { Card, Category, ChatChipId, TraceEvent } from '../../shared/types.ts';
+import { INSTITUTIONS, BRANDS, isInstitutionId } from '../../shared/brands.ts';
+import { CHIP_LABELS } from '../../shared/chips.ts';
+import { TELLS, TRICKS } from '../../shared/taxonomy.ts';
+import type { Card, ChatChipId, TraceEvent } from '../../shared/types.ts';
+import { SCAM_LINES, TWIN_LINES } from './chatterLines.ts';
+import type { SenderKind } from './chatterLines.ts';
 
 export { CHAT_CHIPS, CHIP_LABELS, MAX_EXCHANGES, pickChips } from '../../shared/chips.ts';
 export const MAX_WORDS = 40;
-// Under the browser's 6 s: the whole generate and repair must land by then or the fixed line goes.
-export const CHAT_DEADLINE_MS = 5500;
-// A repair is only tried when at least this much of the deadline is left.
-const REPAIR_MIN_MS = 1500;
+// Under the browser's 9 s cap (web/src/features/chat/api.ts): the whole generate and repair must
+// land by then or the fixed line goes. 5.5 s cut 11 of 24 first turns on the Vertex test link, where
+// a first draft alone took up to 5 s; a draft plus its repair needs about 7.
+export const CHAT_DEADLINE_MS = 8000;
+// A repair is only tried when at least one more call's worth of the deadline is left.
+const REPAIR_MIN_MS = 2500;
 
-export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_example' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims';
+export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_example' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims' | 'off_topic';
 
 const REASON_TEXT: Record<ChatReason, string> = {
   empty: 'Write one short chat message.',
@@ -34,7 +39,31 @@ const REASON_TEXT: Record<ChatReason, string> = {
   name_not_allowed: 'Use no personal name except the ones you were given.',
   banned_word: 'Name no real country, agency or police force.',
   twin_disclaims: 'Do not say what you would never ask for or that there is no fee; just answer.',
+  off_topic: 'Answer the question the player just asked, directly, in your first sentence.',
 };
+
+// Does the line answer the chip? Loose word checks, cheap and pure: a miss is one repair, then the
+// fixed line for that chip. "Who is this?" also passes when the line names an allowed name.
+const ON_TOPIC: Record<ChatChipId, RegExp> = {
+  who_is_this: /\b(?:it'?s|this is|i'?m|i am|we are|we're|from)\b/i,
+  why_so_urgent: /\b(?:urgent|rush|hurry|today|tonight|tomorrow|now|soon|time|deadline|closes?|closing|wait|minutes?|hours?|week|later|quick)\b/i,
+  can_i_call_you: /\b(?:call|calls|ring|phone|lines?|talk|number|text|chat|mic)\b/i,
+  ok_what_do_i_do: /\b(?:just|step|steps|first|next|tap|open|reply|send|check|confirm|follow|tell|come|bring|nothing|do|read|join|copy|log|verify|update|enter|pay|click|go|use|visit|call)\b/i,
+  send_proof: /\b(?:proof|prove|screenshots?|photos?|pictures?|documents?|letter|certificate|invoice|receipt|reference|tracking|records?|notes|really me|it is me|it's me)\b/i,
+  check_with_bank: /\b(?:bank|banks|branch|branches|check|good idea|time|slow|delay|finance|adviser|call|wait|hours?)\b/i,
+  is_it_you: /\b(?:yes|yeah|yep|of course|it'?s me|it is me|really me|me)\b/i,
+  not_enough_money: /\b(?:pay|money|amount|afford|less|little|small|smaller|cheaper|cash|balance|fine|okay|ok|whatever|nothing|charge)\b/i,
+  meet_in_person: /\b(?:meet|meeting|see you|come|visit|in person|free|counters?|branch(?:es)?|office|depot|town|away|remote|remotely|travel)\b/i,
+  official_number: /\b(?:call|calling|ring|number|line|phone|official|good idea|sure|desk|station|chat|here)\b/i,
+  stop_messaging: /\b(?:sorry|bye|stop|leave|leaving|okay|fine|understood|last|regret|lose|noted|problem|close|wow|expected|someone else|another|next)\b/i,
+  what_link: /\b(?:link|page|site|app|isn'?t one|minute|details)\b/i,
+};
+
+export function onTopic(text: string, said: ChatChipId, names: readonly string[] = []): boolean {
+  if (ON_TOPIC[said].test(text)) return true;
+  const seen = new Set((text.toLowerCase().match(/[a-z]+/g) ?? []));
+  return said === 'who_is_this' && names.some((name) => name.toLowerCase().split(/\s+/).every((w) => seen.has(w)));
+}
 
 // The Guard's link shape (server/guard/card.ts, not exported there): optional scheme and www,
 // a host with a two-letter-or-longer last label. Group 1 is the host.
@@ -56,7 +85,7 @@ const NOT_NAMES = new Set([
 const EM_DASH = String.fromCharCode(0x2014);
 // The Guard's twin rule (server/guard/card.ts, not exported there): a real sender never says what it
 // does not ask for, since only someone expecting suspicion says "no fee" or "we never ask".
-const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay)\b/i;
+const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay|nothing to pay)\b|\b(?:not|never)\s+asking\s+(?:you\s+)?for\s+(?:any\s+)?(?:money|payment|anything)\b|\b(?:do not|don't|dont)\s+need\s+to\s+pay\b/i;
 const words = (text: string): string[] => text.trim().split(/\s+/).filter(Boolean);
 const hasBrand = (text: string): boolean => (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 const offExampleLink = (text: string): boolean => [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
@@ -67,7 +96,7 @@ const strangeName = (text: string, allowed: Set<string>): boolean =>
     .some((w) => /^[A-Z][a-z]+$/.test(w) && !NOT_NAMES.has(w.toLowerCase()) && !allowed.has(w.toLowerCase()));
 
 // Reason ids only, never the text. Pure, so the route test and the live run read the same rules.
-export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false): ChatReason[] {
+export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false, said?: ChatChipId): ChatReason[] {
   const text = typeof raw === 'string' ? raw.trim() : '';
   if (!text) return ['empty'];
   const allowed = new Set(allowedNames.flatMap((name) => name.toLowerCase().split(/\s+/)));
@@ -81,31 +110,38 @@ export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwi
     ['name_not_allowed', strangeName(text, allowed)],
     ['banned_word', identityReasons(text).includes('banned_word')],
     ['twin_disclaims', isTwin && DISCLAIMER.test(text)],
+    ['off_topic', said !== undefined && !onTopic(text, said, allowedNames)],
   ];
   return checks.filter(([, failed]) => failed).map(([reason]) => reason);
 }
 
-// The fixed lines: one per trick category on a scam, one per kind of sender on a twin. Generic
-// pressure with no amount, no link and no instruction (AGENTS.md rule 6), and plain honesty.
-const SCAM_FALLBACK: Record<Category, string> = {
-  A: 'The spot closes today, so I need your answer soon.',
-  B: 'The window is closing and the others are already in.',
-  C: 'Your account stays on hold until this is sorted today.',
-  D: 'It goes back to the depot today if this is not sorted.',
-  E: 'Please, I really need your help right now. I cannot talk on the phone.',
-  F: 'This is a formal matter. Do not discuss it with anyone until it is closed.',
-  G: 'The booking is only held for a short time.',
-  H: 'It is only released if you act today.',
-  I: 'I am in meetings all day. Please just handle it now.',
-  J: 'Just finish the steps I sent and it will be fixed.',
+// The kind of sender, for the fixed lines. A cached Director card names no institution, so the
+// trick gives the usual sender, and a first name where an organisation would be (a friend sharing
+// an investing tip, a person asking for a code) is spoken as a friend.
+const TRICK_KIND: Record<string, SenderKind> = {
+  family_trouble: 'relative', fast_romance: 'friend', paid_task: 'recruiter', overseas_job: 'recruiter',
+  investment_group: 'mentor', digital_arrest: 'police', code_or_account: 'wallet', bank_check: 'bank',
+  parcel_fee: 'courier', refund_payment: 'courier', listing_leaver: 'buyer', payment_change: 'boss',
+  prize_fee: 'prize_office', app_in_chat: 'bank',
 };
-const PERSONAL: ReadonlySet<string> = new Set(['relative', 'friend', 'boss', 'buyer']);
-const TWIN_PERSONAL = 'No rush. Call me on my usual number if you want to check.';
-const TWIN_OFFICIAL = 'No rush. You can check it in our official app, or call the number you already have for us.';
+const OFFICES: ReadonlySet<SenderKind> = new Set(['bank', 'wallet', 'courier', 'police', 'prize_office', 'unknown']);
+const isPerson = (name: string): boolean => /^[A-Z][a-z]+$/.test(name) && !NOT_NAMES.has(name.toLowerCase());
 
-export function fallbackLine(card: Card, isTwin: boolean): string {
-  if (!isTwin) return SCAM_FALLBACK[trickCategory(card.trickId)];
-  return PERSONAL.has(card.realTwin.sender.institutionId ?? '') ? TWIN_PERSONAL : TWIN_OFFICIAL;
+export function senderKind(card: Card, isTwin: boolean): SenderKind {
+  const sender = isTwin ? card.realTwin.sender : card.sender;
+  if (isInstitutionId(sender.institutionId)) return sender.institutionId;
+  const kind = TRICK_KIND[card.trickId] ?? 'unknown';
+  const person = isPerson(sender.displayName.trim());
+  return person && (OFFICES.has(kind) || (isTwin && kind === 'mentor')) ? 'friend' : kind;
+}
+
+// A bracketed name (a card that missed the fill, "[Quillo]") never reaches a line: its brackets go.
+const nameOf = (displayName: string): string => displayName.replace(/[[\]]/g, '').replace(/\s+/g, ' ').trim() || 'me';
+
+// The fixed line for the chip just sent, in that sender's voice; with no chip, the plain next step.
+export function fallbackLine(card: Card, isTwin: boolean, said: ChatChipId = 'ok_what_do_i_do'): string {
+  const line = (isTwin ? TWIN_LINES : SCAM_LINES)[senderKind(card, isTwin)][said];
+  return line.replace('{name}', nameOf((isTwin ? card.realTwin.sender : card.sender).displayName));
 }
 
 export interface ChatLine {
@@ -113,9 +149,9 @@ export interface ChatLine {
   text: string;
 }
 
-const SCAM_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice and is learning to spot tricks. You play the sender of a scam message the player received. The player tapped a short reply. Answer in character, as a real chat message from that sender: keep the trick going and push harder with one classic pressure move that fits it, such as more urgency, a new excuse for why a call cannot happen, a request to keep it quiet, or a link or a code ask, but only a move the trick description supports. Never admit it is a scam. Never break character. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, any link only on a host ending in .example, no personal name except the ones given. JSON only.`;
+const SCAM_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice and is learning to spot tricks. You play the sender of a scam message the player received. The player tapped a short reply. Your first sentence answers exactly what the player asked, in the sender's own voice: asked who you are, say who; asked for proof, talk about the proof; asked to call, talk about the call. Then keep the trick going and push harder with one classic pressure move that fits it, such as more urgency, a new excuse for why a call cannot happen, a request to keep it quiet, or a link or a code ask, but only a move the trick description supports. Never admit it is a scam. Never break character. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, any link only on a host ending in .example, no personal name except the ones given. JSON only.`;
 
-const TWIN_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice. You play the real, honest sender of an ordinary message the player received. The player tapped a short reply. Answer the way the real person or the real company would: calm, friendly, no pressure, no secrecy, no request for money, codes or passwords. If asked who you are, say so plainly. If the player wants to check, welcome it: say call me on the number you have, or point to the official app or the number they already know. Never send a link. Never say what you would never ask for or that something is free; just answer. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, no personal name except the ones given. JSON only.`;
+const TWIN_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice. You play the real, honest sender of an ordinary message the player received. The player tapped a short reply. Your first sentence answers exactly what the player asked, the way the real person or the real company would: a friend or relative sounds like one (casual, warm, first name), a company sounds like a company. Stay calm, friendly, no pressure, no secrecy, no request for money, codes or passwords. If asked who you are, say so plainly. If the player wants to check, welcome it: say call me on the number you have, or point to the official app or the number they already know. Never send a link. Never say what you would never ask for or that something is free; just answer. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, no personal name except the ones given. JSON only.`;
 
 // The move for the chip just sent. A scam slips the way real ones do (no proof, keep off the
 // official line); a twin answers like the real sender. One short line each, appended to the prompt.
@@ -138,10 +174,10 @@ const TWIN_MOVE: Record<ChatChipId, string> = {
   why_so_urgent: 'Say it is not urgent and they can take their time.',
   can_i_call_you: 'Say yes, any time, on the number they already have for you.',
   ok_what_do_i_do: 'Explain the ordinary next step calmly.',
-  send_proof: 'Point them to check it themselves in the official app or with the number they already have.',
+  send_proof: 'Offer a simple proof that it is really you: your usual number, or checking it themselves in the official app.',
   check_with_bank: 'Say that is a good idea and there is no rush.',
   is_it_you: 'Say yes, plainly, and offer to talk on the usual number.',
-  not_enough_money: 'Say that is fine and suggest an easy, normal option with no pressure.',
+  not_enough_money: 'Say that is fine and carry on with the plan; do not mention money or paying at all.',
   meet_in_person: 'Say yes, or say when you are free.',
   official_number: 'Say that is a good idea.',
   stop_messaging: 'Apologise briefly and say goodbye.',
@@ -152,7 +188,7 @@ const LAST_TWIN = 'This is your last message in this chat: say a warm goodbye.';
 
 // The move line for the newest chip, plus the wrap-up on the last exchange.
 export function moveLine(isTwin: boolean, said: ChatChipId, last: boolean): string {
-  const move = `Your next message: ${(isTwin ? TWIN_MOVE : SCAM_MOVE)[said]}`;
+  const move = `The player just asked: "${CHIP_LABELS[said]}". Answer that first. Your next message: ${(isTwin ? TWIN_MOVE : SCAM_MOVE)[said]}`;
   return last ? `${move}
 ${isTwin ? LAST_TWIN : LAST_SCAM}` : move;
 }
@@ -163,6 +199,12 @@ export const CHAT_SCHEMA: Schema = {
   required: ['text'],
 };
 
+// The sender's kind in words, so the voice fits: "a friend", "your bank", "a sender".
+const kindLabel = (card: Card, isTwin: boolean): string => {
+  const kind = senderKind(card, isTwin);
+  return kind === 'unknown' ? 'a sender' : INSTITUTIONS[kind].toLowerCase();
+};
+
 const threadLines = (thread: readonly ChatLine[]): string[] =>
   thread.map((line) => `${line.from === 'player' ? 'Player' : 'You'}: ${line.text}`);
 
@@ -171,13 +213,13 @@ export function chatPrompt(card: Card, isTwin: boolean, thread: readonly ChatLin
   const names = `Names you may use: ${[...allowedNames].join(', ') || 'none'}.`;
   if (isTwin) {
     const { sender, parts } = card.realTwin;
-    return [`You are: ${sender.displayName}.`, `Your message: ${parts.map((p) => p.text).join(' ')}`, names, 'Chat so far:', ...threadLines(thread)].join('\n');
+    return [`You are: ${sender.displayName} (${kindLabel(card, true)}).`, `Your message: ${parts.map((p) => p.text).join(' ')}`, names, 'Chat so far:', ...threadLines(thread)].join('\n');
   }
   const trick = TRICKS.find((row) => row.id === card.trickId)?.name ?? card.trickId;
   const moves = card.plantedTells.map((id) => TELLS[id].label).join(', ');
   const shown = [...card.setup, ...card.ask].map((p) => p.text).join(' ');
   return [
-    `You are: ${card.sender.displayName}.`,
+    `You are: ${card.sender.displayName}, posing as: ${kindLabel(card, false)}.`,
     `The trick: ${trick}. Its pressure moves: ${moves}.`,
     `How it usually goes: ${card.usualEnding}`,
     `Your first message: ${shown}`,
@@ -235,15 +277,36 @@ async function once(req: JsonRequest, model: string): Promise<{ json: unknown; t
   return { json: JSON.parse(res.text ?? ''), trace };
 }
 
-export const quickGenerate: Generate = (req) => once(req, req.model ?? MODELS.director).catch(() => once(req, MODELS.fallback));
+// gemini-3.8-flash at its lowest thinking level still takes 6 to 7 s on about one call in five
+// (measured on the developer route, finish STOP, no error); gemini-3.6-flash answers in about 1.5 s.
+// So a main call still out after HEDGE_MS starts the backup, and the first good answer wins. A main
+// error starts the backup at once; a main answer before HEDGE_MS never starts it.
+export const HEDGE_MS = 3500;
+
+export function hedge<T>(main: () => Promise<T>, backup: () => Promise<T>, ms = HEDGE_MS): Promise<T> {
+  const first = main();
+  const second = new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    first.then(() => (clearTimeout(timer), reject(new Error('not needed'))), () => (clearTimeout(timer), resolve()));
+  }).then(backup);
+  return Promise.any([first, second]).catch((err: AggregateError) => Promise.reject(err.errors?.[0] ?? err));
+}
+
+export const quickGenerate: Generate = (req) => {
+  const model = req.model ?? MODELS.director;
+  return model === MODELS.fallback ? once(req, model) : hedge(() => once(req, model), () => once(req, MODELS.fallback));
+};
 
 const textOf = (json: unknown): string => {
   const raw = (json && typeof json === 'object' ? json : {}) as { text?: unknown };
   return typeof raw.text === 'string' ? raw.text.trim() : '';
 };
 
-const repairNote = (reasons: readonly ChatReason[]): string =>
-  `\nYour last draft broke these rules. Write it again.\n${reasons.map((r) => `- ${REASON_TEXT[r]}`).join('\n')}`;
+const reasonText = (reason: ChatReason, said?: ChatChipId): string =>
+  reason === 'off_topic' && said ? `${REASON_TEXT.off_topic} They asked: "${CHIP_LABELS[said]}"` : REASON_TEXT[reason];
+
+const repairNote = (reasons: readonly ChatReason[], said?: ChatChipId): string =>
+  `\nYour last draft broke these rules. Write it again.\n${reasons.map((r) => `- ${reasonText(r, said)}`).join('\n')}`;
 
 type Attempt = Omit<ChatterResult, 'ms'>;
 
@@ -253,21 +316,23 @@ async function attempt(input: ChatterInput, started: number, deadline: number): 
   const move = input.said ? `
 ${moveLine(input.isTwin, input.said, input.last ?? false)}` : '';
   const contents = chatPrompt(input.card, input.isTwin, input.thread, input.allowedNames) + move;
-  const ask = (extra: string) => generate({ system, contents: contents + extra, schema: CHAT_SCHEMA, model: MODELS.director, temperature: 0.8 });
-  const first = await ask('');
+  // The repair goes to the fallback model: about a second faster, and its own quota under a 429.
+  const ask = (extra: string, model: string) => generate({ system, contents: contents + extra, schema: CHAT_SCHEMA, model, temperature: 0.8 });
+  const check = (text: string) => chatReasons(text, input.allowedNames, input.isTwin, input.said);
+  const first = await ask('', MODELS.director);
   const firstText = textOf(first.json);
-  const reasons = chatReasons(firstText, input.allowedNames, input.isTwin);
+  const reasons = check(firstText);
   if (reasons.length === 0) return { text: firstText, outcome: 'ok', reasons, trace: first.trace };
   if (deadline - (performance.now() - started) < REPAIR_MIN_MS) return fallbackAttempt(input, reasons);
-  const second = await ask(repairNote(reasons));
+  const second = await ask(repairNote(reasons, input.said), MODELS.fallback);
   const secondText = textOf(second.json);
-  const again = chatReasons(secondText, input.allowedNames, input.isTwin);
+  const again = check(secondText);
   if (again.length === 0) return { text: secondText, outcome: 'repaired', reasons: [], trace: second.trace };
   return fallbackAttempt(input, again);
 }
 
 const fallbackAttempt = (input: ChatterInput, reasons: ChatReason[]): Attempt => ({
-  text: fallbackLine(input.card, input.isTwin),
+  text: fallbackLine(input.card, input.isTwin, input.said),
   outcome: 'fallback',
   reasons,
   trace: null,
