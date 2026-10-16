@@ -18,7 +18,7 @@ export function IncomingBanner({ caller, onAccept, onDecline }: Props) {
         <Avatar caller={caller} />
         <span className="ring-banner-text">
           <span className="ring-banner-name">{caller.shown}</span>
-          <span className="ring-banner-sub">Practice call</span>
+          <span className="ring-banner-sub"><span className="visually-hidden">Practice call, </span>mobile</span>
         </span>
       </div>
       <div className="ring-banner-buttons">

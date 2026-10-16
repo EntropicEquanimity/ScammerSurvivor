@@ -20,8 +20,6 @@ interface Props {
   onDone: () => void;
 }
 
-const RING_R = 46;
-const RING_C = 2 * Math.PI * RING_R;
 const BARS = 12;
 
 const GLYPHS: Partial<Record<Action, string>> = {
@@ -101,13 +99,6 @@ function Waveform({ audio, speaking, graph }: { audio: HTMLAudioElement | null; 
   );
 }
 
-// The caller's confidence as a ring around the avatar; the line under it carries the number.
-const Ring = ({ meter }: { meter: number }) => (
-  <svg className="call-ring" viewBox="0 0 100 100" aria-hidden="true">
-    <circle className="call-ring-track" cx="50" cy="50" r={RING_R} />
-    <circle className="call-ring-fill" cx="50" cy="50" r={RING_R} strokeDasharray={RING_C} strokeDashoffset={RING_C * (1 - meter / 100)} />
-  </svg>
-);
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -152,7 +143,7 @@ function GridButton({ action, offered, busy, onAct }: { action: Action; offered:
   return <RoundButton label={ACTION_LABELS[action]} tone="glass" glyph={GLYPHS[action] ?? PHONE} disabled={busy} onPress={() => onAct(action)} />;
 }
 
-export function TalkingView({ caller, beat, meter, offered, heardCode, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
+export function TalkingView({ caller, beat, offered, heardCode, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
   const caption = useRef<HTMLParagraphElement>(null);
   // The name, timer and number stay pinned under the status bar; only the caption scrolls, inside
   // itself, so a long beat on a short phone never moves the name or runs under the grid.
@@ -173,12 +164,7 @@ export function TalkingView({ caller, beat, meter, offered, heardCode, busy, fai
         <PracticeLine tail={tailOf(caller)} />
       </header>
       <div className="page-body">
-        <Avatar caller={caller}>
-          <Ring meter={meter} />
-        </Avatar>
-        <p className="call-meter-text">
-          Caller&apos;s confidence <strong>{Math.round(meter)}</strong> of 100
-        </p>
+        <Avatar caller={caller} />
         <Waveform audio={audio} speaking={speaking} graph={graph} />
         <p className="call-caption scroll" aria-live="polite" ref={caption} onScroll={mark}>{beat?.caption ?? ''}</p>
         {failed && (
