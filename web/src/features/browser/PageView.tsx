@@ -5,6 +5,7 @@ import { haptic } from '../../shell/feel.ts';
 import { PartView } from '../layouts/MessageView.tsx';
 import type { TapMode } from '../layouts/MessageView.tsx';
 import { ROW_LABEL, rowValue, sendLabel, siteName } from './fill.ts';
+import { isNoLink } from './template.ts';
 
 export { siteName } from './fill.ts';
 import type { FormState } from './fill.ts';
@@ -114,7 +115,7 @@ function PreviewRows({ page, line }: { page: PublicPage; line: string }) {
           ))}
         </ul>
       )}
-      <p className="web-preview" role="note">{line}</p>
+      {!isNoLink(page) && <p className="web-preview" role="note">{line}</p>}
     </>
   );
 }
@@ -123,7 +124,7 @@ export function PageView({ page, sent, preview, ...form }: Props) {
   if (preview) {
     return (
       <article className="web">
-        <SiteHeader host={page.host} />
+        {!isNoLink(page) && <SiteHeader host={page.host} />}
         <ScreenTitle className="web-title">{page.title}</ScreenTitle>
         {page.lines.map((line) => <p key={line.id} className="web-line">{line.text}</p>)}
         <PreviewRows page={page} line={preview} />

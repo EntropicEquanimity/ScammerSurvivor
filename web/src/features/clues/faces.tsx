@@ -31,7 +31,7 @@ function LinkPreview({ clue }: FaceProps) {
   );
 }
 
-// A wallet request: the amount large, who asks under it, and a grey "Payment request" label. It is a
+// A wallet request: the amount large, who asks under it, and a grey "Payment" label (true for a charge alert and a request alike). It is a
 // preview of the request, not a Pay button (the UX audit, Oct 16): paying lives in the tray.
 // Money coming in (a refund, a friend's share) reads "Incoming SGD 500" and has no label: nobody pays to receive.
 function PaymentRequest({ clue }: FaceProps) {
@@ -42,7 +42,7 @@ function PaymentRequest({ clue }: FaceProps) {
       <span className="clue-amount">{incoming && amount ? `Incoming ${amount}` : amount}</span>
       <span className="clue-title">{clue.title}</span>
       {!incoming && (
-        <span className="clue-pay-pill">Payment request</span>
+        <span className="clue-pay-pill">Payment</span>
       )}
     </span>
   );

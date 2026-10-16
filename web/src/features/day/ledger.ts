@@ -50,6 +50,9 @@ const REAL_LINE: Partial<Record<Action, string>> = {
   ignore: 'real, they did not hear back',
   block_report: 'real, you blocked them',
   verify_known_number: 'real, you checked',
+  open_link: 'real, you opened it',
+  pay: 'real, you paid',
+  send_money: 'real, you sent it',
 };
 const SCAM_LINE: Partial<Record<Action, string>> = { ignore: 'ignored', block_report: 'blocked' };
 

@@ -28,6 +28,9 @@ test('a courier page asks for card and code; anyone else gets a continue page wi
   assert.equal(other.host, 'shop.example');
 });
 
-test('a message with no host still opens a page', () => {
-  assert.equal(templatePage(card('Kai', 'tap the link')).host, 'link.example');
+test('a message with no link of its own opens a page that says so', () => {
+  const page = templatePage(card('Harbourline Bank', 'View it in the official app.'));
+  assert.equal(page.title, 'No link to open');
+  assert.deepEqual(page.lines.map((line) => line.text), ['There is no link in this message.']);
+  assert.deepEqual(page.fields, []);
 });

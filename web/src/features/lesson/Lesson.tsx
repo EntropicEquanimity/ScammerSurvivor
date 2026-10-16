@@ -70,8 +70,9 @@ export function Lesson({ dayId, result, busy, failed, onNext, lost }: LessonProp
     <section className="page-full lesson anim-sheet">
       <div className="page-body scroll">
         <LessonHead result={result} lost={lost} />
-        <TellsGroup result={result} notes={notes} />
+        {/* The one rule first, so it is read before Next (the UX audit, Oct 16: it sat below the fold). */}
         <NextTime lesson={lesson} />
+        <TellsGroup result={result} notes={notes} />
         <FlaggedGroup result={result} />
         <GaveAwayGroup result={result} />
         <WouldHaveHappened lesson={lesson} />

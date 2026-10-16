@@ -204,3 +204,22 @@
   font-weight: 600;
   text-align: center;
 }
+
+/* "Flag anything suspicious" is longer than the centre of a nav at 320 beside the game capsule, so
+   on this screen the title starts at the left and the capsule moves to the right, where Done used
+   to be (Done now sits at the bottom). */
+.page-full.tells > .nav {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.page-full.tells > .nav .nav-title {
+  align-items: flex-start;
+  justify-self: start;
+  padding-left: 0.5rem;
+  text-align: left;
+}
+
+.phone:has(.tells > .nav) .game-hud {
+  right: 12px;
+  left: auto;
+}

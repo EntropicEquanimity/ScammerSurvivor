@@ -14,8 +14,14 @@ const SIGN_IN_IDS = ['bank', 'wallet', 'prize_office', 'police'];
 
 export const NOT_PRACTICE = "This site isn't part of the practice yet.";
 
-const hostIn = (card: Pick<PublicCard, 'setup' | 'ask'>): string =>
-  [...card.setup, ...card.ask].map((part) => HOST.exec(part.text)?.[0]).find(Boolean)?.toLowerCase() ?? 'link.example';
+const hostIn = (card: Pick<PublicCard, 'setup' | 'ask'>): string | undefined =>
+  [...card.setup, ...card.ask].map((part) => HOST.exec(part.text)?.[0]).find(Boolean)?.toLowerCase();
+
+// The pair shares its buttons, so Open link can show on a message with no link of its own. The page
+// then says so: a fact the player can check against the message on screen, the same on both sides.
+export const NO_LINK = 'There is no link in this message.';
+const BLANK = 'about:blank';
+export const isNoLink = (page: PublicPage): boolean => page.host === BLANK;
 
 type Kind = 'sign_in' | 'redelivery' | 'continue';
 
@@ -30,6 +36,7 @@ export function templateKind(sender: PublicCard['sender']): Kind {
 
 export function templatePage(card: Pick<PublicCard, 'sender' | 'setup' | 'ask'>): PublicPage {
   const host = hostIn(card);
+  if (!host) return { kind: 'bank_app_note', host: BLANK, title: 'No link to open', lines: [{ id: 't1', text: NO_LINK }], fields: [] };
   const kind = templateKind(card.sender);
   if (kind === 'sign_in') {
     return { kind: 'sign_in', host, title: 'Sign in to continue', lines: [{ id: 't1', text: 'Enter your details to see your account.' }], fields: ['name', 'password'] };
@@ -37,5 +44,5 @@ export function templatePage(card: Pick<PublicCard, 'sender' | 'setup' | 'ask'>)
   if (kind === 'redelivery') {
     return { kind: 'redelivery', host, title: 'Pay the redelivery fee', lines: [{ id: 't1', text: 'Your parcel is waiting. Pay to book a new time.' }], fields: ['card', 'code'] };
   }
-  return { kind: 'bank_app_note', host, title: 'Continue', lines: [{ id: 't1', text: 'Tap Continue to go on.' }], fields: [] };
+  return { kind: 'bank_app_note', host, title: 'Welcome', lines: [{ id: 't1', text: 'This page asks for nothing yet.' }], fields: [] };
 }
