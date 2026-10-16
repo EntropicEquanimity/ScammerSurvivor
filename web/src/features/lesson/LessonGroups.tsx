@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { SlotResult, TellId } from '../../../../shared/types.ts';
+import type { CoachNotes, SlotResult, TellId } from '../../../../shared/types.ts';
+import { REAL_WHY, TELLS } from '../../../../shared/taxonomy.ts';
 import type { FieldId } from '../../../../shared/profile.ts';
 import { POINTS } from '../../../../shared/points.ts';
 import { Icon } from '../../shell/Icon.tsx';
@@ -7,9 +8,10 @@ import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { PartView } from '../layouts/MessageView.tsx';
 import { Stamp, stampKind, useStampTicks } from './Stamps.tsx';
+import { parseNotes, tellOrder, tellRows } from './title.ts';
 
-// The pieces of the one-screen lesson: the scam with its tells stamped in place, the real twin,
-// the Coach's streamed note, and the hotline group the end-of-day screen shows.
+// The pieces of the one-screen lesson: each tell with its line, stamp and why, the real twin, the
+// Coach's notes, and the hotline group the end-of-day screen shows.
 
 type Lesson = SlotResult['lesson'];
 type Sender = Lesson['real']['sender'];
@@ -21,36 +23,44 @@ const SenderRow = ({ sender }: { sender: Sender }) => (
   </li>
 );
 
-// What gave it away: the scam with each tell stamped on the part it sits in. Caught and missed come
-// from the result, so a tell the scoring left out (a page never sent) shows as a plain label, never as
-// a miss. A missed tell on no shown part gets its own row of stamps. The stamp index runs in reading
-// order across every part, so the stamps land one after another.
-export function StampedScam({ lesson, caught, missed }: { lesson: Lesson; caught: TellId[]; missed: TellId[] }) {
-  const labelOf = Object.fromEntries(lesson.tells.map((tell) => [tell.id, tell.label]));
+// The why for a tell: the Coach's line for this message once it lands, the fixed line until then.
+const whyFor = (lesson: Lesson, notes: CoachNotes | null, id: TellId): string =>
+  notes?.tells.find((entry) => entry.tellId === id)?.why ?? lesson.tells.find((tell) => tell.id === id)?.why ?? TELLS[id].why;
+
+// What made it suspicious, the heart of the lesson: one row per line of the message, quoted, with
+// each tell on it as its stamp and one sentence on why it is a red flag here. Lines with a missed
+// tell lead, then caught, then tells the scoring never counted (a page never sent), shown as plain
+// labels, never as a miss. A tell on no shown line gets a row with no quote.
+export function TellsGroup({ result, notes }: { result: SlotResult; notes: CoachNotes | null }) {
+  const { lesson, caught, missed } = result;
   const kindOf = (id: TellId) => stampKind(id, caught, missed);
-  const placed = [...new Set(lesson.scam.parts.flatMap((part) => part.tellIds))];
-  const unplaced = missed.filter((id) => !placed.includes(id));
-  // A tell planted on two parts lands once in the sequence; its second stamp shares that slot.
-  const order = [...placed.filter((id) => kindOf(id) !== 'plain'), ...unplaced];
-  useStampTicks(order.length);
-  const stamp = (id: TellId) => <Stamp key={id} label={labelOf[id] ?? id} kind={kindOf(id)} index={order.indexOf(id)} />;
+  const order = tellOrder(result);
+  const stamped = order.filter((id) => kindOf(id) !== 'plain');
+  useStampTicks(stamped.length);
+  const labelOf = (id: TellId) => lesson.tells.find((tell) => tell.id === id)?.label ?? TELLS[id].label;
   return (
-    <InsetGroup header="What gave it away">
+    <InsetGroup header="What made it suspicious">
       <SenderRow sender={lesson.scam.sender} />
-      {lesson.scam.parts.map((part) => (
-        <li key={part.id} className="inset-row inset-body lesson-part">
-          <PartView part={part} />
-          {part.tellIds.length > 0 && <span className="stamps">{part.tellIds.map(stamp)}</span>}
+      {tellRows(lesson, order).map((row) => (
+        <li key={row.key} className="inset-row inset-body lesson-tell">
+          {row.quote && <q className="lesson-quote">{row.quote}</q>}
+          {row.tells.map((id) => (
+            <span key={id} className="lesson-tell-why">
+              <Stamp label={labelOf(id)} kind={kindOf(id)} index={stamped.indexOf(id)} />
+              <span className="lesson-why">{whyFor(lesson, notes, id)}</span>
+            </span>
+          ))}
         </li>
       ))}
-      {unplaced.length > 0 && (
-        <li className="inset-row inset-body lesson-part"><span className="stamps">{unplaced.map(stamp)}</span></li>
-      )}
     </InsetGroup>
   );
 }
 
-export function TwinMessage({ lesson }: { lesson: Lesson }) {
+// The Coach's lines on why the real one was real, else the fixed pair.
+export const realLines = (notes: CoachNotes | null): readonly string[] =>
+  notes && notes.real.length > 0 ? notes.real.slice(0, 2) : REAL_WHY;
+
+export function TwinMessage({ lesson, notes }: { lesson: Lesson; notes: CoachNotes | null }) {
   return (
     <InsetGroup header="The real one">
       <SenderRow sender={lesson.real.sender} />
@@ -59,6 +69,7 @@ export function TwinMessage({ lesson }: { lesson: Lesson }) {
           <PartView part={part} />
         </li>
       ))}
+      <li className="inset-row inset-body lesson-why">{realLines(notes)[0]}</li>
     </InsetGroup>
   );
 }
@@ -119,18 +130,19 @@ async function readEvents(body: ReadableStream<Uint8Array>, onChunk: (text: stri
 }
 
 export interface CoachState {
-  text: string;
+  notes: CoachNotes | null; // null until the Coach's checked notes land, or when they never do
   done: boolean;
-  failed: boolean; // the stream broke or said nothing: show the deterministic lesson instead
 }
 
-const COACH_START: CoachState = { text: '', done: false, failed: false };
+const COACH_START: CoachState = { notes: null, done: false };
 
-// Streams the Coach's note for one scored slot. The server already falls back to the
-// deterministic lesson when the model fails; this covers the network failing.
-export function useCoach(dayId: string, slotId: string): CoachState {
+// Fetches the Coach's notes for one scored slot: one JSON chunk, already checked on the server (the
+// server serves the fixed notes when the model fails). Until it lands, and if the network fails, the
+// lesson shows the fixed lines, so nothing waits on it. No day id, no request.
+export function useCoach(dayId: string | undefined, slotId: string): CoachState {
   const [state, setState] = useState<CoachState>(COACH_START);
   useEffect(() => {
+    if (!dayId) return undefined;
     const controller = new AbortController();
     setState(COACH_START);
     const run = async () => {
@@ -141,11 +153,12 @@ export function useCoach(dayId: string, slotId: string): CoachState {
         signal: controller.signal,
       });
       if (!response.ok || !response.body) throw new Error(`lesson failed: ${response.status}`);
-      await readEvents(response.body, (chunk) => setState((s) => ({ ...s, text: s.text + chunk })));
-      setState((s) => ({ ...s, done: true, failed: s.text.trim().length === 0 }));
+      let text = '';
+      await readEvents(response.body, (chunk) => { text += chunk; });
+      setState({ notes: parseNotes(text), done: true });
     };
     run().catch(() => {
-      if (!controller.signal.aborted) setState((s) => ({ ...s, done: true, failed: true }));
+      if (!controller.signal.aborted) setState({ notes: null, done: true });
     });
     return () => controller.abort();
   }, [dayId, slotId]);

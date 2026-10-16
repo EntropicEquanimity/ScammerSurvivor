@@ -82,6 +82,7 @@ export interface StreamRequest {
   system: string;
   contents: string | Content[];
   model?: string;
+  schema?: Schema; // JSON output in that shape (the Coach's notes)
 }
 
 const OVERLOADED = /503|high demand/i;
@@ -164,7 +165,7 @@ export async function* streamText(req: StreamRequest, client: GeminiClient = def
   const params: GeminiRequest = {
     model: req.model ?? MODELS.coach,
     contents: req.contents,
-    config: { systemInstruction: req.system },
+    config: { systemInstruction: req.system, ...(req.schema && { responseMimeType: 'application/json', responseSchema: req.schema }) },
   };
   let stream: AsyncIterable<GeminiResponse>;
   try {

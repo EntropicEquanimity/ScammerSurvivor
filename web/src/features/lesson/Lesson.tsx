@@ -4,14 +4,13 @@ import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { AppHeader } from '../card/AppHeader.tsx';
 import { ClueClockStopped } from '../clues/faces.tsx';
-import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { MessageView, PartView } from '../layouts/MessageView.tsx';
 import { appLookFor } from '../day/appNames.ts';
 import { useLater } from '../day/useArrival.ts';
 import { getPeople } from '../setup/storage.ts';
-import { twinLine } from '../../strings.ts';
-import { GaveAwayGroup, StampedScam, TwinMessage, useCoach } from './LessonGroups.tsx';
-import { NextSteps, ReportIt, didLine } from './LessonRows.tsx';
+import { GaveAwayGroup, TellsGroup, TwinMessage, realLines, useCoach } from './LessonGroups.tsx';
+import { FlaggedGroup, NextTime, ReportIt, WouldHaveHappened } from './LessonRows.tsx';
+import { lessonTitle, outcomeLine } from './title.ts';
 import './lesson.css';
 
 interface StepProps {
@@ -27,14 +26,6 @@ interface LessonProps extends StepProps {
 
 // How long after the note the wronged person's message lands.
 const FOLLOW_UP_MS = 3000;
-
-// Never shames. The headline names what happened, not what the player did wrong, in one short
-// line: the large title is 34px, so about 18 characters fit at 390 wide.
-function headline(result: SlotResult): string {
-  if (result.actionCorrect) return 'You caught it.';
-  if ((result.recovered ?? 0) > 0) return 'Some came back.';
-  return 'A common slip.';
-}
 
 function NextBar({ busy, failed, onNext, label }: StepProps & { label: string }) {
   const next = () => {
@@ -55,39 +46,37 @@ function NextBar({ busy, failed, onNext, label }: StepProps & { label: string })
   );
 }
 
-// The Coach's one or two sentences on the player's exact choice, straight under the title. While the
-// stream runs the text grows in place. The tells, the ending and the hotline have their own rows, so
-// if the stream fails the group just steps aside instead of repeating them.
-function CoachNote({ dayId, result }: { dayId: string; result: SlotResult }) {
-  const coach = useCoach(dayId, result.slotId);
-  if (coach.failed) return null;
+// The title names what the message was ("Scam: a fake buyer", "Real: your sister"); one small line
+// under it, in the outcome colour, says what the player's action meant.
+function LessonHead({ result, lost }: { result: SlotResult; lost?: string }) {
+  const outcome = outcomeLine(result, lost);
   return (
-    <InsetGroup header="Your move">
-      <li className="inset-row inset-body lesson-coach" aria-live="polite" aria-busy={!coach.done}>
-        {coach.text || 'One moment.'}
-      </li>
-    </InsetGroup>
+    <div className="lesson-head">
+      <ScreenTitle className="large-title lesson-title">{lessonTitle(result, getPeople())}</ScreenTitle>
+      <p className={`lesson-did lesson-did-${outcome.tone}`}>{outcome.text}</p>
+    </div>
   );
 }
 
-// One screen that reads in a glance: the title and one line on what the player did, the Coach, the
-// scam with its tells stamped where they sit, what was given away, what happens next, the one move for
-// next time, where to report it, then the real twin. Next floats as a capsule (lesson.css).
-export function Lesson({ dayId, result, busy, failed, onNext }: LessonProps) {
+// A case review on one screen: the title and the outcome line, then what made it suspicious (each
+// tell with its line, stamp and why; the fixed whys show at once and the Coach's replace them when
+// they land), what the player flagged and missed, what was given away, what would have happened,
+// the one move for next time, where to report it, then the real twin. No separate Coach paragraph: the whys are the Coach's work. Next floats
+// as a capsule (lesson.css). `lost` is the formatted amount gone, when the day screen passes it.
+export function Lesson({ dayId, result, busy, failed, onNext, lost }: LessonProps & { lost?: string }) {
   const { lesson } = result;
+  const { notes } = useCoach(dayId, result.slotId);
   return (
     <section className="page-full lesson anim-sheet">
       <div className="page-body scroll">
-        <div className="lesson-head">
-          <ScreenTitle className="large-title">{headline(result)}</ScreenTitle>
-          <p className="lesson-did">{didLine(result)}</p>
-        </div>
-        <CoachNote dayId={dayId} result={result} />
-        <StampedScam lesson={lesson} caught={result.caught} missed={result.missed} />
+        <LessonHead result={result} lost={lost} />
+        <TellsGroup result={result} notes={notes} />
+        <FlaggedGroup result={result} />
         <GaveAwayGroup result={result} />
-        <NextSteps lesson={lesson} />
+        <WouldHaveHappened lesson={lesson} />
+        <NextTime lesson={lesson} />
         <ReportIt hotline={lesson.hotline} />
-        <TwinMessage lesson={lesson} />
+        <TwinMessage lesson={lesson} notes={notes} />
       </div>
       <NextBar busy={busy} failed={failed} onNext={onNext} label="Next" />
     </section>
@@ -100,21 +89,19 @@ interface NoteProps extends StepProps {
   trace?: TraceEvent[]; // the day's agent steps, for the header's chip
   personalised?: boolean;
   onBack?: () => void; // back to the day's lock
+  dayId?: string; // with it, the Coach writes the why lines; without it, the fixed ones show
 }
-
-// Role-aware: "your sister" for a picked person, "your manager" or "the buyer" for a role (strings.ts).
-const noteLine = (card: PublicCard, result: SlotResult): string => {
-  if (result.falseAlarm) return twinLine(card.sender, getPeople());
-  return result.cautious ? 'That one was real. You trusted it, but it did not need a call.' : 'That one was real. You trusted it.';
-};
 
 // The server prefixes the follow-up with its sender; inside that sender's own thread the bubble drops it.
 const followUpText = (followUp: NonNullable<SlotResult['followUp']>): string =>
   followUp.text.startsWith(`${followUp.sender}: `) ? followUp.text.slice(followUp.sender.length + 2) : followUp.text;
 
-// A real message gets no lesson: the thread stays open with one quiet line under it, and when the
-// player turned a real person away, that person's later message lands a few seconds on.
-export function RealNote({ card, result, busy, failed, onNext, trace, personalised, onBack }: NoteProps) {
+// A real message keeps its thread open, with a short note under it: what it was, what the player's
+// action meant, and one or two lines on why it was real. When the player turned a real person away,
+// that person's later message lands a few seconds on.
+export function RealNote({ card, result, busy, failed, onNext, trace, personalised, onBack, dayId }: NoteProps) {
+  const { notes } = useCoach(dayId, result.slotId);
+  const outcome = outcomeLine(result);
   const followUp = result.followUp ?? null;
   const landed = useLater(FOLLOW_UP_MS, followUp !== null);
   // The same section as the card step: the app owns the status region, so the time reads over its tint.
@@ -128,7 +115,18 @@ export function RealNote({ card, result, busy, failed, onNext, trace, personalis
         <ClueClockStopped.Provider value>
           <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
         </ClueClockStopped.Provider>
-        <p className="thread-note">{noteLine(card, result)}</p>
+        <div className="real-note">
+          <p className="real-note-title">{lessonTitle(result, getPeople())}</p>
+          <p className={`lesson-did lesson-did-${outcome.tone}`}>{outcome.text}</p>
+          <p className="real-note-header">Why it was real</p>
+          <ul className="real-note-why">
+            {realLines(notes).map((line) => <li key={line}>{line}</li>)}
+          </ul>
+        </div>
+        <div className="real-note-groups">
+          <FlaggedGroup result={result} />
+          <NextTime lesson={result.lesson} />
+        </div>
         {followUp && landed && (
           <div className="bubble-group bubble-later anim-pop">
             <PartView part={{ id: `${result.slotId}-follow-up`, text: followUpText(followUp) }} />

@@ -1,6 +1,6 @@
-/* The lesson on one screen: the large title and one line on what the player did, then inset groups
-   (the Coach, what gave it away with the tells stamped in place, what happens next, next time,
-   report it, the real one) and Next floating over the bottom as a capsule. The group and row classes are the
+/* The lesson on one screen: the large title naming what the message was and one line on what the
+   player's action meant, then inset groups (what gave it away, one row per tell with its line,
+   stamp and why; what happens next, next time, report it, the real one) and Next floating over the bottom as a capsule. The group and row classes are the
    shared ones from shell.css; this file sets what goes inside a row. A caught tell is a filled
    accent stamp, a missed one an outlined stamp in the warm notice colour; each carries a word, so
    colour is never the only carrier. Red appears nowhere. */
@@ -202,9 +202,90 @@
   }
 }
 
-/* The Coach's one or two sentences grow in place while the stream runs. */
-.lesson-coach {
-  display: block;
+/* The title names what the message was; a long trick name wraps to two even lines, never clips. */
+.lesson-title {
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+/* The outcome line in the stamps' colours: the accent ink when the move was safe, the warm notice
+   colour when it was a slip (4.9:1 on the grouped grey). A word carries it too, never colour alone. */
+.lesson-did-good {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.lesson-did-slip {
+  color: var(--notice);
+  font-weight: 600;
+}
+
+/* One line of the message: the quote, then each tell on it as its stamp and why it is a red flag here. */
+.lesson-tell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.lesson-tell-why {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.lesson-quote {
+  color: var(--ink);
+  font-style: italic;
+}
+
+.lesson-why {
+  color: var(--ink-2); /* 9:1 on white */
+  font-size: var(--t16);
+  line-height: 1.4;
+}
+
+/* A real message's note, under its thread: what it was, what the action meant, why it was real. */
+.real-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--grouped);
+  color: var(--ink);
+}
+
+.real-note p {
+  margin: 0;
+}
+
+.real-note-title {
+  font-size: var(--t19);
+  font-weight: 700;
+}
+
+.real-note .lesson-did {
+  font-size: var(--t16);
+}
+
+.real-note-header {
+  margin-top: 0.5rem !important;
+  color: var(--ink-2);
+  font-size: var(--t13);
+  font-weight: 600;
+}
+
+.real-note-why {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  font-size: var(--t16);
+  line-height: 1.4;
 }
 
 /* A short row with a small leading glyph, the Settings recipe: 22px stroke glyph in the accent ink,
@@ -255,4 +336,55 @@
 .lesson-link {
   color: var(--accent-ink); /* 5.43:1 on the grouped grey (shell.css) */
   font-weight: 600;
+}
+
+/* What you flagged: a mark, then the quoted line and one word on what it was. */
+.lesson-flag {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+}
+
+.lesson-flag .lesson-glyph-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.lesson-flag-mark {
+  flex: none;
+  width: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.lesson-flag-word {
+  font-size: var(--t15);
+  font-weight: 600;
+}
+
+.lesson-flag-good .lesson-flag-mark,
+.lesson-flag-good .lesson-flag-word {
+  color: var(--accent-ink);
+}
+
+.lesson-flag-slip .lesson-flag-mark,
+.lesson-flag-slip .lesson-flag-word,
+.lesson-flag-missed {
+  color: var(--notice);
+}
+
+/* The real note's flagged and next-time groups sit on the grouped grey, the Settings look, and the
+   thread clears the Continue capsule. */
+.real-note-groups {
+  margin: 0.5rem 0 0;
+  padding: 0.25rem 0 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--grouped);
+  --on-wall: var(--ink-2); /* group headers read as on the lesson's grey, not over the wallpaper */
+  --on-wall-shadow: none;
+}
+
+.app-body:has(.real-note) {
+  padding-bottom: calc(var(--tap) + 3rem);
 }

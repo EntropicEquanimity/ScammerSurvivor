@@ -297,8 +297,10 @@ export interface SlotResult {
   leaked?: FieldId[]; // page cards only: fields sent on a fake page, for What you gave away
   pageCost?: number; // page cards only: the sent fields' weight, taken off the points
   cautious?: boolean; // a real message met with Call to check: trusted, but it did not need the call
+  action?: Action; // the action scored, so the lesson can say what it meant; routes/day.ts scoreTap sets it
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model
   lesson: {
+    trickId?: TrickId; // names the scam in the lesson title; deal.ts lessonFor sets it
     tells: { id: TellId; label: string; why: string }[]; // from shared/taxonomy.ts
     neverAsks: string; // "A courier never asks for ..." style line
     usualEnding: string;
@@ -306,6 +308,14 @@ export interface SlotResult {
     real: { sender: PublicCard['sender']; parts: { id: string; text: string }[] };
     hotline: CountryPack['hotline'];
   };
+}
+
+// The Coach's notes on one scored slot, sent as one JSON chunk by POST /api/day/:dayId/lesson: one
+// sentence per tell on why it is a red flag in this message, and one or two lines on why the real
+// one was real. The server checks every line; any that fails is the fixed line instead.
+export interface CoachNotes {
+  tells: { tellId: TellId; why: string }[];
+  real: string[];
 }
 
 // A rate kept as a fraction: players see "2 of 3", never a percentage.

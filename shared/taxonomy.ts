@@ -107,3 +107,32 @@ export const deckOrderFor = (country: string): TrickId[] => [
   ...TRICKS.filter((trick) => trick.majorIn.includes(country)).map((trick) => trick.id),
   ...TRICKS.filter((trick) => !trick.majorIn.includes(country)).map((trick) => trick.id),
 ];
+
+// What the lesson's title calls each trick, in the player's words: "Scam: a fake buyer". Kept short,
+// since the title is the screen's large title.
+export const TRICK_TITLES: Record<TrickId, string> = {
+  family_trouble: 'a fake family emergency',
+  paid_task: 'a fake paid task',
+  investment_group: 'a fake trading group',
+  digital_arrest: 'a fake police threat',
+  code_or_account: 'a code grab',
+  parcel_fee: 'a fake parcel fee',
+  bank_check: 'a fake bank alert',
+  listing_leaver: 'a fake buyer',
+  fast_romance: 'a fake romance',
+  video_threat: 'a video threat',
+  app_in_chat: 'a fake app or file',
+  payment_change: 'a fake payment change',
+  prize_fee: 'a fake prize',
+  loan_threat: 'a fake loan fee',
+  overseas_job: 'a fake overseas job',
+  refund_payment: 'a fake refund',
+};
+
+// The fixed "why it was real" lines, served when the Coach's lines are missing or fail the check.
+// Both always hold: the Guard keeps every real twin free of tells and of any code request, and its
+// sender ends in different digits from the scam's.
+export const REAL_WHY: readonly string[] = [
+  'It came from the number you already have for them, not a new one.',
+  'Nothing in it rushes you, asks you to keep it quiet or asks for a code.',
+];
