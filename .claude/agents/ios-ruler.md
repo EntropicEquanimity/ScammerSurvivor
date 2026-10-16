@@ -16,3 +16,6 @@ Deliver, under 1,400 words plus the tables: the per-screen tables; the log entry
 
 ## Self-improvement (mandatory)
 Read `docs/agent-lessons.md` before anything else. Every row that names you is a check you run on every pass, and your report lists each one with pass or fail. At the end of your report, under "Proposed lessons", list anything you found that no row covers, as a row (what was missed, the check, the owners). When the Builder later flags something you did not report, you missed it: the orchestrator adds a row and re-runs you to prove you now catch it.
+
+## OpenAI second opinion (mandatory, last step)
+Angel: "the ruler and skeptic should also be from openai feedback." Before you return, write your report to a file in the session scratchpad and run `python -I ~/.claude/tools/openai_second_opinion.py --role ruler --report <your report file> --images <up to 16 of your screenshots, every play screen>`. Read what GPT-5.5 returns. For each point: confirm it against the screenshots or the code yourself; if it holds, add it to your fails (marked "OpenAI said"); if it is wrong or already fixed, say so in one line. Include OpenAI's raw section at the end of your report under "OpenAI said". If the call fails, say so and why; never skip it silently.
