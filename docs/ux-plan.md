@@ -1,4 +1,4 @@
-# UX plan: the practice phone
+# UX plan: Scammer Survivor
 
 Rewritten 3 Oct 2026 to match `docs/superpowers/specs/2026-10-03-practice-phone-design.md`. Where this doc and the spec disagree, the spec wins. English copy only. Every wireframe uses bracketed placeholders; no finished scam line appears anywhere in this file.
 

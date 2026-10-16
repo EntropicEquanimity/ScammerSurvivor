@@ -1,8 +1,8 @@
 {
-  "name": "practice-phone",
+  "name": "scammer-survivor",
   "version": "0.1.0",
   "private": true,
-  "description": "Scam-awareness practice phone: a training simulation. Working title, rename pending.",
+  "description": "Scammer Survivor: a scam-awareness practice phone.",
   "type": "module",
   "engines": {
     "node": ">=24"

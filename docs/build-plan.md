@@ -1,4 +1,4 @@
-# Build plan: the practice phone
+# Build plan: Scammer Survivor
 
 Rewritten 3 Oct 2026 from `docs/superpowers/specs/2026-10-03-practice-phone-design.md`. Where this file and the spec disagree, the spec wins. Model names and limits come from the team's Google stack research (28 Sep 2026) and the kill-test runs of 2 and 3 Oct.
 

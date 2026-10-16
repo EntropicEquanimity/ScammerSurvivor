@@ -6,7 +6,7 @@ Live URL: https://scammer-survivor-713399259482.asia-southeast1.run.app
 
 ## LinkedIn
 
-We built a practice phone for spotting scams, for anyone in JAPAC.
+We built Scammer Survivor, a practice phone for spotting scams, for anyone in JAPAC.
 
 You play a day on your own phone. Messages arrive in made-up apps that follow the layouts people in your country use. Some are scams, some are from the people you named. You act on each one: reply, ignore, call the number you already have, or press the thing the message asks for. Then you tap what gave it away.
 
@@ -22,7 +22,7 @@ Built for AI Builder Cup 2026 (Google Cloud JAPAC).
 
 ## X
 
-A practice phone for spotting scams. Play a day in the apps your country uses, act on each message, tap the tells. A practice caller talks back when you push.
+Scammer Survivor: a practice phone for spotting scams. Play a day in the apps your country uses, act on each message, tap the tells. A practice caller talks back when you push.
 
 Eight JAPAC country packs. Gemini writes it, code checks it, nothing to type.
 

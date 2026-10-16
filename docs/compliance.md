@@ -1,4 +1,4 @@
-# Compliance rules for the practice phone
+# Compliance rules for Scammer Survivor
 
 Researched 2 and 3 Oct 2026. Every quote below was fetched from the URL beside it unless it carries a label:
 - **Search summary**: seen only through a search-engine summary, not the page. Treat as a lead.

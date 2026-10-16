@@ -64,7 +64,7 @@ gcloud config set project YOUR_PROJECT_ID
 18. Deploy from the repo root (locally once `gcloud` works again, or from the Cloud Shell clone). The secret stays mounted so the Developer route works if `GEMINI_ROUTE=developer` is ever set on the service:
 
 ```bash
-gcloud run deploy practice-phone --source . --region asia-southeast1 --allow-unauthenticated --set-secrets GEMINI_API_KEY=GEMINI_API_KEY:latest --set-env-vars GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GOOGLE_CLOUD_LOCATION=asia-southeast1
+gcloud run deploy scammer-survivor --source . --region asia-southeast1 --allow-unauthenticated --set-secrets GEMINI_API_KEY=GEMINI_API_KEY:latest --set-env-vars GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GOOGLE_CLOUD_LOCATION=asia-southeast1
 ```
 
 19. The command prints the public URL. Open it on a phone, play a quick day, check the Cloud Run logs show card and tell ids only, never message text.

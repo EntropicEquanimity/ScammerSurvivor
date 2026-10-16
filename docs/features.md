@@ -1,4 +1,4 @@
-# Scam Master (working title): features
+# Scammer Survivor: features
 
 A practice phone for spotting scams, for everyone in the JAPAC region, any age. You play a day on your phone: keep your money, keep your people, beat the caller. Code keeps the score; Gemini writes the scenarios and explains the tells. Last updated 3 October 2026.
 

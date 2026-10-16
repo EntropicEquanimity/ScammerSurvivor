@@ -1,6 +1,6 @@
-# Scam Master: product requirements
+# Scammer Survivor: product requirements
 
-Working title; the name is pending. Rewritten 2026-10-03 to match the design spec (`docs/superpowers/specs/2026-10-03-practice-phone-design.md`) for AI Builder Cup 2026, theme 1 (banking, finance and fraud). Where this file and the spec differ, the spec wins.
+Rewritten 2026-10-03 to match the design spec (`docs/superpowers/specs/2026-10-03-practice-phone-design.md`) for AI Builder Cup 2026, theme 1 (banking, finance and fraud). Where this file and the spec differ, the spec wins.
 
 Tags: **[V]** read on the source page. **[NV]** not verified: seen only in a search summary, press coverage, or a page that would not load. **[catalogue]** from the team's content research in `docs/sources/` (October 2026); figures in it are confirmed at the named source before they go on a slide.
 

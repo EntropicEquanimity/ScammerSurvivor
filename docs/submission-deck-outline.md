@@ -1,6 +1,6 @@
 # Submission deck outline and video beat sheet
 
-Working title "Scam Master"; the name is pending. This is the outline for the Cup's PDF deck, not the deck itself. The deck skeleton starts once the day engine is playable; the final deck and video are finished between the Oct 16 code freeze and Oct 18, once the prototype and playtest numbers exist. Rewritten 2026-10-03 to match the design spec.
+Product name: Scammer Survivor. This is the outline for the Cup's PDF deck, not the deck itself. The deck skeleton starts once the day engine is playable; the final deck and video are finished between the Oct 16 code freeze and Oct 18, once the prototype and playtest numbers exist. Rewritten 2026-10-03 to match the design spec.
 
 Rules it must meet (gate G7): PDF, English, all seven sections below. A deck missing a section can fail the first screen before anyone scores it.
 
