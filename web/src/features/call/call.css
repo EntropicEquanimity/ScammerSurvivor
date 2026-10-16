@@ -9,6 +9,7 @@
    and pads itself back. The ended view is a white sheet and carries data-surface="light" for the
    status time; the veil keeps the time white. */
 .call {
+  position: relative; /* the floating Next measures from the call in both motions, not the phone */
   --call-green: #2fb350;
   --call-red: #e2352d;
   --call-veil: rgba(22, 26, 34, 0.78);
@@ -145,8 +146,9 @@
   stroke-linecap: round;
 }
 
+/* One stroke only: the fill. A track under it read as a doubled ring against the disc's edge. */
 .call-ring-track {
-  stroke: rgba(255, 255, 255, 0.25);
+  stroke: none;
 }
 
 .call-ring-fill {

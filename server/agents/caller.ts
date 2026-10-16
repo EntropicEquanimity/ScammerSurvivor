@@ -67,6 +67,33 @@ const CALLER_BY_TRICK: Partial<Record<TrickId, CallerIdentity>> = {
 
 export const callerFor = (trickId: TrickId): CallerIdentity => ({ ...(CALLER_BY_TRICK[trickId] ?? CALLER_FOR[trickCategory(trickId)]) });
 
+// What the phone shows for the call, which the caller can fake: the name they claim, a local
+// masked number, or Unknown. Invented local formats per pack, dots for hidden digits, never more
+// than four digits and never a plus prefix (docs/agent-lessons.md row 23).
+export const CALLER_NUMBERS: Record<string, string> = {
+  AU: '04•• ••• ••17',
+  HK: '9••• ••36',
+  ID: '08••-••••-••52',
+  IN: '98••• •••21',
+  JP: '090-••••-•••3',
+  MY: '01•-••• ••84',
+  PH: '09•• ••• ••63',
+  SG: '8••• ••41',
+};
+const FALLBACK_NUMBER = '••• ••• ••20';
+export interface CallerId { shown: string; number: string; kind: 'name' | 'number' | 'unknown' }
+
+// A small stable hash of the day id, so a retry shows the same ID; half the days show the name.
+const seedOf = (text: string): number => [...text].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 1000, 7);
+
+export function callerIdFor(dayId: string, country: string, identity: CallerIdentity): CallerId {
+  const number = CALLER_NUMBERS[country] ?? FALLBACK_NUMBER;
+  const roll = seedOf(dayId) % 10;
+  if (roll < 5) return { shown: identity.displayName, number, kind: 'name' };
+  if (roll < 8) return { shown: number, number, kind: 'number' };
+  return { shown: 'Unknown', number, kind: 'unknown' };
+}
+
 // The identity check on a voiced line: no personal name, no country agency.
 // Reason ids only, never text. A capitalised word counts as a name when it sits
 // mid-sentence or right after a title or an introduction, unless it is listed here.

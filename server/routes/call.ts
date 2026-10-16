@@ -5,8 +5,8 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Action, CallBeatPublic, CallStartResult, CallTurnResult, Day, TraceEvent, TrickId } from '../../shared/types.ts';
-import { CALL_ACTIONS, METER_START, callerFor, identityReasons, nextBeat } from '../agents/caller.ts';
-import type { CallerIdentity, Generate } from '../agents/caller.ts';
+import { CALL_ACTIONS, METER_START, callerFor, callerIdFor, identityReasons, nextBeat } from '../agents/caller.ts';
+import type { CallerId, CallerIdentity, Generate } from '../agents/caller.ts';
 import { readBeats } from '../beats.ts';
 import type { Beat } from '../beats.ts';
 import { readDay, saveDay } from '../store.ts';
@@ -19,7 +19,7 @@ export type Reply<T> = { status: 200; body: T } | { status: 400 | 404 | 503; bod
 const fail = (status: 400 | 404 | 503, error: string, reason?: string): Reply<never> => ({ status, body: { error, ...(reason ? { reason } : {}) } });
 
 // ponytail: shared/types.ts CallStartResult gains caller when its owner adds it; widened here till then.
-export type CallStart = CallStartResult & { caller: CallerIdentity };
+export type CallStart = CallStartResult & { caller: CallerIdentity & CallerId };
 export const NO_CALL_REASON = 'No call today';
 const ok = <T>(body: T): Reply<T> => ({ status: 200, body });
 
@@ -92,6 +92,12 @@ const appendTrace = (dayId: string, event: TraceEvent | null): void => {
   saveDay(next);
 };
 
+// Who rings and what the phone shows for them, which may be the claimed name or not.
+const callerShown = (dayId: string, country: string, trickId: TrickId): CallerIdentity & CallerId => {
+  const identity = callerFor(trickId);
+  return { ...identity, ...callerIdFor(dayId, country, identity) };
+};
+
 export async function startCall(dayId: string, deps: CallDeps = {}): Promise<Reply<CallStart>> {
   const state = readDay(dayId);
   if (!state) return fail(404, 'unknown_day');
@@ -103,7 +109,7 @@ export async function startCall(dayId: string, deps: CallDeps = {}): Promise<Rep
   const { slot, beats, open } = pick;
   const call: CallState = { callId: randomUUID(), cardId: slot.card.id, beats, history: [open.id], meter: METER_START, ended: false };
   calls.set(dayId, call);
-  return ok({ callId: call.callId, beat: toPublic(open), meter: call.meter, offered: [...CALL_ACTIONS], caller: callerFor(slot.card.trickId) });
+  return ok({ callId: call.callId, beat: toPublic(open), meter: call.meter, offered: [...CALL_ACTIONS], caller: callerShown(dayId, state.country, slot.card.trickId) });
 }
 
 const actionOf = (body: unknown): Action | null => {

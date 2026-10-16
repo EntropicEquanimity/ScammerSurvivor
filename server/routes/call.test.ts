@@ -54,7 +54,10 @@ test('a full three-pushback call: the meter drops 15 a time by code, then the co
   assert.equal(start.status, 200);
   if (start.status !== 200) return;
   assert.deepEqual(start.body.beat, { id: 'open-1', role: 'open', caption: openLine(trickId), audioUrl: AUDIO });
-  assert.deepEqual(start.body.caller, callerFor(trickId), 'the header names the caller the open line says');
+  const { shown, number, kind, ...identity } = start.body.caller;
+  assert.deepEqual(identity, callerFor(trickId), 'the header names the caller the open line says');
+  assert.ok(['name', 'number', 'unknown'].includes(kind), 'the phone shows a name, a number or Unknown');
+  assert.ok(shown && number, 'what the phone shows, and the masked local number');
   assert.ok(start.body.caller.displayName && start.body.caller.role, 'the header has an invented institution and a role');
   assert.notEqual(start.body.caller.displayName, 'Your bank');
   assert.equal(start.body.meter, 50);
@@ -181,4 +184,17 @@ test('beats voiced under the old prompt or the old caller table are never served
   // An open line that does not say the header's name (voiced under the old table).
   const stale = async (trickId: TrickId) => beatsFor(trickId).map((b) => (b.role === 'open' ? { ...b, text: 'This is the desk calling.' } : b));
   assert.equal((await startCall(dayId, { beats: stale, generate: modelDown })).status, 503);
+});
+
+test('a missed call stays open: from the voicemail, the known number ends it safely and calling back goes on to the code slip', async () => {
+  const safe = startDay({ country: 'SG' });
+  assert.equal((await startCall(safe.dayId, deps)).status, 200);
+  const known = await turnCall(safe.dayId, { action: 'hang_up_call_official' }, deps);
+  assert.equal(known.status === 200 && known.body.outcome, 'hung_up');
+  assert.equal(readCall(safe.dayId)?.action, 'hang_up_call_official');
+  const unsafe = startDay({ country: 'SG' });
+  assert.equal((await startCall(unsafe.dayId, deps)).status, 200);
+  const slip = await turnCall(unsafe.dayId, { action: 'read_code' }, deps);
+  assert.equal(slip.status === 200 && slip.body.outcome, 'read_code');
+  assert.equal(readCall(unsafe.dayId)?.meterEnd, 100);
 });

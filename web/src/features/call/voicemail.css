@@ -1,0 +1,179 @@
+/* The voicemail: the notification a missed call leaves, and the Phone app's voicemail list with
+   the one new row open (the closest-to-iOS OpenAI mock, minus the search field and the tab bar).
+   The list is a light grouped screen; the row is a white inset card, as iOS draws an open row. */
+
+.vm-banner {
+  position: fixed;
+  top: calc(var(--status-h, 54px) + 2px);
+  right: 8px;
+  left: 8px;
+  z-index: 6;
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  text-align: left;
+  transform-origin: 50% 0;
+  cursor: pointer;
+}
+
+.vm-banner-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--icon-radius);
+  background: var(--accent);
+}
+
+.vm-banner-icon .icon,
+.vm-btn .icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vm-banner-icon .icon {
+  color: #fff;
+}
+
+.vm-banner-body,
+.vm-banner-top {
+  display: flex;
+  min-width: 0;
+}
+
+.vm-banner-body {
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.vm-banner-top {
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--t16);
+}
+
+.vm-banner-title {
+  font-weight: 600;
+}
+
+.vm-banner-time,
+.vm-banner-text {
+  color: var(--ink-2);
+  font-size: var(--t16);
+}
+
+.vm {
+  margin-top: calc(-1 * var(--status-h, 54px));
+  margin-bottom: calc(-1 * var(--indicator-h, 34px));
+  padding-top: var(--status-h, 54px);
+  padding-bottom: var(--indicator-h, 34px);
+  background: var(--grouped);
+  color: var(--ink);
+}
+
+.vm .page-body {
+  gap: 0.75rem;
+  padding: 0.5rem 1rem 1.5rem;
+}
+
+.vm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.vm-row-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.vm-row .call-avatar {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  background: #c7c7cc;
+  color: #fff;
+  font-size: var(--t18);
+}
+
+.vm-row-id {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vm-row-name {
+  overflow: hidden;
+  font-size: var(--t18);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vm-row-sub,
+.vm-row-time,
+.vm-row-label {
+  color: var(--ink-2);
+  font-size: var(--t16);
+}
+
+.vm-row-label {
+  margin-top: 0.25rem;
+}
+
+.vm-row-transcript {
+  font-size: var(--t18);
+  line-height: 1.4;
+}
+
+/* Two full-width capsules, one per line, so the long label never wraps (lessons row 11). */
+.vm-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.vm-btn {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
+  border-radius: var(--radius-pill);
+  background: rgba(10, 112, 232, 0.12);
+  color: var(--accent);
+  font-size: var(--t18);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vm-banner.anim-drop {
+    animation: call-fade 240ms ease-out both !important;
+  }
+}
+
+/* On the lock screen the missed call waits low, above the indicator, clear of the big clock. */
+.phone:has(.day-lock) .vm-banner {
+  top: auto;
+  bottom: calc(var(--indicator-h, 34px) + 8px);
+}

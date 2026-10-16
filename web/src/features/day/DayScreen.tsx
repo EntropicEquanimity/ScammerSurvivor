@@ -1,9 +1,12 @@
-import { Suspense, lazy, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import type { CSSProperties, ComponentType } from 'react';
 import type { Action, AgeGroup, PublicCard, RecoverResult, SlotResult, TraceEvent } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
-import { CallScreen } from '../call/CallScreen.tsx';
+import { CallLayer } from '../call/CallLayer.tsx';
+import { callStatus, covers } from '../call/ring.ts';
+import { useInterrupt } from '../call/useInterrupt.ts';
+import type { Interrupt } from '../call/useInterrupt.ts';
 import { ActionBar } from '../card/ActionBar.tsx';
 import { ChatThread, ReplyChips } from '../chat/ChatThread.tsx';
 import { useChat } from '../chat/useChat.ts';
@@ -111,9 +114,10 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
   );
 }
 
-// The game layer shows while the player plays the day: lock, app, tells, recovery, lesson, note.
-// The call has its own full-screen look and the end screen has its own score.
-const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'call', 'end'];
+// The game layer shows while the player plays the day: lock, app, recovery, note. The tells and the
+// lesson are full app screens of their own (the Ruler's HOLD), the call has its own full-screen
+// look, and the end screen has its own score. A call over the day hides it too.
+const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'tells', 'lesson', 'call', 'end'];
 
 type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
@@ -139,8 +143,8 @@ function slotScreen(d: Day, step: Step) {
   return null;
 }
 
-function DayHud({ d, juice }: { d: Day; juice: ReturnType<typeof useJuice> }) {
-  const shown = d.day && !HUD_HIDDEN.includes(d.phase.kind);
+function DayHud({ d, juice, call }: { d: Day; juice: ReturnType<typeof useJuice>; call: Interrupt }) {
+  const shown = d.day && !HUD_HIDDEN.includes(d.phase.kind) && !covers(call.ring) && !call.voicemailBanner;
   return (
     <>
       {shown && d.day && (
@@ -151,17 +155,47 @@ function DayHud({ d, juice }: { d: Day; juice: ReturnType<typeof useJuice> }) {
   );
 }
 
+interface DayCallInput {
+  country: string;
+  age: AgeGroup;
+  quick: boolean;
+  onCall?: () => void;
+  onResult: (result: SlotResult) => void;
+}
+
+// The day plus the call that can interrupt it. The call stage is read through a ref when the day's
+// own screens run out (a call that already rang skips the end-of-day call), because the interrupt
+// hook needs the day's phase and so comes after it. At the day's end the call or its voicemail is
+// the last step: once it is over, or the start failed for any reason but missing beats (that one
+// says "No call today"), the day finishes.
+function useDayWithCall({ country, age, quick, onCall, onResult }: DayCallInput) {
+  const gate = useCallGate(Boolean(onCall));
+  const stage = useRef<Interrupt['ring']['stage']>('idle');
+  const d = useDay(country, age, quick, { canRecover: Recovery !== null, onCall: gate.onCall, onResult, callStatus: () => callStatus(stage.current) });
+  const call = useInterrupt(d.day?.dayId ?? null, d.phase.kind, d.results.length, Boolean(onCall) && !quick && age === 'adult');
+  stage.current = call.ring.stage;
+  const endCall = () => {
+    gate.endCall();
+    onCall?.();
+  };
+  const { stage: callStage, noBeats } = call.ring;
+  const callOver = d.phase.kind === 'call' && (callStage === 'done' || (callStage === 'none' && !noBeats));
+  useEffect(() => {
+    if (callOver) endCall();
+  }, [callOver]);
+  return { d, call, endCall };
+}
+
 // Owns the whole day: notifications, card, tells, then a lesson, a note or the recovery window,
 // round again, the call, end. The hook holds the state; this component only picks the screen.
 // The stakes pills live on the lock screen under the clock.
 export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
-  const gate = useCallGate(Boolean(onCall));
   const juice = useJuice();
   // The decision time, read when the player taps an action on the card, before the request goes out.
   const decisionMs = useRef<number | undefined>(undefined);
   // The points fly from the button that scored the slot: the tell picker's Done.
   const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .nav button'), decisionMs.current);
-  const d = useDay(country, age, quick, { canRecover: Recovery !== null, onCall: gate.onCall, onResult });
+  const { d, call, endCall } = useDayWithCall({ country, age, quick, onCall, onResult });
   const act = (action: Action) => {
     decisionMs.current = clockMs();
     d.act(action);
@@ -171,16 +205,11 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const slotId = 'slotId' in phase ? phase.slotId : null;
   const slotCard = d.day?.cards.find((card) => card.slotId === slotId);
   useDayClock((slotCard ?? d.remaining[0] ?? d.day?.cards.at(-1))?.arrivesAt);
-  // The call's Next, or its skip when the day has no beats, ends the call; the day then finishes.
-  const endCall = () => {
-    gate.endCall();
-    onCall?.();
-  };
 
   const body = () => {
     if (phase.kind === 'loading') return <Notice title="Getting your day ready" line="Your messages are on the way." />;
     if (phase.kind === 'load-failed') return <LoadFailed onRetry={d.retryLoad} />;
-    if (phase.kind === 'call' && d.day) return <CallScreen dayId={d.day.dayId} hotline={d.day.pack.hotline} onDone={endCall} onSkip={endCall} />;
+    if (phase.kind === 'call') return null; // the call layer holds the screen
     if (phase.kind === 'end') {
       const senders = Object.fromEntries((d.day?.cards ?? []).map((card) => [card.slotId, card.sender.displayName]));
       return (
@@ -202,7 +231,8 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   return (
     <div className="day">
       {body()}
-      <DayHud d={d} juice={juice} />
+      <DayHud d={d} juice={juice} call={call} />
+      {d.day && <CallLayer dayId={d.day.dayId} hotline={d.day.pack.hotline} call={call} atDayEnd={phase.kind === 'call'} onNoCall={endCall} />}
     </div>
   );
 }

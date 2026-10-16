@@ -1,0 +1,197 @@
+/* The call over the day: the iOS 26 incoming-call banner, the pulse at the top edge while it rings,
+   the layer the call, ringing and voicemail screens sit in, and the code text mid-call. The layer
+   is fixed to the phone (its container-type makes it the containing block) and sits under the
+   status bar (z-index 5 in shell.css), so the time stays on top as on iOS. The game layer is
+   hidden while the call covers the screen (DayScreen.tsx). */
+
+.call-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--status-h, 54px);
+  padding-bottom: var(--indicator-h, 34px);
+}
+
+/* Over the dark call veil the time is white, whatever app sits under the layer. */
+.phone:has(.call-layer .call:not([data-surface='light'])) .status-bar {
+  color: #fff;
+  text-shadow: none;
+}
+
+/* The banner: a dark glass capsule under the island, caller ID left, two round buttons right. */
+.ring-banner {
+  position: fixed;
+  top: calc(var(--status-h, 54px) + 2px);
+  right: 8px;
+  left: 8px;
+  z-index: 6;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 76px;
+  padding: 0.625rem 0.75rem 0.625rem 0.625rem;
+  border-radius: 38px;
+  background: rgba(28, 30, 36, 0.82);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  transform-origin: 50% 0;
+  --call-green: #2fb350;
+  --call-red: #e2352d;
+  --on-wall: #fff;
+}
+
+.ring-banner-id {
+  display: flex;
+  flex: 1;
+  gap: 0.625rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.ring-banner .call-avatar {
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  font-size: var(--t24);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.ring-banner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ring-banner-name {
+  overflow: hidden;
+  font-size: var(--t18);
+  font-weight: 600;
+  letter-spacing: var(--track-18);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ring-banner-sub {
+  font-size: var(--t15);
+  opacity: 0.75;
+}
+
+.ring-banner-buttons {
+  display: flex;
+  flex: none;
+  gap: 0.75rem;
+}
+
+/* In the banner the discs speak for themselves, as on iOS; the word stays for assistive technology. */
+.ring-banner .call-round-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ring-banner .call-disc {
+  width: 52px;
+  height: 52px;
+}
+
+.ring-banner .call-round {
+  min-width: 52px;
+  min-height: 52px;
+}
+
+/* The person glyph for a number or Unknown, in place of an initial. */
+.call-silhouette {
+  width: 60%;
+  height: 60%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* The pulse: a soft light at the top edge, breathing with the ring. */
+.ring-pulse {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 3;
+  height: 180px;
+  background: radial-gradient(120% 100% at 50% 0, rgba(47, 179, 80, 0.28), transparent 70%);
+  pointer-events: none;
+  animation: ring-pulse 1300ms ease-in-out infinite alternate;
+}
+
+@keyframes ring-pulse {
+  from { opacity: 0.25; transform: scaleY(0.85); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+/* The code text: a light notification over the call veil, under the status bar. */
+.code-notice {
+  position: absolute;
+  top: calc(var(--status-h, 54px) + 4px);
+  right: 8px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  text-align: left;
+  transform-origin: 50% 0;
+}
+
+.code-notice-body,
+.code-notice-top {
+  display: flex;
+  min-width: 0;
+}
+
+.code-notice-body {
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.code-notice-top {
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--t16);
+}
+
+.code-notice-from {
+  font-weight: 600;
+}
+
+.code-notice-time {
+  color: var(--ink-2);
+}
+
+.code-notice-text {
+  font-size: var(--t16);
+  line-height: 1.35;
+}
+
+/* Reduced motion: the pulse holds still at a soft glow, and every drop-in is a short cross-fade. */
+@media (prefers-reduced-motion: reduce) {
+  .ring-pulse {
+    opacity: 0.6;
+    animation: none !important;
+  }
+
+  .ring-banner.anim-drop,
+  .code-notice.anim-drop {
+    animation: call-fade 240ms ease-out both !important;
+  }
+}

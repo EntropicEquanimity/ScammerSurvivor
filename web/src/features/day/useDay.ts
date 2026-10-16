@@ -14,13 +14,14 @@ export type Phase =
   | { kind: 'recovery'; slotId: string } // an unsafe action on a scam: the short window to claw it back
   | { kind: 'lesson'; slotId: string } // scams only
   | { kind: 'note'; slotId: string } // a real message: one quiet line in the thread, no lesson
-  | { kind: 'call' } // the full day's last step, another agent's screen
+  | { kind: 'call' } // the full day's last step: the call, or the voicemail a mid-day call left
   | { kind: 'end'; score: DayScore };
 
 export interface DayOptions {
   canRecover: boolean; // the Recovery screen is built and mounted
   onCall?: (dayId: string) => Promise<unknown>; // resolves when the practice call is over
   onResult?: (result: SlotResult) => void; // each scored slot, once, while the tapped button is still on screen
+  callStatus?: () => 'none' | 'pending' | 'done'; // a call already rang mid-day: 'done' skips the end-of-day call
 }
 
 interface State {
@@ -170,7 +171,8 @@ function endTransitions(day: DayPayload | null, phase: Phase, remaining: number,
       return;
     }
     const { onCall } = options;
-    if (day.quick || !onCall || phase.kind === 'call') {
+    // The end-of-day call comes only when no call rang earlier; a waiting voicemail still opens.
+    if (day.quick || !onCall || phase.kind === 'call' || options.callStatus?.() === 'done') {
       finish();
       return;
     }

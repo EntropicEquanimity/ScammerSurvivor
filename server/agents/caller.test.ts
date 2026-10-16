@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { JsonRequest } from '../gemini.ts';
 import type { Beat } from '../beats.ts';
 import type { TraceEvent } from '../../shared/types.ts';
-import { CALL_ACTIONS, METER_START, nextBeat, schemaFor, tableBeat } from './caller.ts';
+import { CALLER_NUMBERS, CALL_ACTIONS, METER_START, callerFor, callerIdFor, nextBeat, schemaFor, tableBeat } from './caller.ts';
 import type { Generate } from './caller.ts';
 
 // Bracketed stage notes, never a line someone could say (AGENTS.md rule 6).
@@ -105,4 +105,25 @@ test('the end buttons, the code button and a single remaining pushback never rea
   assert.equal(generate.requests.length, 0);
   assert.equal(CALL_ACTIONS.length, 6);
   assert.deepEqual(schemaFor(['a']).required, ['beatId', 'meterDelta', 'safetyStop', 'caption']);
+});
+
+test('caller ID lies: a claimed name, a local masked number or Unknown, never more than four digits or a +XX', () => {
+  const identity = callerFor('bank_check');
+  const kinds = new Set<string>();
+  for (const country of Object.keys(CALLER_NUMBERS)) {
+    const { number } = callerIdFor('day-x', country, identity);
+    assert.ok((number.match(/\d/g) ?? []).length <= 4, `${country} shows at most four digits`);
+    assert.doesNotMatch(number, /X|\+/, `${country} has no X mask and no plus prefix`);
+    assert.match(number, /•/);
+  }
+  for (let i = 0; i < 60; i += 1) {
+    const id = callerIdFor(`day-${i}`, 'SG', identity);
+    kinds.add(id.kind);
+    if (id.kind === 'name') assert.equal(id.shown, identity.displayName);
+    if (id.kind === 'number') assert.equal(id.shown, id.number);
+    if (id.kind === 'unknown') assert.equal(id.shown, 'Unknown');
+  }
+  assert.deepEqual([...kinds].sort(), ['name', 'number', 'unknown'], 'every kind turns up across days');
+  assert.deepEqual(callerIdFor('day-7', 'SG', identity), callerIdFor('day-7', 'SG', identity), 'the same day shows the same ID');
+  assert.equal(callerIdFor('day-7', 'ZZ', identity).number.length > 0, true, 'an unknown pack still gets a masked number');
 });

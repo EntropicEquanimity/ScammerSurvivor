@@ -1,127 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, MutableRefObject, ReactNode } from 'react';
-import type { Action, CallBeatPublic, CountryPack } from '../../../../shared/types.ts';
-import { INSTITUTIONS } from '../../../../shared/brands.ts';
-import { maskNumber } from '../../../../shared/mask.ts';
-import { ScreenTitle } from '../../shell/PhoneShell.tsx';
-import { haptic } from '../../shell/feel.ts';
+import type { CSSProperties, MutableRefObject } from 'react';
+import type { Action, CallBeatPublic } from '../../../../shared/types.ts';
 import { ACTION_LABELS } from '../card/actionLabels.ts';
+import type { CallStart, Caller } from './api.ts';
+import { Avatar, CallName, EndedView, PHONE, PracticeLine, RoundButton, lessonLine, tailOf } from './CallViews.tsx';
+import type { Hotline } from './CallViews.tsx';
+import { CodeNotice } from './CodeNotice.tsx';
+import type { Via } from './ring.ts';
 import { useCall } from './useCall.ts';
-import type { CallOutcome, Caller } from './useCall.ts';
 import '../day.css';
 import './call.css';
 import './call-motion.css';
 
-type Hotline = CountryPack['hotline'];
-
 interface Props {
   dayId: string;
-  hotline?: Hotline; // the day's pack hotline, when DayScreen passes it
-  onDone: (outcome: CallOutcome) => void;
-  onSkip: () => void;
+  start: CallStart; // the start reply that came with the ring
+  via: Via; // answered, called back from the voicemail, or the number you know
+  hotline?: Hotline;
+  onDone: () => void;
 }
-
-// ponytail: one neutral mask for every caller; pass the pack's numberMask through once the call route exposes it.
-const NUMBER = maskNumber('0000000000002140', '+XX XXX XXX dddd');
-// The start response names the caller; until it lands the ring shows the bank.
-const FALLBACK: Caller = { displayName: INSTITUTIONS.bank, role: 'mobile' };
 
 const RING_R = 46;
 const RING_C = 2 * Math.PI * RING_R;
 const BARS = 12;
 
-// Glyphs drawn for this screen, plain strokes on a 24 grid. The word under each button is the label.
-const PHONE = 'M6 3h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2 2A15 15 0 0 1 4 5a2 2 0 0 1 2-2z';
 const GLYPHS: Partial<Record<Action, string>> = {
-  ask_reference: 'M9 4L7 20M17 4l-2 16M4 9h17M3 15h17',
+  ask_reference: 'M3 6h18v12H3zM6.5 10h5M6.5 14h7M15.5 9.5h3v4h-3z', // an ID card
   refuse_code: 'M12 3L4 6v6c0 4 5 8 8 9 3-1 8-5 8-9V6zM8.5 8.5l7 7',
   call_back: 'M4 10a8 8 0 0 1 14-3M18 3v4h-4M20 14a8 8 0 0 1-14 3M6 21v-4h4',
-  read_code: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5',
+  read_code: 'M5 4h2v2H5zM11 4h2v2h-2zM17 4h2v2h-2zM5 10h2v2H5zM11 10h2v2h-2zM17 10h2v2h-2zM5 16h2v2H5zM11 16h2v2h-2zM17 16h2v2h-2z', // a keypad
   hang_up_call_official: `${PHONE}M14 7l2 2 4-4`,
 };
-
-const Glyph = ({ d, className }: { d: string; className?: string }) => (
-  <svg className={className ? `icon ${className}` : 'icon'} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d={d} />
-  </svg>
-);
-
-type Lesson = (outcome: CallOutcome, lastAction: Action | null) => { title: string; advice: string };
-
-// Names what happened, never what the player did wrong: a short title, the advice under it as body
-// text. The large title is 34px, so each title stays under about 16 characters to hold one line at 320.
-const lessonLine: Lesson = (outcome, lastAction) => {
-  if (outcome === 'read_code') return { title: 'You read it out.', advice: 'No real caller needs the code. Next time, hang up and call the official number.' };
-  if (outcome === 'timeout') return { title: 'Time ran out.', advice: 'The caller kept pushing until the call ran out. Hanging up is always allowed.' };
-  if (lastAction === 'hang_up_call_official') return { title: 'You checked it.', advice: 'You hung up and called the official number. That is the whole trick.' };
-  return { title: 'You hung up.', advice: 'That is always allowed. Next time, call the official number you already know as well.' };
-};
-
-// The tag the rule asks for, inside the line the phone shows under the name.
-const PracticeLine = ({ tail }: { tail: string }) => (
-  <p className="call-practice">
-    <span>Practice call</span>
-    <span aria-hidden="true">·</span>
-    <span className="call-practice-tail">{tail}</span>
-  </p>
-);
-
-// The caller's name is the screen title: focus moves to it when the ringing and the talking view
-// mount, so assistive technology hears the new screen and the practice label linked to it. The
-// ring that programmatic focus can draw is suppressed in call.css (.call-name:focus-visible).
-const CallName = ({ name, talking }: { name: string; talking?: boolean }) => (
-  <ScreenTitle className={talking ? 'call-name call-name-talking' : 'call-name'}>{name}</ScreenTitle>
-);
-
-const Avatar = ({ name, children }: { name: string; children?: ReactNode }) => (
-  <div className="call-avatar" aria-hidden="true">
-    <span className="call-initial">{name[0]}</span>
-    {children}
-  </div>
-);
-
-interface RoundProps {
-  label: string;
-  tone: 'accept' | 'end' | 'glass';
-  glyph: string;
-  disabled: boolean;
-  onPress: () => void;
-}
-
-// One iOS call control: a round disc with the word under it. The whole thing is the tap target.
-function RoundButton({ label, tone, glyph, disabled, onPress }: RoundProps) {
-  return (
-    <button type="button" className={`call-round call-round-${tone} pressable`} disabled={disabled} onClick={() => { haptic(); onPress(); }}>
-      <span className="call-disc" aria-hidden="true"><Glyph d={glyph} className={tone === 'end' ? 'call-glyph-end' : undefined} /></span>
-      <span className="call-round-label">{label}</span>
-    </button>
-  );
-}
-
-interface RingingProps {
-  caller: Caller;
-  ready: boolean; // the first beat has arrived; Accept waits for it, Decline never does
-  busy: boolean; // the decline turn is in flight
-  onAnswer: () => void;
-  onDecline: () => void;
-}
-
-export function RingingView({ caller, ready, busy, onAnswer, onDecline }: RingingProps) {
-  return (
-    <section className="page-full call call-ringing anim-zoom call-fade">
-      <div className="page-body">
-        <CallName name={caller.displayName} />
-        <PracticeLine tail={caller.role} />
-        <p className="call-number">{NUMBER}</p>
-        <Avatar name={caller.displayName} />
-      </div>
-      <div className="page-end call-ring-end">
-        <RoundButton label="Decline" tone="end" glyph={PHONE} disabled={busy} onPress={onDecline} />
-        <RoundButton label="Accept" tone="accept" glyph={PHONE} disabled={!ready || busy} onPress={onAnswer} />
-      </div>
-    </section>
-  );
-}
 
 type Graph = { analyser: AnalyserNode; ctx: AudioContext } | 'none' | null;
 type GraphRef = MutableRefObject<Graph>;
@@ -217,6 +126,7 @@ interface TalkingProps {
   beat: CallBeatPublic | null;
   meter: number;
   offered: Action[];
+  heardCode: boolean; // the caller has asked for a code
   busy: boolean;
   failed: boolean;
   speaking: boolean;
@@ -225,13 +135,13 @@ interface TalkingProps {
   onAct: (action: Action) => void;
 }
 
-// End takes the middle of the second row, so six controls make two rows of three with End
-// centred. The grid sits under the scrolling column, in the flow, so it stays above the
-// indicator at any height and nothing floats over a label.
-const withEnd = (offered: Action[]): Action[] => {
-  const rest = offered.filter((action) => action !== 'hang_up');
-  const at = Math.min(4, rest.length);
-  return [...rest.slice(0, at), 'hang_up', ...rest.slice(at)];
+// The code buttons wait until the caller has asked for a code: no call offers to read out a code
+// it never mentioned. End takes the middle of the second row, empty cells keeping it centred. The
+// grid sits under the scrolling column, in the flow, so it stays above the indicator.
+const CODE_ACTIONS: readonly Action[] = ['read_code', 'refuse_code'];
+const withEnd = (offered: Action[], heardCode: boolean): (Action | null)[] => {
+  const rest = offered.filter((action) => action !== 'hang_up' && (heardCode || !CODE_ACTIONS.includes(action)));
+  return [...rest.slice(0, 3), rest[3] ?? null, 'hang_up', rest[4] ?? null, ...rest.slice(5)];
 };
 
 // One cell of the grid: the red End for hang_up, a glass control for every other action.
@@ -242,19 +152,25 @@ function GridButton({ action, offered, busy, onAct }: { action: Action; offered:
   return <RoundButton label={ACTION_LABELS[action]} tone="glass" glyph={GLYPHS[action] ?? PHONE} disabled={busy} onPress={() => onAct(action)} />;
 }
 
-export function TalkingView({ caller, beat, meter, offered, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
+export function TalkingView({ caller, beat, meter, offered, heardCode, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
   const caption = useRef<HTMLParagraphElement>(null);
-  // A long beat on a short phone scrolls the column so the new caption is in view above the grid.
+  const column = useRef<HTMLDivElement>(null);
+  // A long beat on a short phone scrolls the column, and only the column, so the new caption is in
+  // view above the grid. scrollIntoView also scrolled the phone and slid the name under the status bar.
   useEffect(() => {
-    caption.current?.scrollIntoView({ block: 'nearest' });
+    const body = column.current;
+    const line = caption.current;
+    if (!body || !line) return;
+    const overflow = line.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom;
+    if (overflow > 0) body.scrollTop += overflow;
   }, [beat?.id]);
   return (
     <section className="page-full call call-talking anim-zoom call-fade">
-      <div className="page-body scroll">
-        <CallName name={caller.displayName} talking />
+      <div className="page-body scroll" ref={column}>
+        <CallName name={caller.shown} talking />
         <Elapsed />
-        <PracticeLine tail={NUMBER} />
-        <Avatar name={caller.displayName}>
+        <PracticeLine tail={tailOf(caller)} />
+        <Avatar caller={caller}>
           <Ring meter={meter} />
         </Avatar>
         <p className="call-meter-text">
@@ -268,10 +184,11 @@ export function TalkingView({ caller, beat, meter, offered, busy, failed, speaki
           </p>
         )}
       </div>
+      {beat?.role === 'code' && <CodeNotice />}
       <ul className="call-grid">
-        {withEnd(offered).map((action) => (
-          <li key={action}>
-            <GridButton action={action} offered={offered} busy={busy} onAct={onAct} />
+        {withEnd(offered, heardCode).map((action, i) => (
+          <li key={action ?? `empty-${i}`}>
+            {action && <GridButton action={action} offered={offered} busy={busy} onAct={onAct} />}
           </li>
         ))}
       </ul>
@@ -279,98 +196,34 @@ export function TalkingView({ caller, beat, meter, offered, busy, failed, speaki
   );
 }
 
-interface EndedProps {
-  hotline?: Hotline;
-  outcome: CallOutcome;
-  lastAction: Action | null;
-  beat: CallBeatPublic | null;
-  onDone: () => void;
-}
-
-// Where to report, from the pack; a plain line, never a link (rule 4). One line when the pack is missing.
-function HotlineLine({ hotline }: { hotline?: Hotline }) {
-  if (!hotline) return <p className="call-hotline">Report it to your national anti-scam line</p>;
-  return (
-    <p className="call-hotline">
-      <span>Report it: {hotline.label}</span>
-      {hotline.number && <strong>{hotline.number}</strong>}
-    </p>
-  );
-}
-
-export function EndedView({ hotline, outcome, lastAction, beat, onDone }: EndedProps) {
-  const lesson = lessonLine(outcome, lastAction);
-  return (
-    <section className="page-full call call-ended anim-sheet call-fade" data-surface="light">
-      <div className="page-body scroll">
-        <PracticeLine tail="ended" />
-        <ScreenTitle className="large-title">{lesson.title}</ScreenTitle>
-        <p className="call-advice">{lesson.advice}</p>
-        <p className="call-sub">Call ended</p>
-        {beat && <p className="call-caption">{beat.caption}</p>}
-        <HotlineLine hotline={hotline} />
-      </div>
-      <div className="page-end">
-        <button type="button" className="btn btn-primary pressable" onClick={() => { haptic(); onDone(); }}>
-          Next
-        </button>
-      </div>
-    </section>
-  );
-}
-
-// Mirrors NO_CALL_REASON in server/routes/call.ts; call/api.ts drops the 503 body, so the line is here.
-const NO_CALL = 'No call today';
-
-// The day had no beats: the promise of a call is answered in words, then Next ends the day.
-export function NoCallView({ onNext }: { onNext: () => void }) {
-  return (
-    <section className="page-full call call-ended anim-sheet call-fade" data-surface="light">
-      <div className="page-body scroll">
-        <ScreenTitle className="large-title">{NO_CALL}</ScreenTitle>
-        <p className="call-advice">Your phone stayed quiet. The day ends here.</p>
-      </div>
-      <div className="page-end">
-        <button type="button" className="btn btn-primary pressable" onClick={() => { haptic(); onNext(); }}>
-          Next
-        </button>
-      </div>
-    </section>
-  );
-}
-
 // The practice call, full screen inside the phone. Never a microphone: the player answers with
-// buttons only. When the day has no beats it says so, and Next skips the call.
-export function CallScreen({ dayId, hotline, onDone, onSkip }: Props) {
-  const call = useCall(dayId, onSkip);
+// buttons only. It mounts already answered: the ring is the banner or RingingView.
+export function CallScreen({ dayId, start, via, hotline, onDone }: Props) {
+  const call = useCall(dayId, start, via);
   const graph = useRef<Graph>(null);
-  // One AudioContext per call, closed when the call screen leaves. Mounted while ringing, so the
-  // StrictMode double mount runs before any context exists.
+  // One AudioContext per call, closed when the call screen leaves.
   useEffect(() => () => {
     const g = graph.current;
     if (g && g !== 'none') g.ctx.close().catch(() => undefined);
   }, []);
-  const { outcome } = call;
-  const caller = call.caller ?? FALLBACK;
-  if (call.phase === 'none') return <NoCallView onNext={onSkip} />;
+  const { outcome, caller } = { outcome: call.outcome, caller: start.caller };
   if (call.phase === 'ended' && outcome) {
-    return <EndedView hotline={hotline} outcome={outcome} lastAction={call.lastAction} beat={call.beat} onDone={() => onDone(outcome)} />;
+    return <EndedView hotline={hotline} caller={caller} lesson={lessonLine(outcome, call.lastAction, via)} beat={call.beat} onDone={onDone} />;
   }
-  if (call.phase === 'talking') {
-    return (
-      <TalkingView
-        caller={caller}
-        beat={call.beat}
-        meter={call.meter}
-        offered={call.offered}
-        busy={call.busy}
-        failed={call.failed}
-        speaking={call.speaking}
-        audio={call.audio}
-        graph={graph}
-        onAct={call.act}
-      />
-    );
-  }
-  return <RingingView caller={caller} ready={call.beat !== null} busy={call.busy} onAnswer={call.answer} onDecline={call.decline} />;
+  if (via === 'known') return null; // the safe end is on its way; the caller is never heard
+  return (
+    <TalkingView
+      caller={caller}
+      beat={call.beat}
+      meter={call.meter}
+      offered={call.offered}
+      heardCode={call.heardCode}
+      busy={call.busy}
+      failed={call.failed}
+      speaking={call.speaking}
+      audio={call.audio}
+      graph={graph}
+      onAct={call.act}
+    />
+  );
 }
