@@ -59,15 +59,15 @@ type Lines = { line: string; note: string };
 
 const tooLateLines = (stake: number): Lines => ({
   line: `Too late, ${money(stake)} gone`,
-  note: 'Once it has gone through, the minutes after matter most.',
+  note: 'Once money has gone, the first minutes matter most.',
 });
 
 function outcomeLines(result: RecoverResult, stake: number): Lines {
   if (result.tooLate) return tooLateLines(stake);
   if (result.recovered > 0) {
-    return { line: `You got ${money(result.recovered)} of ${money(stake)} back`, note: 'Quick action brings some money back. Faster is more.' };
+    return { line: `You got ${money(result.recovered)} of ${money(stake)} back`, note: 'Acting fast got some of it back. The faster you act, the more comes back.' };
   }
-  return { line: `Reported. ${money(stake)} gone`, note: 'Nothing came back this time, but the report counts. Freezing the account first brings more back.' };
+  return { line: `Reported. ${money(stake)} gone`, note: 'Nothing came back this time, but reporting still helps. Freezing your account first gets more back.' };
 }
 
 // The choice did not go through after a retry, or the server had nothing to claw back. The lesson

@@ -67,7 +67,7 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
     <section className="page-full setup anim-sheet">
       <div className="page-body scroll">
         <NavBar title="Make it your phone" />
-        <p className="setup-lead">Pick the people scammers would pretend to be. Names only, nothing real.</p>
+        <p className="setup-lead">Pick names for your people. Scammers will pretend to be them. Every name is made up.</p>
         {PEOPLE_ROLES.map((role) => (
           <Row key={role} role={role} chosen={people[role]} onPick={(name) => setPeople((prev) => pick(prev, role, name))} />
         ))}

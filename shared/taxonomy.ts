@@ -10,39 +10,39 @@ export interface TellInfo {
 export const TELLS: Record<TellId, TellInfo> = {
   trust_building: {
     label: 'Building trust first',
-    why: 'Fake testimonials, group members, professional branding, a small first payout or affection are there to make you lower your guard.',
+    why: 'Fake reviews, friendly group members, a polished look, a small first payout or sweet talk are there to make you drop your guard.',
   },
   urgency: {
     label: 'Rushing you',
-    why: 'A deadline, "today", an expiring parcel or points, an emergency or a threat leaves no time to think or ask someone.',
+    why: 'A deadline, "today only", an emergency or a threat is there so you act before you can think or ask someone.',
   },
   isolation: {
     label: 'Keeping you alone',
-    why: 'Asking you to keep it secret, not tell family or colleagues, or move to a private chat cuts you off from the people who would check.',
+    why: 'Being told to keep it secret, tell no one or move to a private chat cuts you off from the people who would check.',
   },
   escalation: {
     label: 'Asking for more each time',
-    why: 'A small payment, then a bigger one, then an unlock, tax, verification or recovery fee is how the loss grows.',
+    why: 'A small payment, then a bigger one, then a fee to unlock it all is how the loss keeps growing.',
   },
   authority: {
-    label: 'Borrowed authority',
-    why: 'A bank, police, government, CEO, celebrity, school, courier or regulator as the sender is meant to stop you questioning it.',
+    label: 'Posing as official',
+    why: 'A sender who claims to be a bank, the police, a boss, a courier or a famous name is counting on you not to question it.',
   },
   payment_substitution: {
     label: 'An unusual way to pay',
-    why: 'Crypto, gift cards, QR codes, a personal account or a cash handover cannot be traced or reversed.',
+    why: 'Crypto, gift cards, a QR code, a personal account or cash in hand cannot be traced or taken back.',
   },
   credential_theft: {
     label: 'Asking for a code or login',
-    why: 'A request for a one-time code, password, PIN, card number, login, recovery code, ID copy or screen share hands over your account.',
+    why: 'Giving a one-time code, password, PIN, card number, ID photo or your screen hands someone your account.',
   },
   platform_migration: {
     label: 'Moving you to another app',
-    why: 'Something that started on social media, a dating app, a job portal or a text message and moved to a private chat is leaving the place that could flag it.',
+    why: 'Moving you from where it started to a private chat takes you away from the app that could warn you.',
   },
   synthetic_identity: {
     label: 'A made-up identity',
-    why: 'Stolen photos, a made-up employment history, an AI voice or face, or "camera broken" hide who is really there.',
+    why: 'Stolen photos, a made-up work history, an AI voice or face, or a "broken camera" hide who is really there.',
   },
 };
 

@@ -39,7 +39,7 @@ export function TellsGroup({ result, notes }: { result: SlotResult; notes: Coach
   useStampTicks(stamped.length);
   const labelOf = (id: TellId) => lesson.tells.find((tell) => tell.id === id)?.label ?? TELLS[id].label;
   return (
-    <InsetGroup header="What made it suspicious">
+    <InsetGroup header="What gave it away">
       <SenderRow sender={lesson.scam.sender} />
       {tellRows(lesson, order).map((row) => (
         <li key={row.key} className="inset-row inset-body lesson-tell">
@@ -62,7 +62,7 @@ export const realLines = (notes: CoachNotes | null): readonly string[] =>
 
 export function TwinMessage({ lesson, notes }: { lesson: Lesson; notes: CoachNotes | null }) {
   return (
-    <InsetGroup header="The real one">
+    <InsetGroup header="What the real one looked like">
       <SenderRow sender={lesson.real.sender} />
       {lesson.real.parts.map((part) => (
         <li key={part.id} className="inset-row inset-body lesson-part">
@@ -76,7 +76,7 @@ export function TwinMessage({ lesson, notes }: { lesson: Lesson; notes: CoachNot
 
 // What each detail sent on a fake page lets someone do. Fixed copy, never a model's.
 const GAVE_AWAY: Record<FieldId, { label: string; use: string }> = {
-  tracking: { label: 'Tracking number', use: 'Only finds a parcel.' },
+  tracking: { label: 'Tracking number', use: 'It only finds a parcel. Low risk on its own.' },
   name: { label: 'Your name', use: 'The next fake message can greet you by name and sound like it knows you.' },
   birthday: { label: 'Your birthday', use: 'With your name, it answers security questions and helps open accounts as you.' },
   address: { label: 'Your address', use: 'A fake courier or bank message that quotes it looks real.' },

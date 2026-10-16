@@ -36,7 +36,7 @@ export function EmptyApp({ layout, onPlay }: { layout: Layout; onPlay: () => voi
         <div className="empty-app-state">
           <AppIcon layout={layout} size={64} />
           <p className="empty-app-title">{EMPTY_LINE[layout] ?? 'No messages yet'}</p>
-          <p className="empty-app-line">They arrive here during your practice day.</p>
+          <p className="empty-app-line">New ones land here when you play your day.</p>
         </div>
       </div>
       <div className="page-end">

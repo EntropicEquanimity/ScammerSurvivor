@@ -4,9 +4,8 @@ import { INSTITUTIONS, isInstitutionId } from '../../shared/brands.ts';
 import { PEOPLE_CHIPS } from '../../shared/people.ts';
 import { NON_AFFILIATION } from '../../shared/strings.ts';
 
-// No team mailbox: questions go to the public repository. PrivacyNotice.tsx still wraps this in a mailto
-// link; that row must become plain wrapping text there (outside the copy owner's files), then rename this.
-export const CONTACT_EMAIL = 'github.com/EntropicEquanimity/ScammerSurvivor';
+// No team mailbox: questions go to the public repository, linked from the Privacy page.
+export const CONTACT_PAGE = 'github.com/EntropicEquanimity/ScammerSurvivor';
 
 const en = {
   langLabel: 'Language',
@@ -32,9 +31,9 @@ const en = {
   },
   notices: {
     brand: NON_AFFILIATION,
-    ai: 'Practice messages may be AI-generated.',
+    ai: 'Some messages here may be written by AI.',
     privacy: 'Privacy notice',
-    contact: 'Contact the team through the repository',
+    contact: 'Ask the team on the project page',
   },
   chat: {
     back: 'Back to home',
@@ -83,10 +82,10 @@ const en = {
   privacy: {
     title: 'Privacy notice',
     lines: [
-      'This is a training simulation. Nothing here is a real message, account or payment.',
+      'This is a practice game. No message, account or payment here is real.',
       'We never ask for your name, phone number, passwords or codes. There is nowhere to type them.',
-      'Your button choices go to our server to work out your score. This version does not save them.',
-      'Your device remembers your age group and your country. Practice results last for this visit only.',
+      'Your taps go to our server so it can work out your score. It does not save them.',
+      'This device remembers your age answer and your country. Your results last for this visit only.',
       'No ads and no trackers.',
     ],
     back: 'Back',

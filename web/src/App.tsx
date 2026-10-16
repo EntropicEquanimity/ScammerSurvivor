@@ -74,8 +74,8 @@ const appRouteOf = (hash: string): string | null => APP_ROUTE.exec(hash)?.[1] ??
 // About: the one place that explains the AI and links to it. Later agents add rows here.
 function About() {
   const rows = [
-    { href: '#/lab', title: 'Judge Lab', note: 'Watch Gemini write a card and code check it, answer key open.' },
-    { href: '#room', title: 'Start a room', note: 'A family, an office or a group plays the same day; you see the tells they missed.' },
+    { href: '#/lab', title: 'Judge Lab', note: 'Watch Gemini write a message and code check it, with the answers shown.' },
+    { href: '#room', title: 'Start a room', note: 'A family, an office or a class plays the same day. You see the red flags they missed.' },
     { href: '#/privacy', title: 'Privacy notice', note: 'What this phone stores and what it never does.' },
   ];
   return (

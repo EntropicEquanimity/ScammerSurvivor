@@ -58,10 +58,10 @@ function StartRoom({ country }: { country: string | null }) {
   return (
     <section className="page settings room">
       <NavBar title="Start a room" back="About" href="#/about" />
-      <p className="settings-lead">Everyone plays the same practice day on their own phone. You see who fell for which tell. Nobody is named.</p>
-      <InsetGroup header="Country pack">
+      <p className="settings-lead">Everyone plays the same practice day on their own phone. You see which red flags fooled the group. No names are shown.</p>
+      <InsetGroup header="Country">
         <li className="inset-row inset-body room-block">
-          <div className="room-chips" role="radiogroup" aria-label="Country pack">
+          <div className="room-chips" role="radiogroup" aria-label="Country">
           {packs.map((pack) => (
             <button
               key={pack.code}
@@ -82,7 +82,7 @@ function StartRoom({ country }: { country: string | null }) {
       </InsetGroup>
       <div className="room-actions">
         <button type="button" className="btn btn-primary" disabled={!chosen || busy} onClick={create}>
-          {busy ? 'Opening the room' : 'Create the room'}
+          {busy ? 'Opening the room' : 'Start the room'}
         </button>
         {failed && <p className="room-honest">The room did not open. Try again.</p>}
       </div>
@@ -161,7 +161,7 @@ const trickRows = (board: RoomBoard): BarRow[] =>
       id,
       label: TRICKS.find((trick) => trick.id === id)?.name ?? id,
       value: row.fell,
-      note: `caught ${row.caught}, fell ${row.fell}`,
+      note: `caught ${row.caught}, fell for ${row.fell}`,
     }));
 
 function useBoard(roomId: string): { info: RoomInfo | null; board: RoomBoard | null; missing: boolean } {
@@ -204,12 +204,12 @@ function Debrief({ roomId, age, ready }: { roomId: string; age: AgeGroup; ready:
   return (
     <div className="room-actions">
       <button type="button" className="btn btn-primary" disabled={!ready || state.busy} onClick={run}>
-        {state.busy ? 'Writing the debrief' : 'Write the group debrief'}
+        {state.busy ? 'Writing the summary' : 'Write a group summary'}
       </button>
-      {!ready && <p className="room-honest">The debrief needs at least one finished day.</p>}
-      {state.failed && <p className="room-honest">The debrief did not arrive. Try again.</p>}
+      {!ready && <p className="room-honest">The summary needs at least one finished day.</p>}
+      {state.failed && <p className="room-honest">The summary did not arrive. Try again.</p>}
       {state.text && (
-        <InsetGroup header="Group debrief, written by Gemini from the counts above">
+        <InsetGroup header="Group summary, written by Gemini from these numbers">
           <li className="inset-row inset-body room-block" aria-live="polite">
             <p className="room-debrief-text">{state.text}</p>
           </li>
@@ -226,18 +226,18 @@ function Facilitator({ roomId, age }: { roomId: string; age: AgeGroup }) {
     <section className="page settings room">
       <NavBar title="Your room" back="About" href="#/about" />
       <p className="room-code" aria-label={`Room code ${roomId.split('').join(' ')}`}>{roomId}</p>
-      {missing && <p className="settings-lead">This room is not open. Rooms live while the server does; start a new one.</p>}
+      {missing && <p className="settings-lead">This room has closed. Start a new one.</p>}
       {info && <LinkBlock info={info} />}
       <InsetGroup header="So far">
         <li className="inset-row inset-body room-block room-counts">
           <p><strong>{info?.players ?? 0}</strong><span>joined</span></p>
           <p><strong>{board?.reports ?? 0}</strong><span>finished</span></p>
           <p><strong>{board ? `${board.rates.caught.handled} of ${board.rates.caught.total}` : '0 of 0'}</strong><span>scams caught</span></p>
-          <p><strong>{board ? `${board.rates.trusted.handled} of ${board.rates.trusted.total}` : '0 of 0'}</strong><span>real trusted</span></p>
+          <p><strong>{board ? `${board.rates.trusted.handled} of ${board.rates.trusted.total}` : '0 of 0'}</strong><span>real ones trusted</span></p>
         </li>
       </InsetGroup>
-      <BarList title="Tells missed most" rows={board ? tellRows(board) : []} empty={finished ? 'Nothing missed so far.' : 'No day finished yet.'} />
-      <BarList title="Tricks, caught against fell" rows={board ? trickRows(board) : []} empty={finished ? 'No scam scored so far.' : 'No day finished yet.'} />
+      <BarList title="Red flags missed most" rows={board ? tellRows(board) : []} empty={finished ? 'Nothing missed so far.' : 'No day finished yet.'} />
+      <BarList title="Scams, caught and fallen for" rows={board ? trickRows(board) : []} empty={finished ? 'No scams scored so far.' : 'No day finished yet.'} />
       <Debrief roomId={roomId} age={age} ready={finished} />
     </section>
   );

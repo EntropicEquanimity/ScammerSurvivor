@@ -233,7 +233,7 @@ export function JudgeLab({ country: initial, age }: Props) {
     <section className="page settings lab">
       <NavBar title="Judge Lab" />
       <p className="settings-lead">{HONEST_LINE}</p>
-      {age !== 'adult' && <p className="plain-note on-wall" role="alert">The lab is for adults. Younger players practise on reviewed cards only.</p>}
+      {age !== 'adult' && <p className="plain-note on-wall" role="alert">The lab is for people 18 and over.</p>}
       <Chips label="Country" options={packs.map((pack) => ({ id: pack.code, label: pack.name }))} chosen={country} onPick={setCountry} />
       <Chips label="Trick" options={TRICKS.map((trick) => ({ id: trick.id, label: trick.name }))} chosen={trickId} onPick={setTrickId} />
       <Chips label="Someone from your phone" options={PEOPLE_ROLES.map((id) => ({ id, label: PEOPLE_CHIPS[id].label }))} chosen={role} onPick={pickRole} clearable />

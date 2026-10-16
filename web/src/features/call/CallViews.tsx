@@ -90,19 +90,19 @@ type Lesson = { title: string; advice: string };
 // Names what happened, never what the player did wrong. The large title is 34px, so each title
 // stays under about 16 characters to hold one line at 320.
 export function lessonLine(outcome: CallOutcome, lastAction: Action | null, via: Via | null): Lesson {
-  const back = via === 'callback' ? 'Calling back the voicemail put you through to the same caller. ' : '';
-  if (via === 'known') return { title: 'You checked it.', advice: 'You called the number you already know, not the one in the voicemail. That is the whole trick.' };
+  const back = via === 'callback' ? 'Calling the voicemail number back reached the same caller. ' : '';
+  if (via === 'known') return { title: 'You checked it.', advice: 'You called the number you already know, not the one in the voicemail. That is how to check.' };
   if (outcome === 'read_code') return { title: 'You read it out.', advice: `${back}No real caller needs the code. Next time, hang up and call the official number.` };
-  if (outcome === 'timeout') return { title: 'Time ran out.', advice: `${back}The caller kept pushing until the call ran out. Hanging up is always allowed.` };
-  if (lastAction === 'hang_up_call_official') return { title: 'You checked it.', advice: `${back}You hung up and called the official number. That is the whole trick.` };
-  return { title: 'You hung up.', advice: `${back}That is always allowed. Next time, call the official number you already know as well.` };
+  if (outcome === 'timeout') return { title: 'Time ran out.', advice: `${back}The caller kept you talking until time ran out. You can always hang up.` };
+  if (lastAction === 'hang_up_call_official') return { title: 'You checked it.', advice: `${back}You hung up and called the official number. That is how to check.` };
+  return { title: 'You hung up.', advice: `${back}You can always do that. Next time, also call the official number you know.` };
 }
 
 // The caller ID line: what the phone showed came from the caller, so it never proves who called.
 const idLine = (caller: Caller): string => {
   if (caller.kind === 'name') return `Your phone showed "${caller.shown}". A caller can set any name.`;
   if (caller.kind === 'number') return 'Your phone showed a number you did not know. A number on the screen never proves who is calling.';
-  return 'Your phone showed Unknown. Real callers do that too, so the label alone never decides.';
+  return 'Your phone showed Unknown. Real callers can show that too, so it proves nothing either way.';
 };
 
 // Where to report, from the pack; a plain line, never a link (rule 4).

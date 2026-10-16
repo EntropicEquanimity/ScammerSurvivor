@@ -278,8 +278,8 @@ export function debriefText(board: RoomBoard): string {
   const lines = [
     `${board.reports} of you reported a day. Scams caught: ${board.rates.caught.handled} of ${board.rates.caught.total}. Real messages trusted: ${board.rates.trusted.handled} of ${board.rates.trusted.total}.`,
     ...missed.map((id) => `Missed most: ${tellLabel(id)}. ${TELLS[id as TellId].why}`),
-    missed.length === 0 ? 'No tell was missed. Keep tapping the words that give it away.' : '',
-    'Safest action next time: stop, and verify by calling the number you already know.',
+    missed.length === 0 ? 'No red flag was missed. Keep tapping what gives it away.' : '',
+    'Safest move next time: stop, then call the number you already know.',
   ];
   return lines.filter(Boolean).join('\n');
 }

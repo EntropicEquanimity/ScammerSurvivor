@@ -195,7 +195,7 @@ export default function About() {
     <>
       <NavBar title="Scammer Survivor" />
       <section className="about">
-      <p className="about-lead">Scammer Survivor is a practice phone for spotting scams across the Asia Pacific region. Gemini writes the day, code checks every card and keeps every score.</p>
+      <p className="about-lead">Scammer Survivor is a practice phone for spotting scams across the Asia Pacific region. Gemini writes the day. Code checks every message and keeps every score.</p>
       <Section title="The agents">
         <AgentRows />
         <a className="btn about-cta pressable" href="#/lab">Open the Judge Lab</a>

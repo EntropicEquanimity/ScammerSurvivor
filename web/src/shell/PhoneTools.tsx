@@ -46,7 +46,7 @@ export function PracticeProgress() {
   return (
     <section className="page settings">
       <NavBar title="My practice" />
-      <p className="settings-lead">Your practice in this visit. Every choice is a chance to learn.</p>
+      <p className="settings-lead">How your practice is going this visit. Every choice teaches you something.</p>
       <section className="inset-group">
         <h2 className="inset-header">This visit</h2>
         <ul className="inset">
@@ -59,7 +59,7 @@ export function PracticeProgress() {
       <ul className="inset">
         <li>
           <a className="inset-row pressable" href="#/" onClick={() => haptic()}>
-            Go to my phone<Icon name="chevron" className="inset-chevron" />
+            Go to the home screen<Icon name="chevron" className="inset-chevron" />
           </a>
         </li>
       </ul>
