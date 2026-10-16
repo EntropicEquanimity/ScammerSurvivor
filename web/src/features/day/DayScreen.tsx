@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import type { CSSProperties, ComponentType } from 'react';
-import type { Action, AgeGroup, PublicCard, RecoverResult, TraceEvent } from '../../../../shared/types.ts';
+import type { Action, AgeGroup, PublicCard, RecoverResult, SlotResult, TraceEvent } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { CallScreen } from '../call/CallScreen.tsx';
@@ -9,10 +9,13 @@ import { AppHeader } from '../card/AppHeader.tsx';
 import { TellPicker } from '../card/TellPicker.tsx';
 import { MessageView } from '../layouts/MessageView.tsx';
 import { Lesson, RealNote } from '../lesson/Lesson.tsx';
+import { GameHud } from '../juice/GameHud.tsx';
+import { FlyingPoints, useJuice } from '../juice/Juice.tsx';
 import { EndOfDay } from './EndOfDay.tsx';
 import { Notifications } from './Notifications.tsx';
 import { appLookFor } from './appNames.ts';
 import { useCallGate, useDay, useDayClock } from './useDay.ts';
+import type { Phase } from './useDay.ts';
 import '../day.css';
 import '../card/card.css';
 
@@ -95,6 +98,10 @@ function CardStep({ card, busy, failed, trace, personalised, onAct }: CardStepPr
   );
 }
 
+// The game layer shows while the player plays the day: lock, app, tells, recovery, lesson, note.
+// The call has its own full-screen look and the end screen has its own score.
+const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'call', 'end'];
+
 type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
 
@@ -119,12 +126,27 @@ function slotScreen(d: Day, step: Step) {
   return null;
 }
 
+function DayHud({ d, juice }: { d: Day; juice: ReturnType<typeof useJuice> }) {
+  const shown = d.day && !HUD_HIDDEN.includes(d.phase.kind);
+  return (
+    <>
+      {shown && d.day && (
+        <GameHud score={juice.score} bump={juice.bump} streak={juice.streak} wallet={d.wallet} walletStart={d.day.wallet} hudRef={juice.hud} />
+      )}
+      <FlyingPoints flights={juice.flights} />
+    </>
+  );
+}
+
 // Owns the whole day: notifications, card, tells, then a lesson, a note or the recovery window,
 // round again, the call, end. The hook holds the state; this component only picks the screen.
 // The stakes pills live on the lock screen under the clock.
 export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const gate = useCallGate(Boolean(onCall));
-  const d = useDay(country, age, quick, { canRecover: Recovery !== null, onCall: gate.onCall });
+  const juice = useJuice();
+  // The points fly from the button that scored the slot: the tell picker's Done.
+  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .nav button'));
+  const d = useDay(country, age, quick, { canRecover: Recovery !== null, onCall: gate.onCall, onResult });
   const step = { busy: d.busy, failed: d.failed, onNext: d.next };
   const { phase } = d;
   const slotId = 'slotId' in phase ? phase.slotId : null;
@@ -158,5 +180,10 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
     return slotScreen(d, step) ?? <Notifications cards={d.remaining} wallet={d.wallet} people={d.people} onOpen={d.open} />;
   };
 
-  return <div className="day">{body()}</div>;
+  return (
+    <div className="day">
+      {body()}
+      <DayHud d={d} juice={juice} />
+    </div>
+  );
 }

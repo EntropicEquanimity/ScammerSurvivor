@@ -20,6 +20,7 @@ export type Phase =
 export interface DayOptions {
   canRecover: boolean; // the Recovery screen is built and mounted
   onCall?: (dayId: string) => Promise<unknown>; // resolves when the practice call is over
+  onResult?: (result: SlotResult) => void; // each scored slot, once, while the tapped button is still on screen
 }
 
 interface State {
@@ -203,7 +204,13 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
     const { slotId } = phase;
     request(
       setState,
-      () => postTap(day.dayId, { slotId, tappedPartIds }),
+      // The game layer hears the result before the state moves on, so the Done the player tapped
+      // is still on screen for the points to fly from. Outside the updater: StrictMode runs those twice.
+      () =>
+        postTap(day.dayId, { slotId, tappedPartIds }).then((result) => {
+          options.onResult?.(result);
+          return result;
+        }),
       (result, s) => ({ ...s, results: [...s.results, result], phase: phaseAfter(result, walletOf(s), options.canRecover) }),
     );
   };

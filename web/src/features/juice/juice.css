@@ -1,31 +1,137 @@
-/* The game layer: score counter, flying points, shake and red flash. Tokens from base.css. */
+/* The game layer: the score capsule with the combo and the wallet bar, flying points, the shake
+   and the red flash. Tokens from base.css; the one red is the flash's, named once here. */
 
-.score-hud {
-  position: absolute;
-  top: calc(var(--status-h, 54px) + 6px);
-  right: 12px;
+:root {
+  --juice-red: rgb(224, 40, 40);
+  --hud-h: 36px; /* under the 44px cap, centred in the nav row under the status bar */
+}
+
+/* Fixed inside the phone (its container-type makes it the containing block), so it stays put while
+   the lock screen scrolls. Left side: the time sits above it, and the right side of the nav row holds
+   the app's name and the tell picker's Done. */
+.game-hud {
+  position: fixed;
+  top: calc(var(--status-h, 54px) + (var(--nav-h, 44px) - var(--hud-h)) / 2);
+  left: 12px;
   z-index: 40;
-  min-width: 64px;
-  padding: 0.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: var(--hud-h);
+  min-width: 72px;
+  padding: 0 0.75rem;
   border-radius: var(--radius-pill);
-  background: var(--ink);
-  color: #fff;
-  font-size: var(--t15, 0.9375rem);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  box-shadow: var(--shadow);
+  color: var(--ink);
   pointer-events: none;
 }
 
+/* The recovery sheet's header row starts at the left under the time; its right side is empty. */
+.phone:has(.recovery-sheet) .game-hud {
+  right: 12px;
+  left: auto;
+}
+
+/* On the lock the "new messages" line sits where the capsule does, so it steps down under it. */
+.day-lock .day-lock-date {
+  margin-top: calc(var(--hud-h) + 0.75rem);
+}
+
+/* The lesson's large title keeps the nav row above it free, as iOS does, so the capsule sits there. */
+.day .lesson .page-body {
+  padding-top: var(--nav-h, 44px);
+}
+
+.game-hud-row {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: space-between;
+  line-height: 1;
+}
+
+.score-hud {
+  display: inline-block;
+  font-size: var(--t15, 0.9375rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transform-origin: left center;
+}
+
 .score-hud[data-bump] {
-  animation: hud-bump 260ms var(--spring, cubic-bezier(0.2, 0.9, 0.3, 1.3));
+  animation: hud-bump 260ms var(--spring-out);
 }
 
 @keyframes hud-bump {
   0% { transform: scale(1); }
-  40% { transform: scale(1.18); background: var(--accent); }
+  40% { transform: scale(1.22); color: var(--accent); }
   100% { transform: scale(1); }
+}
+
+.game-hud-combo {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--t13, 0.8125rem);
+  font-weight: 800;
+  animation: combo-pop var(--dur-pop) var(--spring-out);
+}
+
+@keyframes combo-pop {
+  0% { transform: scale(0.2); opacity: 0; }
+  60% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* The wallet bar: a 4px track, the fill scaled from the left, a chunk for the change. */
+.wallet-bar {
+  position: relative;
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.wallet-bar-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: left center;
+  transition: transform 480ms var(--spring-out) 120ms, background-color 300ms ease-out;
+}
+
+.wallet-bar-fill[data-low] { background: var(--notice); }
+
+.wallet-bar-chunk {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform-origin: left center;
+}
+
+/* A loss: the lost share flashes red, then shrinks toward the fill. A refill: a light chunk fades. */
+.wallet-bar-chunk[data-kind='drain'] {
+  background: var(--juice-red);
+  animation: chunk-drain 700ms ease-in 200ms forwards;
+}
+
+.wallet-bar-chunk[data-kind='fill'] {
+  background: var(--accent);
+  animation: chunk-fade 600ms ease-out forwards;
+}
+
+@keyframes chunk-drain {
+  0% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(0); opacity: 0.4; }
+}
+
+@keyframes chunk-fade {
+  0% { opacity: 0.35; }
+  100% { opacity: 0; }
 }
 
 .juice-layer {
@@ -66,7 +172,7 @@
   inset: 0;
   z-index: 50;
   border-radius: inherit;
-  background: radial-gradient(ellipse at center, transparent 45%, rgba(224, 40, 40, 0.55) 100%);
+  background: radial-gradient(ellipse at center, transparent 45%, rgb(224 40 40 / 0.55) 100%);
   pointer-events: none;
   animation: red-flash 420ms ease-out forwards;
 }
@@ -84,13 +190,27 @@
   100% { opacity: 0; }
 }
 
+/* The reduced-motion twins: nothing moves or scales; every change cross-fades in place. The points
+   land in the counter at once (useJuice skips the flight), the red fades without the shake, the
+   fill steps to its new share while the chunk for the change fades out. */
 @media (prefers-reduced-motion: reduce) {
-  /* No flight and no shake: the points land in the counter at once, and the red fades in place. */
   .juice-points { display: none; }
   .phone.juice-bad { animation: none; }
   .score-hud[data-bump] { animation: hud-glow 300ms ease-out; }
+  .game-hud-combo { animation: juice-fade-in 300ms ease-out; }
+  .wallet-bar-fill { transition: background-color 300ms ease-out; }
+  .wallet-bar-chunk[data-kind='drain'] { animation: chunk-fade-red 700ms ease-out forwards; }
 }
 
 @keyframes hud-glow {
-  50% { background: var(--accent); }
+  50% { color: var(--accent); }
+}
+
+@keyframes juice-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes chunk-fade-red {
+  0%, 30% { opacity: 1; }
+  100% { opacity: 0; }
 }
