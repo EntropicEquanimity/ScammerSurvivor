@@ -69,13 +69,13 @@
   .chat-dot:nth-child(4) { opacity: 0.35; }
 }
 
-/* The reply chips: pills in a row above the buttons, filled in the accent like the bubble they send,
-   so they never read as one of the scored buttons under them. */
-/* It sits right above the action bar, outside it, on the same glass so the two read as one bar. */
+/* The reply chips: four pills in two columns above where the buttons sit, filled in the accent ink
+   like the bubble they send, so they never read as one of the scored buttons. Each label is one line
+   (16 characters or fewer, shared/chips.ts); Not now is quiet on its own row. */
 .chat-chips {
-  display: flex;
+  display: grid;
   flex: none;
-  flex-wrap: wrap;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
   padding: 0.625rem 1rem calc(0.5rem + var(--indicator-h, 34px)); /* alone at the bottom now, so it clears the indicator like .actions */
   background: var(--glass-strong);
@@ -84,14 +84,15 @@
 }
 
 .chat-chip {
-  flex: 1 1 auto;
+  min-width: 0;
   min-height: 48px;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.625rem;
   border: 0;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-ink);
   color: #fff;
   font: 600 var(--t16) / 1.2 var(--font-body);
+  white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform var(--dur-press) ease-out;
@@ -104,8 +105,9 @@
   .chat-chip:active { opacity: 0.7; transform: none; }
 }
 
-/* Back to the decisions without sending: the quiet pill. */
+/* Back to the decisions without sending: the quiet pill, across both columns. */
 .chat-chip-quiet {
+  grid-column: 1 / -1;
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
 }

@@ -1,5 +1,5 @@
-import type { Action, ChatChipId, ChatReplyResult } from '../../../../shared/types.ts';
-import { CHIP_LABELS, FIRST_CHIPS, MAX_EXCHANGES } from './labels.ts';
+import type { Action, ChatChipId, ChatReplyResult, PublicCard } from '../../../../shared/types.ts';
+import { CHIP_LABELS, MAX_EXCHANGES, pickChips } from './labels.ts';
 
 // The chat under one message, as pure steps so they can be tested without a browser.
 export interface ChatBubble {
@@ -18,7 +18,16 @@ export interface ChatState {
   exchanges: number;
 }
 
-export const INITIAL_CHAT: ChatState = { bubbles: [], chips: [...FIRST_CHIPS], open: false, waiting: false, failed: false, offered: null, exchanges: 0 };
+// The first four chips fit the message on screen; the server sends the next four with each answer.
+export const initialChat = (card: Pick<PublicCard, 'sender' | 'offered'>): ChatState => ({
+  bubbles: [],
+  chips: pickChips(card, []),
+  open: false,
+  waiting: false,
+  failed: false,
+  offered: null,
+  exchanges: 0,
+});
 
 // Reply opens the chips while exchanges are left; after that it is an ordinary, scored pick.
 export const takesReply = (state: ChatState, action: Action): boolean => action === 'reply' && state.exchanges < MAX_EXCHANGES;

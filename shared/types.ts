@@ -296,6 +296,7 @@ export interface SlotResult {
   recovered?: number; // set by a recovery action after a slip
   leaked?: FieldId[]; // page cards only: fields sent on a fake page, for What you gave away
   pageCost?: number; // page cards only: the sent fields' weight, taken off the points
+  cautious?: boolean; // a real message met with Call to check: trusted, but it did not need the call
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model
   lesson: {
     tells: { id: TellId; label: string; why: string }[]; // from shared/taxonomy.ts
@@ -325,12 +326,24 @@ export interface DayScore {
 }
 
 // Back-and-forth chats: after Reply the player sends one of a few code-written chips, the sender
-// answers in character, up to two exchanges; the next pick is scored as before. Same on a scam
-// and its twin, so a reply never gives the answer away.
-export type ChatChipId = 'who_is_this' | 'why_so_urgent' | 'can_i_call_you' | 'ok_what_do_i_do';
+// answers in character, up to five exchanges; the next pick is scored as before. The chips are
+// picked from what the player sees (shared/chips.ts), so a reply never gives the answer away.
+export type ChatChipId =
+  | 'who_is_this'
+  | 'why_so_urgent'
+  | 'can_i_call_you'
+  | 'ok_what_do_i_do'
+  | 'send_proof'
+  | 'check_with_bank'
+  | 'is_it_you'
+  | 'not_enough_money'
+  | 'meet_in_person'
+  | 'official_number'
+  | 'stop_messaging'
+  | 'what_link';
 
 export interface ChatReplyBody {
-  turn: 1 | 2;
+  turn: 1 | 2 | 3 | 4 | 5;
   said: ChatChipId;
 }
 

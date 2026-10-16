@@ -1,5 +1,5 @@
 // The Chatter: the sender's next chat message after the player taps Reply and sends a chip.
-// The player never types; the chips are fixed ids written here. On a scam the sender pushes
+// The player never types; the chips are fixed ids in shared/chips.ts. On a scam the sender pushes
 // harder with the trick's own move; on a real twin the sender answers like the real person.
 // Code checks every line (the Guard's text rules plus a word cap), one repair turn, then a fixed
 // line per trick category. The whole try is raced against a deadline so the thread never hangs.
@@ -14,32 +14,12 @@ import { INSTITUTIONS, BRANDS } from '../../shared/brands.ts';
 import { TELLS, TRICKS, trickCategory } from '../../shared/taxonomy.ts';
 import type { Card, Category, ChatChipId, TraceEvent } from '../../shared/types.ts';
 
-export const CHAT_CHIPS: readonly ChatChipId[] = ['who_is_this', 'why_so_urgent', 'can_i_call_you', 'ok_what_do_i_do'];
-export const MAX_EXCHANGES = 2;
-const CHIPS_SHOWN = 3;
+export { CHAT_CHIPS, CHIP_LABELS, MAX_EXCHANGES, pickChips } from '../../shared/chips.ts';
 export const MAX_WORDS = 40;
 // Under the browser's 6 s: the whole generate and repair must land by then or the fixed line goes.
 export const CHAT_DEADLINE_MS = 5500;
 // A repair is only tried when at least this much of the deadline is left.
 const REPAIR_MIN_MS = 1500;
-
-// ponytail: the chip words also live in web/src/features/chat/labels.ts, which the server cannot
-// import; a shared labels table is the upgrade.
-export const CHIP_WORDS: Record<ChatChipId, string> = {
-  who_is_this: 'Who is this?',
-  why_so_urgent: 'Why so urgent?',
-  can_i_call_you: 'Can I call you?',
-  ok_what_do_i_do: 'OK, what do I do?',
-};
-
-const isChip = (value: unknown): value is ChatChipId => typeof value === 'string' && (CHAT_CHIPS as readonly string[]).includes(value);
-
-// What the player may send next: every chip not sent yet, the first three. Empty once final.
-export const chipsAfter = (said: readonly ChatChipId[]): ChatChipId[] =>
-  said.length >= MAX_EXCHANGES ? [] : CHAT_CHIPS.filter((chip) => !said.includes(chip)).slice(0, CHIPS_SHOWN);
-
-export const isOfferedChip = (said: readonly ChatChipId[], value: unknown): value is ChatChipId =>
-  isChip(value) && chipsAfter(said).includes(value);
 
 export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_example' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims';
 
@@ -137,6 +117,46 @@ const SCAM_SYSTEM = `You write one chat message inside a scam-awareness practice
 
 const TWIN_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice. You play the real, honest sender of an ordinary message the player received. The player tapped a short reply. Answer the way the real person or the real company would: calm, friendly, no pressure, no secrecy, no request for money, codes or passwords. If asked who you are, say so plainly. If the player wants to check, welcome it: say call me on the number you have, or point to the official app or the number they already know. Never send a link. Never say what you would never ask for or that something is free; just answer. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, no personal name except the ones given. JSON only.`;
 
+// The move for the chip just sent. A scam slips the way real ones do (no proof, keep off the
+// official line); a twin answers like the real sender. One short line each, appended to the prompt.
+const SCAM_MOVE: Record<ChatChipId, string> = {
+  who_is_this: 'Restate who you claim to be, confidently, with a reason they should already know you.',
+  why_so_urgent: 'Give a deadline reason that fits the trick.',
+  can_i_call_you: 'Give an excuse why a call cannot happen right now and keep it in this chat.',
+  ok_what_do_i_do: 'Give the next step of the trick in plain words, with no amount or account detail.',
+  send_proof: 'Give an excuse instead of proof, such as a screenshot that will not load or a photo you cannot send yet.',
+  check_with_bank: 'Say there is no time for that, or that the bank will only slow it down.',
+  is_it_you: 'Insist it is really you, with a reason you cannot call or show your face right now.',
+  not_enough_money: 'Suggest a smaller amount now, or another way to get it today.',
+  meet_in_person: 'Give an excuse why meeting cannot happen soon, and push to settle it here.',
+  official_number: 'Tell them not to call that number: calling will freeze it or cause a delay, so stay in this chat.',
+  stop_messaging: 'Make one last push with guilt or fear.',
+  what_link: 'Say the link is the official page and only takes a minute.',
+};
+const TWIN_MOVE: Record<ChatChipId, string> = {
+  who_is_this: 'Say plainly who you are.',
+  why_so_urgent: 'Say it is not urgent and they can take their time.',
+  can_i_call_you: 'Say yes, any time, on the number they already have for you.',
+  ok_what_do_i_do: 'Explain the ordinary next step calmly.',
+  send_proof: 'Point them to check it themselves in the official app or with the number they already have.',
+  check_with_bank: 'Say that is a good idea and there is no rush.',
+  is_it_you: 'Say yes, plainly, and offer to talk on the usual number.',
+  not_enough_money: 'Say that is fine and suggest an easy, normal option with no pressure.',
+  meet_in_person: 'Say yes, or say when you are free.',
+  official_number: 'Say that is a good idea.',
+  stop_messaging: 'Apologise briefly and say goodbye.',
+  what_link: 'Say they do not need a link: they can open the official app or call the number they have.',
+};
+const LAST_SCAM = 'This is your last message in this chat: make one last push, then say you will wait.';
+const LAST_TWIN = 'This is your last message in this chat: say a warm goodbye.';
+
+// The move line for the newest chip, plus the wrap-up on the last exchange.
+export function moveLine(isTwin: boolean, said: ChatChipId, last: boolean): string {
+  const move = `Your next message: ${(isTwin ? TWIN_MOVE : SCAM_MOVE)[said]}`;
+  return last ? `${move}
+${isTwin ? LAST_TWIN : LAST_SCAM}` : move;
+}
+
 export const CHAT_SCHEMA: Schema = {
   type: Type.OBJECT,
   properties: { text: { type: Type.STRING } },
@@ -171,6 +191,8 @@ export interface ChatterInput {
   card: Card;
   isTwin: boolean;
   thread: readonly ChatLine[]; // the chat so far, the player's newest chip last
+  said?: ChatChipId; // the chip just sent, for its move line
+  last?: boolean; // the last exchange: the sender wraps up
   allowedNames: readonly string[];
   modelAllowed: boolean; // false on the quick day and for under 18: the fixed line, no model
   generate?: Generate;
@@ -228,7 +250,9 @@ type Attempt = Omit<ChatterResult, 'ms'>;
 async function attempt(input: ChatterInput, started: number, deadline: number): Promise<Attempt> {
   const generate = input.generate ?? quickGenerate;
   const system = input.isTwin ? TWIN_SYSTEM : SCAM_SYSTEM;
-  const contents = chatPrompt(input.card, input.isTwin, input.thread, input.allowedNames);
+  const move = input.said ? `
+${moveLine(input.isTwin, input.said, input.last ?? false)}` : '';
+  const contents = chatPrompt(input.card, input.isTwin, input.thread, input.allowedNames) + move;
   const ask = (extra: string) => generate({ system, contents: contents + extra, schema: CHAT_SCHEMA, model: MODELS.director, temperature: 0.8 });
   const first = await ask('');
   const firstText = textOf(first.json);

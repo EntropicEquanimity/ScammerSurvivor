@@ -1,10 +1,11 @@
-// Back-and-forth chats: POST /api/day/:dayId/slot/:slotId/reply with { turn: 1 | 2, said }.
+// Back-and-forth chats: POST /api/day/:dayId/slot/:slotId/reply with { turn: 1 to 5, said }.
 // The player tapped Reply and sent one of the code-written chips; the Chatter answers as the
-// sender, a scam pushing harder and a real twin answering like the real person. Up to two
-// exchanges, then the next pick goes to POST /act and is scored there, unchanged.
+// sender, a scam pushing harder and a real twin answering like the real person. Up to five
+// exchanges, the last one a wrap-up, then Reply is an ordinary pick scored by POST /act, unchanged.
 import { Router } from 'express';
 import type { Action, ChatChipId, ChatReplyResult } from '../../shared/types.ts';
-import { CHIP_WORDS, MAX_EXCHANGES, chatterReply, chipsAfter, isOfferedChip } from '../agents/chatter.ts';
+import { CHIP_LABELS, MAX_EXCHANGES, chatterReply, pickChips } from '../agents/chatter.ts';
+import { isChip } from '../../shared/chips.ts';
 import type { ChatLine } from '../agents/chatter.ts';
 import type { Generate } from '../agents/caller.ts';
 import { offeredFor } from '../deal.ts';
@@ -34,10 +35,10 @@ const chatOf = (slot: StoredSlot): ChatTurn[] => (slot as ChattedSlot).chat ?? [
 
 const threadOf = (turns: readonly ChatTurn[], said: ChatChipId): ChatLine[] => [
   ...turns.flatMap((turn): ChatLine[] => [
-    { from: 'player', text: CHIP_WORDS[turn.said] },
+    { from: 'player', text: CHIP_LABELS[turn.said] },
     { from: 'sender', text: turn.text },
   ]),
-  { from: 'player', text: CHIP_WORDS[said] },
+  { from: 'player', text: CHIP_LABELS[said] },
 ];
 
 // The buttons fit the words of the whole thread: the message's own buttons stay, so nothing the
@@ -55,9 +56,10 @@ const asRecord = (body: unknown): Record<string, unknown> =>
 function refusal(slot: StoredSlot, body: Record<string, unknown>): string | null {
   if (slot.action || slot.result) return 'already_acted';
   const turns = chatOf(slot);
-  if (body.turn !== 1 && body.turn !== 2) return 'no_more_turns';
+  if (!Number.isInteger(body.turn) || (body.turn as number) < 1 || (body.turn as number) > MAX_EXCHANGES) return 'no_more_turns';
   if (body.turn !== turns.length + 1) return 'out_of_turn';
-  if (!isOfferedChip(turns.map((turn) => turn.said), body.said)) return 'unknown_reply';
+  // The same pick the browser showed: from the shown sender and the buttons the thread has now.
+  if (!isChip(body.said) || !pickChips(slot.public, turns.map((turn) => turn.said)).includes(body.said)) return 'unknown_reply';
   return null;
 }
 
@@ -84,6 +86,8 @@ export async function replySlot(dayId: string, slotId: string, body: unknown, de
     card: slot.card,
     isTwin: slot.isTwin,
     thread: threadOf(turns, said),
+    said,
+    last: turns.length + 1 >= MAX_EXCHANGES,
     allowedNames: namesFor(dayId, slot),
     modelAllowed: state.age === 'adult' && !state.quick, // AGENTS.md rule 9 and the cache-only quick day
     generate: deps.generate,
@@ -102,7 +106,7 @@ export async function replySlot(dayId: string, slotId: string, body: unknown, de
   const final = chat.length >= MAX_EXCHANGES;
   return {
     status: 200,
-    body: { message: { id: `${slotId}-c${chat.length}`, text: reply.text }, offered, chips: chipsAfter(chat.map((turn) => turn.said)), final },
+    body: { message: { id: `${slotId}-c${chat.length}`, text: reply.text }, offered, chips: pickChips(next.public, chat.map((turn) => turn.said)), final },
   };
 }
 
