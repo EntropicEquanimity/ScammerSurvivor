@@ -65,7 +65,7 @@ function refusal(slot: StoredSlot, body: Record<string, unknown>): string | null
 
 // Names the sender may use: the people the player picked, the neutral names, and both sides'
 // display names (the reply is checked the same way on a scam and a twin).
-const namesFor = (dayId: string, slot: StoredSlot): string[] => {
+export const namesFor = (dayId: string, slot: StoredSlot): string[] => {
   const people = Object.values(readPersonalState(dayId)?.people ?? {}).filter((name): name is string => typeof name === 'string');
   return [...new Set([...people, ...SKIP_NAMES, slot.card.sender.displayName, slot.card.realTwin.sender.displayName])];
 };

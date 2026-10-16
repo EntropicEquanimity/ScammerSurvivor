@@ -1,6 +1,7 @@
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { join } from 'node:path';
+import { aftermathRouter } from './routes/aftermath.ts';
 import { callRouter } from './routes/call.ts';
 import { chatRouter } from './routes/chat.ts';
 import { dayRouter, warmCards } from './routes/day.ts';
@@ -47,6 +48,7 @@ app.use('/api', roomRouter);
 app.use('/api', callRouter);
 app.use('/api', chatRouter);
 app.use('/api', pageRouter);
+app.use('/api', aftermathRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'not_found' });
 });

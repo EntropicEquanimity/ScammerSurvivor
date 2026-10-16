@@ -1,0 +1,157 @@
+/* The aftermath: what happened next, drawn on the card's own app. New bubbles use the thread's
+   (chat.css); banners are the phone's notification banner, solid over the white thread; the call is
+   the dark in-call capsule; system lines are the small grey centred notes Messages uses. */
+
+.aftermath {
+  cursor: pointer;
+}
+
+/* Room under the last line for the Continue capsule. */
+.aftermath .app-body {
+  padding-bottom: calc(var(--page-end-bottom) + 4rem);
+}
+
+.am-thread {
+  margin-top: 0.25rem;
+}
+
+.am-system {
+  align-self: center;
+  max-width: 85%;
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: var(--t15);
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* Banners and the call ride under the status bar, over the thread, as iOS draws them. */
+.am-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: absolute;
+  top: calc(var(--status-h, 54px) + 0.25rem);
+  right: 0.5rem;
+  left: 0.5rem;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.am-banner {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.75rem 0.875rem;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  text-align: left;
+  transform-origin: 50% 0;
+}
+
+.am-banner .app-icon {
+  flex: none;
+  border-radius: var(--icon-radius);
+}
+
+.am-banner-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.am-banner-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--t16);
+}
+
+.am-banner-time {
+  flex: none;
+  color: var(--muted);
+  font-size: var(--t15);
+}
+
+.am-banner p {
+  margin: 0;
+  font-size: var(--t16);
+  line-height: 1.3;
+}
+
+.am-call {
+  padding: 0.875rem 1rem;
+  border-radius: 28px;
+  background: rgba(28, 28, 30, 0.94);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow);
+  color: #fff;
+  transform-origin: 50% 0;
+}
+
+.am-call-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.am-call-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(#a5abb6, #858b96);
+  color: #fff;
+  font-size: var(--t19);
+  font-weight: 600;
+}
+
+.am-call-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--t16);
+}
+
+.am-call-id span {
+  color: rgba(235, 235, 245, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.am-call-caption {
+  margin: 0.625rem 0 0;
+  font-size: var(--t18);
+  line-height: 1.35;
+}
+
+/* Motion: banners and the call drop in from the top, lines fade, Continue fades up last. */
+@keyframes am-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.am-banner.am-in,
+.am-call.am-in {
+  animation: drop-in var(--dur-sheet) var(--spring) both;
+}
+
+.am-system.am-in,
+.am-call-caption.am-in,
+.aftermath .page-end.am-in {
+  animation: am-fade 260ms ease-out both;
+}
+
+/* Reduced motion: no drops or springs; every item fades in place. Scoped and marked so it outlives
+   the global rule in base.css, which would make every item a hard cut. */
+@media (prefers-reduced-motion: reduce) {
+  .aftermath .am-in {
+    animation: am-fade 200ms ease-out both !important;
+  }
+}
