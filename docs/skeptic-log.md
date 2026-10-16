@@ -64,3 +64,11 @@ Verdict: does not place first. Estimate 4 percent; 14 after the single change; a
 | 10 | Where is AI on the default path? | trace removed from play; video and deck still promise it | Lead the video with the leak reuse | Deck lead |
 
 OpenAI second opinion not run: the account's credit balance is exhausted.
+
+## Round 5, 2026-10-17 about 02:45 Manila, preview revision 00013 and HEAD a36a037 (app only, per the Builder)
+
+Score 58 of 100: Technical and Gen AI 24, Impact 14, Innovation 14, UX 6. First place 3 percent, top 3 8, shortlist 30. Down from round 4 because the public URL still serves revision 8.
+
+Rules: pass on Google AI (Vertex), Google Cloud, English, Gemini never scores, under 18 blocked, practice label, no em dashes. At risk: realistic domains checked only at write time and four rule files still saying .example; full dialable numbers; fixed scam-side backup lines that read as ready-to-send text; "act, never label" not amended; the About counter shows test traffic; JAPAC brands missing from the denylist.
+
+Five fixes: deploy HEAD to 100 percent; Day over consistency; one modal at a time; domains rechecked before deploy and rule files aligned; reset the counter and widen the denylist. All but the deploy are with a builder; the deploy follows the Ruler.
