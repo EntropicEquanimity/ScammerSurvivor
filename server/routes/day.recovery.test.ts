@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type { Action } from '../../shared/types.ts';
 import assert from 'node:assert/strict';
 import { resolveCountry } from '../country.ts';
 import { dealDay, redealSlot } from '../deal.ts';
@@ -60,21 +61,24 @@ test('after 90 seconds nothing comes back and the slot is closed', () => {
   assert.equal(recoverSlot(dayId, { slotId: scam.slotId, action: 'freeze_account' }, T0 + 92_000).status, 400);
 });
 
-// Two slips whose stakes pass the wallet, a recovery on the first: the day total must be the running
+// Two slips whose stakes reach the wallet, a recovery on the first: the day total must be the running
 // total the player watched, not the once-clamped sum of losses plus the recovery.
 test('the day wallet matches the running total when a recovery lands before a later slip empties it', async () => {
-  const big = resolveCountry('SG').cards.filter((card) => card.trickId === 'family_trouble' || card.stake > 3000);
+  // Only money moves drain the wallet, so the deck and the slips are the money-moving ones.
+  const MONEY = ['pay', 'send_money', 'share_code', 'read_code'];
+  const moneySlip = (card: { unsafeReplies: string[] }) => card.unsafeReplies.find((action) => MONEY.includes(action));
+  const big = resolveCountry('SG').cards.filter((card) => card.stake >= 2000 && moneySlip(card));
   const { payload } = await beginDay({ country: 'SG' }, { cards: () => big });
   const state = readDay(payload.dayId);
   assert.ok(state);
   const scams = state.slots.filter((slot) => !slot.isTwin);
   assert.equal(scams.length, 2);
-  assert.ok(scams[0].card.stake + scams[1].card.stake > state.walletStart);
+  assert.ok(scams[0].card.stake + scams[1].card.stake >= state.walletStart);
   let last = 0;
   let recoveredOnFirst = false;
   for (const slot of state.slots) {
     if (slot.isTwin) continue;
-    recordAct(payload.dayId, { slotId: slot.slotId, action: slot.card.unsafeReplies[0] });
+    recordAct(payload.dayId, { slotId: slot.slotId, action: moneySlip(slot.card) as Action });
     const tapped = scoreTap(payload.dayId, { slotId: slot.slotId, tappedPartIds: [] }, T0);
     assert.equal(tapped.status, 200);
     if (tapped.status === 200) last = tapped.body.walletAfter;

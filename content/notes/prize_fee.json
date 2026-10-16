@@ -4,8 +4,8 @@
   "category": "H",
   "catalogueEntry": 55,
   "app": "sms",
-  "setup": "[a text says the player has won a draw from [institution] that they never entered]",
-  "ask": "[the message, in the name of [institution], asks for a tax or processing fee to be paid first, and a copy of an ID, before the prize can be released this week]",
+  "setup": "[a text says points or a rebate from a service the player uses will expire this week, or that the player won a draw they never entered]",
+  "ask": "[the message, in the name of [institution], asks the player to verify their identity on a site, then pay a small processing fee and share the code just sent to them before the reward is released]",
   "tells": [
     "authority",
     "escalation",
@@ -21,7 +21,7 @@
     "open_link"
   ],
   "usualEnding": "The fee is paid and a second fee follows. The prize never arrives, and the ID copy is used elsewhere.",
-  "realTwin": "A real reward notice from a loyalty programme the player signed up for appears inside that programme's own app, with nothing to pay first.",
+  "realTwin": "A real reward notice from a loyalty programme the player signed up for appears inside that programme's own app and shows the points balance.",
   "confidence": "medium",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",

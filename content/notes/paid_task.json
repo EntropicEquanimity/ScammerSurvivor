@@ -4,8 +4,8 @@
   "category": "A",
   "catalogueEntry": 2,
   "app": "green-chat",
-  "setup": "[a stranger who found the player through a job ad moves the chat to [chat app name] and offers home-based work liking posts or completing small tasks, with no interview] [a first small payout arrives and a group shares screenshots of earnings]",
-  "ask": "[after the first small payout, the next task is locked until the player pays a deposit from their own money to a personal account, with a bigger return promised and a group screenshot of someone who just withdrew]",
+  "setup": "[a stranger who found the player through a job ad moves the chat to [chat app name] and offers home-based tasks with no interview: rating hotels, reviewing apps or boosting posts] [a first small commission arrives and a group shares screenshots of earnings]",
+  "ask": "[after the first commission, the next task is an advance purchase from the player's own money to a personal account, which the sender says comes back with commission, and a group screenshot shows someone who just withdrew]",
   "tells": [
     "trust_building",
     "escalation",
@@ -21,7 +21,7 @@
     "pay"
   ],
   "usualEnding": "The deposit is kept, the balance on screen is never paid out, and each withdrawal needs another fee. Some chats then ask the player to receive and forward other people's money.",
-  "realTwin": "A real hiring team confirms an interview time through [chat app name] after an application the player made themselves, and asks for nothing but availability.",
+  "realTwin": "A real hiring team confirms an interview time through [chat app name] after an application the player made themselves, and asks for the player's availability.",
   "confidence": "high",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",

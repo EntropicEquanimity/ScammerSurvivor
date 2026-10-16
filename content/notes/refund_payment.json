@@ -4,8 +4,8 @@
   "category": "D",
   "catalogueEntry": 29,
   "app": "wallet",
-  "setup": "[a message says a refund or a buyer's payment is waiting for the player and expires soon] [the amount is shown as already on its way]",
-  "ask": "[the message, showing the amount as already on its way, asks the player to scan a code or approve a request in the wallet app before it expires to receive the money, with an amount the player did not type]",
+  "setup": "[a message says a refund or a buyer's payment is waiting and expires soon] [another version: a caller says a refund was sent by mistake and is too large]",
+  "ask": "[the message asks the player to scan a code or approve a request in the wallet app before it expires to receive the money, or the caller asks the player to send back the overpayment today]",
   "tells": [
     "urgency",
     "trust_building",
@@ -21,7 +21,7 @@
     "open_link"
   ],
   "usualEnding": "The scan pays them instead. No refund needs the player to approve an outgoing payment, and a real refund lands by itself inside the official app.",
-  "realTwin": "A real refund notice from the shop the player bought from appears in the wallet app as money received, with nothing to scan and nothing to approve.",
+  "realTwin": "A real refund notice from the shop the player bought from appears in the wallet app as money received, with the order it belongs to.",
   "confidence": "medium",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",

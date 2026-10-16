@@ -4,8 +4,8 @@
   "category": "F",
   "catalogueEntry": 41,
   "app": "green-chat",
-  "setup": "[a caller or message says a parcel or bank account in the player's name is linked to a crime] [the player is passed to someone in uniform on a video call who says an arrest warrant is open]",
-  "ask": "[the officer on the video call orders the player to move their savings to a safe account for checking before the warrant is served tonight, to stay on the call, and to tell no one in the family]",
+  "setup": "[a service desk at a bank, telco or courier contacts the player about a card charge, a new phone line or a parcel in their name that they do not recognise, and already knows the player's name and ID number] [when the player denies it, the desk transfers them to an officer who says the account is linked to money laundering and a warrant is open]",
+  "ask": "[the officer tells the player to move their savings to a safe account for checking, or to hand cash, gold or their bank card and PIN to a courier, before tonight, and to tell no one in the family while the case is open]",
   "tells": [
     "authority",
     "urgency",
@@ -23,7 +23,7 @@
     "keep_secret"
   ],
   "usualEnding": "The savings leave for a mule account while the call stays open. No police force asks anyone to move money for safekeeping.",
-  "realTwin": "A real notice from [institution] about a court or police matter arrives by letter or through its own app, gives a reference to quote, and asks for nothing by chat.",
+  "realTwin": "A real notice from [institution] about a court or police matter arrives by letter or through the agency's own app, with a case reference and an office to visit in person.",
   "confidence": "high",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",

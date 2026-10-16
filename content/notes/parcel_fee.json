@@ -4,8 +4,8 @@
   "category": "D",
   "catalogueEntry": 26,
   "app": "sms",
-  "setup": "[a text from a courier says a parcel could not be delivered because of a missing fee or a wrong address]",
-  "ask": "[the courier message asks the player to open a link today, pay a small fee and then enter card details and a code to release the parcel]",
+  "setup": "[a text from an unknown email address or an overseas number, not a courier name, says a parcel is held because the delivery address is invalid]",
+  "ask": "[the message asks the player to open a link today, pay a tiny re-delivery fee, then enter card details and approve the code just sent to them]",
   "tells": [
     "authority",
     "urgency",
@@ -23,7 +23,7 @@
     "share_code"
   ],
   "usualEnding": "The card and the code are taken, the card is added to a stranger's phone wallet, and there was never a parcel.",
-  "realTwin": "A real delivery update from [institution] names an order the player placed, gives a time window, and asks for no payment and no card.",
+  "realTwin": "A real delivery update from [institution] names an order the player placed and gives a delivery time window and a tracking page.",
   "confidence": "high",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",

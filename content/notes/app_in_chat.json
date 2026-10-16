@@ -4,8 +4,8 @@
   "category": "J",
   "catalogueEntry": 66,
   "app": "green-chat",
-  "setup": "[a message brings an invoice, a security tool, or a job app as a file in the chat, with a familiar looking logo] [the sender says it must be installed from the chat because the store version is not ready]",
-  "ask": "[the sender, in the name of [institution], asks the player to install the file before the offer closes and grant it screen and message access so the document can open]",
+  "setup": "[a file named like an account statement or a notice from a regulator arrives in the chat, sometimes from a contact's own account, with a short compliance deadline] [another version sends a security tool or a job app as a file to install]",
+  "ask": "[the sender, in the name of [institution], asks the player to open the file on a computer or install it before today's deadline, and to grant it screen and message access so it can open]",
   "tells": [
     "authority",
     "urgency",
@@ -21,7 +21,7 @@
     "open_link"
   ],
   "usualEnding": "The app reads codes and banking screens and money moves with no further story. No real invoice or tool needs an install from a chat.",
-  "realTwin": "A colleague sends a plain agenda file through the chat for a meeting already in the player's calendar, and nothing needs installing.",
+  "realTwin": "A colleague sends a plain agenda file through the chat for a meeting already in the player's calendar.",
   "confidence": "medium",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
