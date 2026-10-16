@@ -94,7 +94,7 @@ function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
             <ScreenTitle className="widget-title">Your practice day</ScreenTitle>
             <p className="widget-line">{boss ? `Boss: ${TELLS[boss].label}` : 'Messages arrive. Spot the scams.'}</p>
             <button type="button" className="widget-country pressable" onClick={onChange}>{name}</button>
-            <button type="button" className="widget-country pressable" style={{ textAlign: 'left' }} onClick={onPeople}>Choose your people</button>
+            <button type="button" className="widget-country pressable" style={{ textAlign: 'left' }} onClick={onPeople}>Your people</button>
           </div>
           <div className="widget-day-actions">
             <button ref={playRef} type="button" className="btn btn-primary pressable" onClick={(event) => onPlay(event, false)}>Play</button>
