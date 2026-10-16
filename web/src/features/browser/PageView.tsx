@@ -90,11 +90,14 @@ function PageForm({ page, form, sending, failed, onFocus, onSend }: FormProps) {
 }
 
 // After the send: the page says what it now has, so the player sees exactly what left the phone.
+const listOf = (words: string[]): string =>
+  words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+
 function Sent({ given }: { given: FieldId[] }) {
   return (
     <div className="web-sent" role="status">
       <p className="web-sent-title">Sent</p>
-      <p>This page now has your {given.map((id) => ROW_LABEL[id].toLowerCase()).join(', ')}.</p>
+      <p>This page now has your {listOf(given.map((id) => ROW_LABEL[id].toLowerCase()))}.</p>
     </div>
   );
 }
