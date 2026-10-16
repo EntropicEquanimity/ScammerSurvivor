@@ -22,15 +22,17 @@ Output: one card as JSON in the given schema. JSON only.
 
 Rules:
 - Write the scam as message parts. Attach to each part the tell ids it carries, from the enum only. plantedTells lists exactly the tells used on the parts.
-- Every tell listed in the pattern note must appear in the tellIds of at least one part in "ask" (not only in "setup"). Write the ask so every tell is present in the words (isolation: a line asking to keep it quiet or not involve others; payment_substitution: a new or different account or method to pay to; credential_theft: asking for the practice code on screen; urgency: a deadline measured in minutes or "right now").
-- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list.
+- Every tell listed in the pattern note must be tagged in the tellIds of at least one part in "ask" (not only in "setup"). The tag is what counts; the words never need to name the tell. Let structure carry a tell: a payee the player has never paid (payment_substitution), a familiar account asking for something unusual or a changed number (synthetic_identity), a quiet "just between us" (isolation), the code just sent to you (credential_theft). Urgency can be soft: "today", "by tonight", "before the courier leaves". One pressure per part; never stack every tell into one line.
+- Register: scam parts are short (about 15 words or fewer), template-shaped and lightly unpolished (a stiff phrase, odd capitals, a missing comma). No literary words. An institution scam reads like an automated alert. A romance builds over small friendly messages, never a declaration in the first one.
+- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list. It sounds like that sender: a courier update is terse, a bank alert is one line, Mom is warm and casual. It never mentions what it does not ask for (no "no fee", "no payment needed", "we never ask", "never charge"). It ends when its business ends.
 - Give safe replies and unsafe replies from the reply enum only.
 - usualEnding: one sentence on what happens if the player complies.
-- Institutions and app names: use "[institution]" and "[chat app name]" placeholders, never a real brand.
-- People: first names only, from the allowed list. The sender of a family or friend card is one of the player's people by name.
+- Institutions and app names: use "[institution]" and "[chat app name]" placeholders, never a real brand. That covers payment services and transfer systems too: say "a new account", "[bank]" or "[wallet]", never a real one.
+- People: first names only, from the allowed list. The user message says who sends the card. One of the player's people: that person by name. A stranger (recruiter, mentor, officer, buyer, courier, a new romance contact): a role or business name such as "[institution] Support" or "Hiring team", or a neutral first name from the list.
 - Spell every name exactly as the allowed list gives it, letter for letter with the same capitals; never swap in a variant or a nickname. Family words follow the game's labels: Mom and Dad, never Mum, Ma, Mother or Father.
 - maskedNumber: a plus sign, the country code, a space, X for every hidden digit, then the real last four digits (shape "+65 XXXX NNNN"). The scam sender and the real twin have different last-four digits.
-- No run of more than four digits anywhere in any text field. No account numbers, reference numbers or codes written as digits; say "the practice code on screen" instead. Amounts in the pack's currency, short figures like "500".
+- No run of five or more digits in a row anywhere in any text field. No account numbers, reference numbers or codes written as digits; say "the code just sent to you" instead.
+- Amounts: the user message gives the stake and the currency. The main amount asked for is the stake, written the way people there write money: the currency code and the figure with a comma between thousands ("JPY 30,000", "IDR 2,000,000", "INR 10,000", "SGD 500"). The comma keeps every digit run under five; never write "30000". A trick that opens with a small figure (a re-delivery fee, a first task payout, an early withdrawal) may show it before the stake.
 - Links only on the .example domain, written as plain text.
 - Level 1: tells are obvious. Level 3: tells are subtle. English only. No em dashes.
 
@@ -38,8 +40,8 @@ Clues: the things in a message the player can tap to inspect, like evidence in a
 - partId names the part the clue sits under, by place: setup parts are s1, s2, ask parts a1, a2, real twin parts r1, r2, in the order you write them.
 - title is the line the clue shows; detail is what inspecting reveals. Each under 60 characters, no run of five digits, never a tell id.
 - link_preview: detail names the exact .example host written in that part. Example: title "[institution] secure login", detail "Opens harbour-login.example".
-- payment_request: amount is the figure written in that part. Example: title "Payment request", detail "To a new account", amount 500.
-- countdown: only on a part that sets a deadline; minutes 1 to 60. Example: title "Offer ends", detail "Set by the sender", minutes 30.
+- payment_request: amount is the figure written in that part, as a plain number ("JPY 30,000" gives 30000). Example: title "Payment request", detail "To a new account", amount 500.
+- countdown: only on a part that sets a deadline inside the hour; minutes 1 to 60. A soft deadline ("today", "by tonight") gets no countdown. Example: title "Offer ends", detail "Set by the sender", minutes 30.
 - code_box: only on a part that says the word "code". Example: title "Practice code", detail "Never share this".
 - badge: a label on the message. On a scam it is a tell to inspect and the detail says who really added it. Example: title "Verified sender", detail "Added by the sender, not the app".
 - voice_note: a part that reads as a short voice message. Example: title "Voice message", detail "No caller name saved".
@@ -94,10 +96,21 @@ export interface WriteCardInput {
 
 export const NEUTRAL_NAMES = ['Mira', 'Dev', 'Lena', 'Tomas'] as const;
 
-// The player's people first, then any names the caller adds, then the neutral four.
-export const namesFor = (people: People, extra: string[] = []): string[] => [
-  ...new Set([...Object.values(people).filter((name): name is string => Boolean(name)), ...extra, ...NEUTRAL_NAMES]),
-];
+// The tricks whose sender is one of the player's own people (or poses as one): a relative or friend,
+// or the boss. Category E is not the gate: fast_romance and video_threat sit there with strangers.
+export const PEOPLE_TRICKS: readonly TrickId[] = ['family_trouble', 'payment_change'];
+
+const peopleNames = (people: People): string[] => Object.values(people).filter((name): name is string => Boolean(name));
+
+// A people trick: the player's people first, then any names the caller adds, then the neutral four.
+// A stranger trick: the added and neutral names minus the player's people, so a recruiter is never
+// called by the sister's name. Callers that add the people's names (trace.ts) are filtered here too.
+export const namesFor = (people: People, extra: string[] = [], peopleSender = true): string[] => {
+  const own = peopleNames(people);
+  if (peopleSender) return [...new Set([...own, ...extra, ...NEUTRAL_NAMES])];
+  const taken = new Set(own.map((name) => name.toLowerCase()));
+  return [...new Set([...extra, ...NEUTRAL_NAMES])].filter((name) => !taken.has(name.toLowerCase()));
+};
 
 // ponytail: one line per category. A per-trick table is the upgrade when the
 // Content lead writes one; the lesson shows this sentence as is.
@@ -128,12 +141,20 @@ export function trickFor(note: PatternNote): TrickId {
   return byId?.id ?? TRICKS.find((trick) => trick.category === note.category)?.id ?? 'code_or_account';
 }
 
+const SENDER_LINE = {
+  people: "Sender: one of the player's people from the allowed list (or someone posing as them).",
+  stranger: "Sender: a stranger to the player. Use a role or business name, or a neutral first name from the list; the player's own people are not on this card.",
+};
+
 export function userMessage(note: PatternNote, pack: CountryPack, level: number, allowedNames: string[]): string {
+  const peopleSender = PEOPLE_TRICKS.includes(trickFor(note));
   return [
     `Pattern note (JSON): ${JSON.stringify(note)}`,
-    `Country pack: currency ${pack.currency}, apps ${pack.layouts.join(', ')}, this card arrives on ${note.app}.`,
+    `Country pack: ${pack.code}, currency ${pack.currency}, apps ${pack.layouts.join(', ')}, this card arrives on ${note.app}.`,
+    `Stake: ${pack.currency} ${stakeFor(pack.walletStart).toLocaleString('en-US')}. This is the main amount the scam asks for.`,
     `Level: ${level}.`,
     `Allowed first names: ${allowedNames.join(', ')}.`,
+    peopleSender ? SENDER_LINE.people : SENDER_LINE.stranger,
     'The real twin has exactly as many parts as setup and ask together.',
   ].join('\n');
 }
@@ -253,7 +274,7 @@ const withOutcome = (events: TraceEvent[], outcome: TraceEvent['outcome']): Trac
 // caller serves a cached card (AGENTS.md rule 5).
 export async function writeCard(input: WriteCardInput): Promise<{ card: Card | null; trace: TraceEvent[] }> {
   const { note, pack, people, level, generate = generateJson } = input;
-  const allowedNames = namesFor(people, input.allowedNames);
+  const allowedNames = namesFor(people, input.allowedNames, PEOPLE_TRICKS.includes(trickFor(note)));
   const user = turn('user', userMessage(note, pack, level, allowedNames));
   try {
     const first = await pass(generate, [user], input, allowedNames);

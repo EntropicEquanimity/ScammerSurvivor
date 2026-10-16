@@ -15,6 +15,7 @@ export type GuardReason =
   | 'same_last_four'
   | 'twin_has_tells'
   | 'twin_no_acceptable'
+  | 'twin_disclaims'
   | 'reply_not_allowed'
   | 'link_not_example'
   | 'brand_name'
@@ -36,6 +37,7 @@ export const GUARD_REASONS: readonly GuardReason[] = [
   'same_last_four',
   'twin_has_tells',
   'twin_no_acceptable',
+  'twin_disclaims',
   'reply_not_allowed',
   'link_not_example',
   'brand_name',
@@ -114,6 +116,11 @@ const NAME_STOPLIST = new Set([
   'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
   'september', 'october', 'november', 'december',
 ]);
+
+// A real message never says what it does not ask for: "no fee", "no payment needed", "we never ask".
+// Money and asking words only, so "no need to reply" or "no rush" stays an ordinary twin.
+// ponytail: a short phrase list, not meaning; a new disclaimer wording slips through until it is added.
+const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay)\b/i;
 
 const MASK_SHAPE = /^\+\d{1,3}( X+)+ \d{4}$/;
 const DIGIT_RUN = /\d{5,}/;
@@ -205,6 +212,7 @@ const checkTwinAndReplies = (draft: Draft, allowedReplies: readonly string[]): G
   const out: GuardReason[] = [];
   if (tellsOf(parts(twin.parts)).length > 0) out.push('twin_has_tells');
   if (acceptable.length === 0) out.push('twin_no_acceptable');
+  if (parts(twin.parts).some((p) => DISCLAIMER.test(str(p.text)))) out.push('twin_disclaims');
   if (!replies.every((r) => allowedReplies.includes(r))) out.push('reply_not_allowed');
   return out;
 };
@@ -219,7 +227,11 @@ const checkText = (draft: Draft, allowedNames: readonly string[]): GuardReason[]
   return out;
 };
 
-const clueParts = (list: DraftPart[]): { id: string; text: string }[] => list.map((p) => ({ id: str(p.id), text: str(p.text) }));
+// Thousands separators dropped for clue grounding only, so a payment_request amount of 30000 is
+// backed by "JPY 30,000" as written. The digit-run rule above still reads the text as written.
+const THOUSANDS = /(?<=\d)[,\s](?=\d{3}(?!\d))/g;
+const clueParts = (list: DraftPart[]): { id: string; text: string }[] =>
+  list.map((p) => ({ id: str(p.id), text: str(p.text).replace(THOUSANDS, '') }));
 
 const clueLines = (clues: unknown): string[] =>
   arr<Partial<Clue>>(clues).flatMap((c) => (c && typeof c === 'object' ? [str(c.title), str(c.detail)] : []));
@@ -260,6 +272,7 @@ const REASON_TEXT: Record<GuardReason, string> = {
   same_last_four: 'The scam sender and the real twin must end in different last four digits.',
   twin_has_tells: 'Real twin parts must carry no tellIds; the twin is an honest message.',
   twin_no_acceptable: 'The real twin needs at least one acceptable reply.',
+  twin_disclaims: 'The real twin must not mention what it does not ask for (no "no fee", "no payment", "we never ask"); end it when its business ends.',
   reply_not_allowed: 'Every reply id in safeReplies, unsafeReplies and acceptable must come from the allowed list.',
   link_not_example: 'Every link, with or without http and www, must be on a host ending in .example, like pay.example/path.',
   brand_name: 'No real company, app or institution name; use the made-up names or a placeholder like [institution].',

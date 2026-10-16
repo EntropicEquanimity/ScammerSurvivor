@@ -2,11 +2,16 @@ import { BRANDS, INSTITUTIONS, isInstitutionId } from '../shared/brands.ts';
 import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
 import { STANDARD_ACTIONS } from '../shared/types.ts';
-import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult } from '../shared/types.ts';
+import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
 import type { Clue } from '../shared/clues.ts';
 
 export const PEOPLE_START = 3;
-const FIRST_TRICK = 'family_trouble';
+// The protected first scam on first play, rotated by the day seed so every new player does not meet
+// the same script. Three beginner tricks: each is one message with one ask, in the top 5 of commonRank,
+// major in five or more packs, its tells sit on the card itself (a new payee, a fee to unlock, a code),
+// and its obvious slip moves money (send_money, pay, share_code), so the first lesson shows the wallet
+// drop. parcel_fee and bank_check were left out: their slip is open_link, which costs nothing yet.
+export const FIRST_TRICKS: readonly TrickId[] = ['family_trouble', 'paid_task', 'code_or_account'];
 const CLOCK = ['08:10', '10:40', '13:20', '17:05'];
 
 // The Director writes bracketed tokens such as "[institution]", "[chat app name]", "[wallet]" or
@@ -111,11 +116,29 @@ const mapStrings = (value: unknown, fill: (text: string) => string): unknown => 
   return value;
 };
 
+// The model often writes "[institution] Information Desk" around a name that already ends in Desk,
+// which fills to "Civic Notice Desk Information Desk". When the filled name is followed by words that
+// end in its own last word, those words are dropped: one Desk, one Parcel. Other suffixes stay
+// ("Northgate Parcel Delivery Desk").
+const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export function undouble(text: string, institution: string): string {
+  const last = institution.split(' ').at(-1);
+  if (!last || !text.includes(institution)) return text;
+  const doubled = new RegExp(`${escapeRe(institution)}(?:\\s+[A-Z][\\w-]*){0,3}?\\s+${escapeRe(last)}\\b`, 'g');
+  const once = text.replace(doubled, institution);
+  // A generic last word ("Desk") followed by the model's own title-case suffix ("Investigation Unit",
+  // "Headquarters", "Rewards") is dropped, so the suffix names the office once.
+  if (!GENERIC_LAST.includes(last)) return once;
+  const core = institution.slice(0, -(last.length + 1));
+  return once.replace(new RegExp(`${escapeRe(institution)}(?=\\s+[A-Z][a-z])`, 'g'), core);
+}
+const GENERIC_LAST = ['Desk'];
+
 // A card with every placeholder filled, in every text field. A card with nothing to fill (every
 // fixture) is returned as is, so a day dealt from the fixtures still holds the fixture objects.
 export function fillCard(card: Card): Card {
   const fills = tokenFills(card);
-  const filled = mapStrings(card, (text) => fillText(text, fills)) as Card;
+  const filled = mapStrings(card, (text) => undouble(fillText(text, fills), fills.institution)) as Card;
   return JSON.stringify(filled) === JSON.stringify(card) ? card : filled;
 }
 
@@ -161,8 +184,8 @@ const unique = <T>(items: readonly T[]): T[] => [...new Set(items)];
 // ponytail: word cues, not meaning; a mention ("scammers ask you to keep it secret") still counts.
 const CUES: ReadonlyArray<[Action, RegExp]> = [
   ['pay', /\b(pay|paying|pay for|fee|fees|invoice|settle|top[- ]?up|make (a|the) payment|payment (now|today|within|before|link|is needed|is required|needed|required))\b/g],
-  ['send_money', /\b(transfer|wire|remit|lend|borrow|deposit|(money|cash|funds) sent|send (me |us |him |her |them |it |over )?(the |some )?(money|cash|funds|amount|\d)|(personal|new|bank|friend's) account)/g],
-  ['open_link', /(https?:\/\/|www\.|\blinks?\b|\btap here\b|\bclick\b|\b[a-z0-9-]+\.(com|net|org|link|site|xyz|info)\b)/g],
+  ['send_money', /\b(transfer|wire|remit|lend|borrow|deposit|(money|cash|funds) sent|send (me |us |him |her |them |it |over )?(the |some )?(money|cash|funds|amount|\d)|(move|send)\b[^.!?]{0,30}\b(aud|hkd|idr|inr|jpy|myr|php|sgd|usd)\b|(personal|new|bank|friend's|holding|safe|safety|secure|secured) account)/g],
+  ['open_link', /(https?:\/\/|www\.|\blinks?\b|\btap here\b|\bclick\b|\b[a-z0-9-]+\.(com|net|org|link|site|xyz|info|example)\b)/g],
   ['install', /\b(install|download|apk|screen ?shar\w*|remote access|full screen access)/g],
   ['share_code', /\b(code|otp|one-time|passcode)\b/g],
   ['read_code', /\b(read|tell|say|give)\b[^.!?]{0,30}\b(code|otp|passcode)\b/g],
@@ -243,11 +266,18 @@ const toKey = (card: Card, isTwin: boolean): SlotKey => ({
   stake: card.stake,
 });
 
-// Picks the cards for the day: trick 1 first on first play, the rest at random.
-function pickCards(cards: Card[], count: number, firstPlay: boolean, random: () => number): Card[] {
-  const first = firstPlay ? cards.find((card) => card.trickId === FIRST_TRICK) : undefined;
-  const rest = shuffle(cards.filter((card) => card !== first), random);
-  return spreadApps([...(first ? [first] : []), ...rest], count);
+// The first-play trick for this seed, from the FIRST_TRICKS the deck holds; the seed picks, so the
+// shuffle that follows draws the same numbers whichever trick leads.
+export function firstTrickFor(cards: readonly Card[], seed: number): TrickId | undefined {
+  const held = FIRST_TRICKS.filter((trick) => cards.some((card) => card.trickId === trick));
+  return held.length > 0 ? held[(seed >>> 0) % held.length] : undefined;
+}
+
+// Picks the cards for the day: the first-play trick first, the rest at random.
+function pickCards(cards: Card[], count: number, first: TrickId | undefined, random: () => number): Card[] {
+  const lead = first ? cards.find((card) => card.trickId === first) : undefined;
+  const rest = shuffle(cards.filter((card) => card !== lead), random);
+  return spreadApps([...(lead ? [lead] : []), ...rest], count);
 }
 
 // A real phone gets its messages across apps: take the next card from an app the day has not used,
@@ -278,9 +308,10 @@ export interface DealInput {
 export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: DealInput): Deal {
   const random = seededRandom(seed);
   const count = Math.min(quick ? 2 : 4, cards.length);
-  const picked = pickCards(cards.map((card) => fillCard(fitLayout(card, pack.layouts))), count, firstPlay, random);
+  const first = firstPlay ? firstTrickFor(cards, seed) : undefined;
+  const picked = pickCards(cards.map((card) => fillCard(fitLayout(card, pack.layouts))), count, first, random);
   const twinCount = Math.floor(count / 2);
-  const protect = picked[0]?.trickId === FIRST_TRICK && firstPlay ? 1 : 0;
+  const protect = first !== undefined && picked[0]?.trickId === first ? 1 : 0;
   const twinIds = new Set(shuffle(picked.slice(protect), random).slice(0, twinCount).map((card) => card.id));
   const ordered = shuffle(picked, random);
   const slots = ordered.map((card, index): DealtSlot => {

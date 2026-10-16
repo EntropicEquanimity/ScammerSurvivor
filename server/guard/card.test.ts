@@ -176,3 +176,22 @@ test('every clue reason has its own repair line', () => {
     assert.ok(reasonText(reason).length > 0, reason);
   }
 });
+
+test('twin_disclaims: a real twin that says what it does not ask for', () => {
+  const base = clean();
+  const twinSaying = (text: string): Draft => ({ ...base, realTwin: { ...base.realTwin, parts: [part('r1', `[real twin line]. ${text}`)] } });
+  for (const text of ['No payment is required.', 'We never charge fees.', 'Staff never ask for transfers.', 'Free of charge.']) {
+    expectOnly(twinSaying(text), 'twin_disclaims');
+  }
+  for (const text of ['No need to reply.', 'No rush, text me later.']) {
+    assert.deepEqual(guardDraft(twinSaying(text), OPTIONS).reasons, [], text);
+  }
+});
+
+test('a payment_request amount is grounded by the figure written with a thousands comma', () => {
+  const draft = withClue([{ ...payClue, amount: 30000 }]);
+  const written = { ...draft, ask: [part('a1', '[ask line] JPY 30,000 to the [institution].', ['authority']), draft.ask?.[1] ?? {}] };
+  assert.deepEqual(guardDraft(written, OPTIONS).reasons, []);
+  const run = { ...written, ask: [part('a1', '[ask line] JPY 30000.', ['authority']), draft.ask?.[1] ?? {}] };
+  assert.deepEqual(guardDraft(run, OPTIONS).reasons, ['digit_run']);
+});

@@ -8,7 +8,7 @@ import { ACTIONS } from '../../shared/types.ts';
 import type { Action, PatternNote, People, TellId, TraceEvent } from '../../shared/types.ts';
 import { CLUE_KINDS } from '../../shared/clues.ts';
 import type { Clue } from '../../shared/clues.ts';
-import { DIRECTOR_SCHEMA, DIRECTOR_SYSTEM, namesFor, stakeFor, toDraft, writeCard } from './director.ts';
+import { DIRECTOR_SCHEMA, DIRECTOR_SYSTEM, PEOPLE_TRICKS, namesFor, stakeFor, toDraft, userMessage, writeCard } from './director.ts';
 import type { Generate } from './director.ts';
 
 const pack = PACKS.get('SG');
@@ -307,4 +307,31 @@ test('card faults next to clue faults after the repair still drop the card', asy
   const brokenWithBadClue: ModelDraft = { ...broken, clues: ungrounded.clues };
   const { card } = await writeCard({ note, pack, people, level: 1, generate: fakeGenerate([brokenWithBadClue, brokenWithBadClue]) });
   assert.equal(card, null);
+});
+
+test('strangers never carry the player\'s people\'s names; people tricks still do', () => {
+  const stranger = namesFor(people, ['Mira', 'Ari'], false);
+  assert.ok(!stranger.includes('Mira') && !stranger.includes('Tomas'), stranger.join(','));
+  assert.ok(stranger.includes('Ari') && stranger.includes('Dev'));
+  assert.deepEqual(namesFor(people).slice(0, 2), ['Mira', 'Tomas']);
+  assert.ok(PEOPLE_TRICKS.includes('family_trouble') && !PEOPLE_TRICKS.includes('fast_romance'));
+});
+
+test('a stranger trick reaches the model and the Guard without the people\'s names', async () => {
+  const romance: PatternNote = { ...note, id: 'fast-romance', category: 'E' };
+  const generate = fakeGenerate([clean]);
+  await writeCard({ note: romance, pack, people, level: 1, generate });
+  const sent = textOf(generate.requests[0], 0);
+  assert.ok(/Allowed first names: Dev, Lena\./.test(sent), sent);
+  assert.ok(sent.includes('Sender: a stranger'));
+});
+
+test('the user message carries the stake in the local currency, written with separators', () => {
+  const jp = PACKS.get('JP');
+  assert.ok(jp);
+  const sent = userMessage(note, jp, 2, ['Dev']);
+  assert.ok(sent.includes('Stake: JPY 30,000'), sent);
+  assert.ok(!/\d{5,}/.test(sent.replace(/Pattern note.*\n/, '')));
+  assert.ok(!DIRECTOR_SYSTEM.includes('short figures like'));
+  assert.ok(!DIRECTOR_SYSTEM.includes('practice code on screen'));
 });

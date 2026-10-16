@@ -5,7 +5,7 @@ import { scoreSlot } from '../shared/score.ts';
 import { STANDARD_ACTIONS } from '../shared/types.ts';
 import type { Action, Card } from '../shared/types.ts';
 import { FIXTURES, PACKS } from './country.ts';
-import { dealDay, fillCard, fillText, fitLayout, followUpFor, lessonFor, offeredFor, redealSlot, spreadApps } from './deal.ts';
+import { FIRST_TRICKS, dealDay, fillCard, fillText, firstTrickFor, fitLayout, followUpFor, lessonFor, offeredFor, redealSlot, spreadApps, undouble } from './deal.ts';
 import { recordAct, recoverSlot, scoreTap, startDay } from './routes/day.ts';
 import { readDay } from './store.ts';
 import type { StoredSlot } from './store.ts';
@@ -268,4 +268,46 @@ test('a day spreads its cards across apps before it repeats one', () => {
   const cards = [card('a', 'green-chat'), card('b', 'green-chat'), card('c', 'green-chat'), card('d', 'sms'), card('e', 'wallet')];
   assert.deepEqual(spreadApps(cards, 4).map((c) => c.id), ['a', 'd', 'e', 'b']);
   assert.deepEqual(spreadApps(cards, 2).map((c) => c.id), ['a', 'd']);
+});
+
+test('the protected first scam rotates by seed among the beginner tricks and is never the twin', () => {
+  const pack = PACKS.get('SG');
+  const cards = FIXTURES.get('SG');
+  assert.ok(pack && cards);
+  const seen = new Set<string>();
+  for (let seed = 1; seed <= 12; seed += 1) {
+    const first = firstTrickFor(cards, seed);
+    assert.ok(first && FIRST_TRICKS.includes(first));
+    seen.add(first);
+    const { slots } = dealDay({ dayId: `first-${seed}`, pack, cards, quick: true, seed });
+    const slot = slots.find((candidate) => candidate.card.trickId === first);
+    assert.ok(slot, `seed ${seed}`);
+    assert.equal(slot.isTwin, false, `seed ${seed}`);
+  }
+  assert.ok(seen.size >= 2, 'more than one first trick across seeds');
+  assert.equal(firstTrickFor([], 3), undefined);
+});
+
+test('an institution name is never doubled by the suffix the Director wrote', () => {
+  assert.equal(undouble('Civic Notice Desk Information Desk', 'Civic Notice Desk'), 'Civic Notice Desk');
+  assert.equal(undouble('Call Civic Notice Desk Desk today.', 'Civic Notice Desk'), 'Call Civic Notice Desk today.');
+  assert.equal(undouble('Northgate Parcel Delivery Desk', 'Northgate Parcel'), 'Northgate Parcel Delivery Desk');
+  const card = { ...raw, trickId: 'digital_arrest' as const, sender: { ...raw.sender, displayName: '[institution] Information Desk' } };
+  assert.equal(fillCard(card).sender.displayName, 'Civic Notice Desk');
+});
+
+test('money asks with a currency code and bare .example hosts get their buttons', () => {
+  const extras = (text: string) => offeredFor([{ text }]).filter((action) => !STANDARD_ACTIONS.includes(action));
+  assert.ok(extras('Move SGD 500 to our holding account tonight.').includes('send_money'));
+  assert.ok(extras('Please send JPY 30,000 for the inspection.').includes('send_money'));
+  assert.ok(extras('[ask line] to the secured account.').includes('send_money'));
+  assert.deepEqual(extras('Check the file at verify-desk.example today.'), ['open_link']);
+  assert.ok(!extras('Send me the photos later.').includes('send_money'));
+});
+
+test('a Desk name followed by the model\'s own office words names the office once', () => {
+  assert.equal(undouble('Civic Notice Desk Investigation Unit', 'Civic Notice Desk'), 'Civic Notice Investigation Unit');
+  assert.equal(undouble('Tomas from Civic Notice Desk Headquarters.', 'Civic Notice Desk'), 'Tomas from Civic Notice Headquarters.');
+  assert.equal(undouble('Meridian Prize Desk Rewards', 'Meridian Prize Desk'), 'Meridian Prize Rewards');
+  assert.equal(undouble('Call Civic Notice Desk now.', 'Civic Notice Desk'), 'Call Civic Notice Desk now.');
 });

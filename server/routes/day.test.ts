@@ -7,7 +7,7 @@ import { ACTIONS } from '../../shared/types.ts';
 import type { Action, Card, PatternNote, TraceEvent } from '../../shared/types.ts';
 import type { WriteCardInput } from '../agents/director.ts';
 import { FIXTURES, PACKS, resolveCountry } from '../country.ts';
-import { dealDay, offeredFor } from '../deal.ts';
+import { FIRST_TRICKS, dealDay, offeredFor } from '../deal.ts';
 import { readDay } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
 import { beginDay, dealFocused, deckReadyFor, isWarm, warmCards, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
@@ -86,10 +86,10 @@ test('an unsafe reply on a scam drains the stake, and the lesson names the tells
   assert.equal(reply.body.lesson.scam.parts.length, scam.card.setup.length + scam.card.ask.length);
 });
 
-test('trick 1 appears on day one, as the scam, on full and quick days', () => {
+test('a first-play trick appears on day one, as the scam, on full and quick days', () => {
   for (const quick of ['0', '1']) {
     const { dayId } = startDay({ country: 'SG', quick });
-    const slot = readDay(dayId)?.slots.find((candidate) => candidate.card.trickId === 'family_trouble');
+    const slot = readDay(dayId)?.slots.find((candidate) => FIRST_TRICKS.includes(candidate.card.trickId) && !candidate.isTwin);
     assert.ok(slot, `quick=${quick}`);
     assert.equal(slot.isTwin, false);
   }
