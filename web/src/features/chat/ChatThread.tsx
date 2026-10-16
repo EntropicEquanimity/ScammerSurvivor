@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { haptic } from '../../shell/feel.ts';
 import { capped } from './chatState.ts';
 import { CHIP_LABELS } from './labels.ts';
+import { TypedReply } from './TypedReply.tsx';
 import type { Chat } from './useChat.ts';
 import './chat.css';
 
@@ -50,6 +51,8 @@ export function ChatThread({ chat }: { chat: Chat }) {
 // The reply chips, as pills above the action bar, once Reply was tapped and exchanges are left.
 // The questions keep the chat going; "Say OK" is the reply that answers and ends it, the one way
 // Reply becomes the decision before the questions run out (never silently: the UX audit, Oct 16).
+// With typed replies on, a one-line field sits under them, as the thread's own text box; while it is
+// focused the chips step aside so the field sits right above the keyboard (chat.css).
 export function ReplyChips({ chat, onSayOk }: { chat: Chat; onSayOk: () => void }) {
   const { open, chips, waiting } = chat.state;
   if (!open || waiting || chips.length === 0) return null;
@@ -75,6 +78,7 @@ export function ReplyChips({ chat, onSayOk }: { chat: Chat; onSayOk: () => void 
       <button type="button" className="chat-chip chat-chip-quiet pressable" onClick={chat.close}>
         Not now
       </button>
+      {chat.typed && <TypedReply onSend={chat.sendText} disabled={waiting} />}
     </div>
   );
 }

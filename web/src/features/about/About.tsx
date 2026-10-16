@@ -20,7 +20,7 @@ const AGENTS = [
 ] as const;
 
 const SERVICES = [
-  ['Gemini 3.8 Flash on Vertex AI', 'the Director and the Coach'],
+  ['Gemini 3.8 Flash on Vertex AI', 'the Director, the Coach and the chat replies'],
   ['Gemini 3.8 Flash TTS', 'the practice call'],
   ['Cloud Run', 'one service in Singapore (asia-southeast1), serving the app and the API'],
   ['Firestore', 'the reviewed card cache, call beats and this counter'],
@@ -31,7 +31,8 @@ const SERVICES = [
 const HONEST = [
   'The first card of a day comes from a reviewed cache so the day opens at once. If you picked people, cards two to four are rewritten live around them while card one plays; otherwise the whole day is the reviewed cache. The quick day is cache only, and under 18 cannot enter.',
   'Every screen carries the practice label. Nothing here is a real message, and no real app is shown.',
-  'No data about you is stored beyond the day: no account, no message of yours, no audio.',
+  'No data about you is stored beyond the day: no account, no audio, nothing you type.',
+  'A typed chat reply is checked on the phone for real details, which are blocked. It is sent only so Gemini can write the reply, held in memory for that chat, and never stored or logged.',
   'Code keeps every score. A model never decides whether you passed.',
 ] as const;
 

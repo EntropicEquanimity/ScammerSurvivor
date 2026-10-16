@@ -47,6 +47,14 @@ export const sent = (state: ChatState, chip: ChatChipId): ChatState => ({
   failed: false,
 });
 
+// The player's own words, when typed replies are on: shown as typed, held only in this screen's state.
+export const sentText = (state: ChatState, text: string): ChatState => ({
+  ...state,
+  bubbles: [...state.bubbles, { id: `me-${state.exchanges + 1}`, from: 'player', text }],
+  waiting: true,
+  failed: false,
+});
+
 export const answered = (state: ChatState, result: ChatReplyResult): ChatState => ({
   ...state,
   bubbles: [...state.bubbles, { id: result.message.id, from: 'sender', text: result.message.text }],

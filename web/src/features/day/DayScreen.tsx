@@ -100,14 +100,15 @@ interface CardStepProps {
   failed: boolean;
   trace: TraceEvent[]; // the day's agent steps so far, for the Gemini chip and its drawer
   personalised: boolean; // the Director wrote a card for this day that the Guard passed
+  typed: boolean; // the day's typedReplies flag: the chat shows its "Type a reply" box
   onAct: (action: Action) => void;
 }
 
 // The made-up app, full screen: it owns the status region (its colour runs behind the time), then
 // its header, the thread in that app's look, and the buttons in a bar pinned at the bottom. One tap
 // on a button acts.
-function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: CardStepProps) {
-  const chat = useChat(dayId, card);
+function CardStep({ dayId, card, busy, failed, trace, personalised, typed, onAct }: CardStepProps) {
+  const chat = useChat(dayId, card, typed);
   const act = (action: Action) => {
     if (!chat.onAction(action)) onAct(action);
   };
@@ -168,7 +169,7 @@ function slotScreen(d: Day, step: Step) {
     );
   }
   if (phase.kind === 'card' && card) {
-    return <CardStep dayId={day.dayId} card={card} busy={d.busy} failed={d.failed} trace={d.trace} personalised={d.personalised} onAct={d.act} />;
+    return <CardStep dayId={day.dayId} card={card} busy={d.busy} failed={d.failed} trace={d.trace} personalised={d.personalised} typed={day.typedReplies === true} onAct={d.act} />;
   }
   if (phase.kind === 'tells' && card) return <TellPicker key={card.slotId} card={card} busy={d.busy} failed={d.failed} onDone={d.tap} />;
   return null;

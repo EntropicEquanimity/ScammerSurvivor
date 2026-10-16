@@ -36,8 +36,21 @@ scan() {
   fi
 }
 
-scan "no typed input anywhere" \
+# One exception, ruled by the Builder on 16 Oct 2026 (AGENTS.md rule 3): the chat's typed reply,
+# web/src/features/chat/TypedReply.tsx, may hold exactly one <input> and nothing else that types.
+TYPED_FILE=web/src/features/chat/TypedReply.tsx
+scan "no typed input anywhere" --exclude=TypedReply.tsx \
   -E '<(input|textarea|select)([^A-Za-z]|$)|contentEditable|createElement\(.(input|textarea)' web
+if [ -f "$TYPED_FILE" ]; then
+  typed_inputs=$(grep -cE '<input([^A-Za-z]|$)' "$TYPED_FILE" || true)
+  typed_other=$(grep -cE '<(textarea|select)([^A-Za-z]|$)|contentEditable|createElement' "$TYPED_FILE" || true)
+  if [ "$typed_inputs" -le 1 ] && [ "$typed_other" -eq 0 ]; then
+    echo "ok    the typed reply holds one input only"
+  else
+    failed=1
+    echo "FAIL  the typed reply holds one input only ($typed_inputs inputs, $typed_other other)"
+  fi
+fi
 scan "no real brand names in code or copy" -iwE "$BRANDS" "${ALL[@]}"
 scan "no non-Google AI SDK in package.json" -E "\"($AI_SDKS)\"[[:space:]]*:" package.json
 scan "no answer key in web code" -E 'plantedTells|safeReplies|unsafeReplies|callBeats|realTwin' web

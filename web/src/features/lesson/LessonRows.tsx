@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { SlotResult, TellId } from '../../../../shared/types.ts';
 import { TELLS } from '../../../../shared/taxonomy.ts';
 import { flagSummary, flagsOf, secondPerson } from './title.ts';
+import { chatMoveLine } from './chatMove.ts';
 import { Icon } from '../../shell/Icon.tsx';
 import type { IconName } from '../../shell/Icon.tsx';
 import { haptic } from '../../shell/feel.ts';
@@ -27,6 +28,17 @@ export function WouldHaveHappened({ lesson }: { lesson: Lesson }) {
   return (
     <InsetGroup header="What would have happened">
       <GlyphRow glyph="wallet">{secondPerson(lesson.usualEnding)}</GlyphRow>
+    </InsetGroup>
+  );
+}
+
+// When the player typed in the chat: one line on the move the scam made back. Nothing when it made none.
+export function ChatMove({ result }: { result: SlotResult }) {
+  const line = chatMoveLine(result.chatMove);
+  if (!line) return null;
+  return (
+    <InsetGroup header="In the chat">
+      <GlyphRow glyph="reply">{line}</GlyphRow>
     </InsetGroup>
   );
 }

@@ -16,6 +16,7 @@ import { recordDay, statsRouter } from './stats.ts';
 import { loadNote, planJobs, readPersonalState, runJobs, traceRouter } from './trace.ts';
 import { givenOf, withPageLesson } from './page.ts';
 import type { PersonalState, Writer } from './trace.ts';
+import { chatMoveOf, typedRepliesOn } from './chat.ts';
 
 export type Reply<T> = { status: 200; body: T } | { status: 400 | 404; body: { error: string } };
 
@@ -292,6 +293,12 @@ const scoreOf = (slot: StoredSlot, action: Action, taps: string[]): SlotScore =>
 // The player sent at least one reply chip before the final action (routes/chat.ts keeps the turns on the slot).
 const questionedOn = (slot: StoredSlot): boolean => ((slot as StoredSlot & { chat?: unknown[] }).chat?.length ?? 0) > 0;
 
+// A scam's answer to typed words, as labels, for the lesson's one line (routes/chat.ts).
+const withChatMove = (slot: StoredSlot): { chatMove?: SlotResult['chatMove'] } => {
+  const move = chatMoveOf(slot);
+  return move ? { chatMove: move } : {};
+};
+
 // `now` is injectable so the recovery window can be tested; the route passes nothing.
 export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<SlotResult> {
   const state = readDay(dayId);
@@ -320,6 +327,7 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
     followUp: score.falseAlarm || pageLeft ? followUpFor(slot.card.realTwin.sender) : null,
     lesson: withPageLesson(slot, lessonFor(slot.card, state.hotline, slot.isTwin)),
     ...(questionedOn(slot) ? { questioned: true } : {}),
+    ...withChatMove(slot),
     ...(verdict ? { verdict, verdictCorrect: verdictRight(!slot.isTwin, verdict) } : {}),
     ...(along ? { wentAlong: true } : {}),
   };
@@ -382,7 +390,7 @@ export function finishDay(dayId: string): Reply<DayScore> {
 export const dayRouter = Router();
 // Express 5 passes a rejected handler to the error handler.
 dayRouter.get('/day', async (req, res) => {
-  res.json((await beginDay(req.query)).payload);
+  res.json({ ...(await beginDay(req.query)).payload, typedReplies: typedRepliesOn() });
 });
 
 const send = <T>(res: { status: (code: number) => { json: (body: unknown) => void } }, reply: Reply<T>) =>

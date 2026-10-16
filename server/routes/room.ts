@@ -14,6 +14,7 @@ import type { StreamRequest } from '../gemini.ts';
 import { readDay } from '../store.ts';
 import { dealRoomDay, deckFor, finishDay } from './day.ts';
 import type { DayDeps, Deck, Reply } from './day.ts';
+import { typedRepliesOn } from './chat.ts';
 
 export type Verdict = 'caught' | 'fell' | 'trusted' | 'blocked';
 
@@ -354,7 +355,11 @@ export const roomRouter = Router();
 
 roomRouter.post('/room', (req, res) => send(res, createRoom(req.body)));
 roomRouter.get('/room/:roomId', (req, res) => send(res, getRoom(String(req.params.roomId))));
-roomRouter.get('/room/:roomId/day', async (req, res) => send(res, await roomDay(String(req.params.roomId), req.query)));
+// The kill switch rides on the room's day too (routes/chat.ts typedRepliesOn).
+roomRouter.get('/room/:roomId/day', async (req, res) => {
+  const reply = await roomDay(String(req.params.roomId), req.query);
+  send(res, reply.status === 200 ? { ...reply, body: { ...reply.body, typedReplies: typedRepliesOn() } } : reply);
+});
 roomRouter.post('/room/:roomId/report', (req, res) => send(res, reportDay(String(req.params.roomId), req.body)));
 roomRouter.get('/room/:roomId/board', (req, res) => send(res, getBoard(String(req.params.roomId))));
 roomRouter.post('/room/:roomId/debrief', async (req, res) => {

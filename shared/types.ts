@@ -264,6 +264,7 @@ export interface DayPayload {
   people: number; // starting people count
   pack: { layouts: Layout[]; confidence: CountryPack['confidence']; hotline: CountryPack['hotline'] };
   cards: PublicCard[]; // 4 for a full day, 2 for a quick day
+  typedReplies?: boolean; // the chat's "Type a reply" box shows; TYPED_REPLIES=off hides it (routes/chat.ts)
 }
 
 export interface ActBody {
@@ -308,6 +309,7 @@ export interface SlotResult {
   wentAlong?: boolean; // the action went along with the message (shared/score.ts GOES_ALONG): no verdict, no flags
   action?: Action; // the action scored, so the lesson can say what it meant; routes/day.ts scoreTap sets it
   questioned?: boolean; // the player sent at least one reply chip before the final action
+  chatMove?: { asked: TypedIntent; tactic: TypedTactic }; // a scam's answer to a typed reply: labels only, never the text
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model
   lesson: {
     trickId?: TrickId; // names the scam in the lesson title; deal.ts lessonFor sets it
@@ -362,10 +364,14 @@ export type ChatChipId =
   | 'stop_messaging'
   | 'what_link';
 
-export interface ChatReplyBody {
-  turn: 1 | 2 | 3 | 4 | 5;
-  said: ChatChipId;
-}
+// A turn is a chip or, when typed replies are on, the player's own words (shared/scrub.ts checks them
+// on the phone and again on the server; they live only in the slot's turns in server memory).
+export type ChatReplyBody = { turn: 1 | 2 | 3 | 4 | 5 } & ({ said: ChatChipId; text?: never } | { text: string; said?: never });
+
+// What the Chatter read in a typed reply and the move it answered with: labels only, for the lesson.
+export type TypedIntent = 'question' | 'refuse' | 'agree' | 'nonsense' | 'abuse' | 'offtopic';
+export type TypedTactic = 'urgency' | 'guilt' | 'fake_proof' | 'flattery' | 'threat' | 'none';
+export type TypedAsks = 'money' | 'code' | 'link' | 'none';
 
 export interface ChatMessage {
   id: string;

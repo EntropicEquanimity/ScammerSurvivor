@@ -9,7 +9,7 @@ import { appLookFor } from '../day/appNames.ts';
 import { useLater } from '../day/useArrival.ts';
 import { getPeople } from '../setup/storage.ts';
 import { GaveAwayGroup, TellsGroup, TwinMessage, realLines, useCoach } from './LessonGroups.tsx';
-import { FlaggedGroup, NextTime, ReportIt, WouldHaveHappened } from './LessonRows.tsx';
+import { ChatMove, FlaggedGroup, NextTime, ReportIt, WouldHaveHappened } from './LessonRows.tsx';
 import { lessonTitle, outcomeLine } from './title.ts';
 import './lesson.css';
 
@@ -74,6 +74,7 @@ export function Lesson({ dayId, result, busy, failed, onNext, lost }: LessonProp
         <NextTime lesson={lesson} />
         <TellsGroup result={result} notes={notes} />
         <FlaggedGroup result={result} />
+        <ChatMove result={result} />
         <GaveAwayGroup result={result} />
         <WouldHaveHappened lesson={lesson} />
         <ReportIt hotline={lesson.hotline} />

@@ -83,7 +83,8 @@ const en = {
     title: 'Privacy notice',
     lines: [
       'This is a practice game. No message, account or payment here is real.',
-      'We never ask for your name, phone number, passwords or codes. There is nowhere to type them.',
+      'We never ask for your name, phone number, passwords or codes.',
+      'In a chat you can type your own reply. The phone checks it for real details first and blocks them. What you type is sent only to write the reply, and is never stored or logged.',
       'Your taps go to our server so it can work out your score. It does not save them.',
       'This device remembers your age answer and your country. Your results last for this visit only.',
       'No ads and no trackers.',
