@@ -16,3 +16,6 @@ Deliver, under 1,100 words, no praise, no hedging adjectives:
 5. The commands you ran.
 
 Rules: numbers over adjectives; "not verified" when you could not check; cite file paths and line numbers; test the default path a judge takes, not the lab; check English-only and JAPAC-neutral on every screen you open; check that nothing promised in the deck, README or posts is unreachable in the app. Append nothing yourself; the orchestrator logs your round in `docs/skeptic-log.md`.
+
+## Self-improvement (mandatory)
+Read `docs/agent-lessons.md` before anything else. Every row that names you is a check you run on every pass, and your report lists each one with pass or fail. At the end of your report, under "Proposed lessons", list anything you found that no row covers, as a row (what was missed, the check, the owners). When the Builder later flags something you did not report, you missed it: the orchestrator adds a row and re-runs you to prove you now catch it.
