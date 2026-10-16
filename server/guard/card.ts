@@ -164,13 +164,13 @@ const textFields = (draft: Draft): string[] => [
   str(draft.realTwin?.sender?.displayName),
 ];
 
-const hasOffExampleLink = (text: string): boolean =>
+export const hasOffExampleLink = (text: string): boolean =>
   [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
 
-const hasBrand = (text: string): boolean =>
+export const hasBrand = (text: string): boolean =>
   (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 
-const strangeNames = (text: string, allowed: Set<string>): string[] => {
+export const strangeNames = (text: string, allowed: Set<string>): string[] => {
   const cleaned = text.replace(PLACEHOLDER, ' ').replace(LINK, ' ');
   const candidates = [...cleaned.matchAll(NAME_POSITION)].map((m) => m[1]);
   return candidates.filter((w) => /^[A-Z][a-z]+$/.test(w)).filter((w) => {

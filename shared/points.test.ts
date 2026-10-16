@@ -52,3 +52,10 @@ test('speedLeft is full, then drains, then empty', () => {
   assert.equal(speedLeft(SPEED.baseMs), 0);
   assert.equal(speedLeft(-5), 1);
 });
+
+test('each weight point sent on a fake page costs points; a page with nothing sent costs none', () => {
+  const kept = pointsFor({ isScam: true, actionCorrect: true, caught: [], falseTaps: [], pageCost: 1 });
+  assert.equal(kept.delta, POINTS.scamHandled + POINTS.fieldSent);
+  assert.equal(pointsFor({ isScam: true, actionCorrect: true, caught: [], falseTaps: [], pageCost: 0 }).delta, POINTS.scamHandled);
+  assert.equal(pointsFor({ isScam: true, actionCorrect: false, caught: ['urgency'], falseTaps: [], pageCost: 3 }).delta, 0);
+});

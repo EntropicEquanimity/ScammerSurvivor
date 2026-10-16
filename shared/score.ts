@@ -1,5 +1,7 @@
 import { TELL_IDS } from './taxonomy.ts';
 import type { Action, DayScore, MessagePart, Tally, TellId } from './types.ts';
+import { isSlip, leakedOf, movesMoney, pageCost } from './page.ts';
+import type { FieldId, PageKind } from './page.ts';
 
 // The answer key for one dealt slot. Lives on the server only.
 export interface SlotKey {
@@ -10,6 +12,7 @@ export interface SlotKey {
   unsafeReplies: Action[];
   acceptable: Action[]; // the real twin's acceptable actions
   stake: number;
+  page?: { kind: PageKind; needs: FieldId[]; tells: TellId[] }; // the shown side's page; its lines sit in parts
 }
 
 export interface SlotScore {
@@ -21,6 +24,10 @@ export interface SlotScore {
   falseTaps: string[];
   walletDelta: number;
   peopleDelta: number;
+  // Set only on a page card met with open_link.
+  leaked?: FieldId[]; // fields a scammer can use, sent on a fake page
+  pageCost?: number; // the sent fields' weight, taken off the points
+  pageLeft?: boolean; // a real page left without what it needs: the sender follows up
 }
 
 // On a real message these two actions mean the player did not trust it.
@@ -37,13 +44,14 @@ function tellsOfTaps(key: SlotKey, taps: string[]): { tells: TellId[]; falseTaps
   };
 }
 
-export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[]): SlotScore {
+export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[], given?: FieldId[]): SlotScore {
   const taps = unique(tappedPartIds);
+  const { tells, falseTaps } = tellsOfTaps(key, taps);
+  if (key.page && action === 'open_link') return scorePage(key, key.page, tells, falseTaps, given);
   const falseAlarm = key.isTwin && DISTRUST.includes(action);
   const actionCorrect = key.isTwin
     ? key.acceptable.includes(action) && !falseAlarm
     : key.safeReplies.includes(action);
-  const { tells, falseTaps } = tellsOfTaps(key, taps);
   const caught = key.plantedTells.filter((id) => tells.includes(id));
   return {
     isScam: !key.isTwin,
@@ -54,6 +62,30 @@ export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[])
     falseTaps,
     walletDelta: !key.isTwin && key.unsafeReplies.includes(action) ? -key.stake : 0,
     peopleDelta: falseAlarm ? -1 : 0,
+  };
+}
+
+// open_link on a page card is neutral: what the page's send button sent decides the slot (rule 7,
+// changed for pages). given undefined means the page was never sent; then its own tells cannot be
+// missed, since the player may never have read them.
+function scorePage(key: SlotKey, page: NonNullable<SlotKey['page']>, tells: TellId[], falseTaps: string[], given?: FieldId[]): SlotScore {
+  const sent = given ?? [];
+  const planted = unique([...key.plantedTells, ...page.tells]);
+  const caught = planted.filter((id) => tells.includes(id));
+  const missable = given === undefined ? key.plantedTells : planted;
+  const leftReal = key.isTwin && sent.length < page.needs.length;
+  return {
+    isScam: !key.isTwin,
+    actionCorrect: key.isTwin ? !leftReal : !isSlip(sent),
+    falseAlarm: false,
+    caught,
+    missed: missable.filter((id) => !caught.includes(id)),
+    falseTaps,
+    walletDelta: !key.isTwin && movesMoney(page.kind, sent) ? -key.stake : 0,
+    peopleDelta: 0,
+    leaked: key.isTwin ? [] : leakedOf(sent),
+    pageCost: key.isTwin ? 0 : pageCost(sent),
+    pageLeft: leftReal,
   };
 }
 

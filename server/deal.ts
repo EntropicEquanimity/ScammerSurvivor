@@ -1,9 +1,13 @@
 import { BRANDS, INSTITUTIONS, isInstitutionId } from '../shared/brands.ts';
 import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
-import { STANDARD_ACTIONS } from '../shared/types.ts';
 import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
 import type { Clue } from '../shared/clues.ts';
+import { offeredFor } from './offered.ts';
+import { NEEDS, pageTells, publicPage } from '../shared/page.ts';
+import { PROFILE_TOKENS } from '../shared/profile.ts';
+
+export { asks, offeredFor } from './offered.ts';
 
 export const PEOPLE_START = 3;
 // The protected first scam on first play, rotated by the day seed so every new player does not meet
@@ -18,7 +22,7 @@ const CLOCK = ['08:10', '10:40', '13:20', '17:05'];
 // "[bank]" (rule 2: never a real brand). They are filled here, at deal time, so no bracketed
 // placeholder reaches a screen. The institution is the sender's INSTITUTIONS label when the card
 // names one; a Director card has none, so the trick's category picks an invented, pack-neutral name.
-const INVENTED_INSTITUTION: Record<Category, string> = {
+export const INVENTED_INSTITUTION: Record<Category, string> = {
   A: 'Kestrel Hiring',
   B: 'Cedar Trading Circle',
   C: 'Harbourline',
@@ -84,6 +88,7 @@ function tokenFills(card: Card): Record<string, string> {
     'bank name': INVENTED_BANK,
     name: NEUTRAL_NAME,
     'first name': NEUTRAL_NAME,
+    ...PROFILE_TOKENS, // a rewrite after a leak: the pretend profile's own details
   };
 }
 
@@ -176,38 +181,6 @@ export function shuffle<T>(items: readonly T[], random: () => number): T[] {
 
 const unique = <T>(items: readonly T[]): T[] => [...new Set(items)];
 
-// A message's own buttons come from its own words (lesson 20): money buttons only when money is
-// asked for, Open link only with a link, Install only with an app to install, the code buttons
-// only with a code, Keep it secret only when secrecy is asked. Real messages ask for money too,
-// so a money button never gives the answer away. A cue right after "no", "not" or "never" in the
-// same clause ("no payment needed", "never keep it secret") does not count.
-// ponytail: word cues, not meaning; a mention ("scammers ask you to keep it secret") still counts.
-const CUES: ReadonlyArray<[Action, RegExp]> = [
-  ['pay', /\b(pay|paying|pay for|fee|fees|invoice|settle|top[- ]?up|make (a|the) payment|payment (now|today|within|before|link|is needed|is required|needed|required))\b/g],
-  ['send_money', /\b(transfer|wire|remit|lend|borrow|deposit|(money|cash|funds) sent|send (me |us |him |her |them |it |over )?(the |some )?(money|cash|funds|amount|\d)|(move|send)\b[^.!?]{0,30}\b(aud|hkd|idr|inr|jpy|myr|php|sgd|usd)\b|(personal|new|bank|friend's|holding|safe|safety|secure|secured) account)/g],
-  ['open_link', /(https?:\/\/|www\.|\blinks?\b|\btap here\b|\bclick\b|\b[a-z0-9-]+\.(com|net|org|link|site|xyz|info|example)\b)/g],
-  ['install', /\b(install|download|apk|screen ?shar\w*|remote access|full screen access)/g],
-  ['share_code', /\b(code|otp|one-time|passcode)\b/g],
-  ['read_code', /\b(read|tell|say|give)\b[^.!?]{0,30}\b(code|otp|passcode)\b/g],
-  ['call_back', /\b(call (me |us )?back|call (this|our) number|ring (me |us )?back)\b/g],
-  ['keep_secret', /\b(secret|confidential|quietly|between us|keep (this|it) (quiet|private|to yourself)|tell no one|no one else|nobody else|(don't|do not|not to) (tell|call|ring))/g],
-];
-const NEGATED = /\b(no|not|never|without|free of|nothing)\b[^,.;:!?]{0,40}$/;
-const MAX_EXTRAS = 3;
-
-export const asks = (text: string, cue: RegExp): boolean => {
-  const lower = text.toLowerCase();
-  return [...lower.matchAll(cue)].some((match) => !NEGATED.test(lower.slice(0, match.index)));
-};
-
-// STANDARD_ACTIONS plus the extras the shown parts ask for, the card's own unsafe replies first.
-export const offeredFor = (parts: readonly { text: string }[], preferred: readonly Action[] = []): Action[] => {
-  const text = parts.map((part) => part.text).join('. '); // a cue never reads across two parts
-  const asked = CUES.filter(([, cue]) => asks(text, cue)).map(([action]) => action);
-  const ranked = [...preferred.filter((action) => asked.includes(action)), ...asked];
-  return unique([...STANDARD_ACTIONS, ...unique(ranked).slice(0, MAX_EXTRAS)]);
-};
-
 const strip = (parts: Card['setup']) => parts.map(({ id, text }) => ({ id, text }));
 
 // The phone's own "likely scam" banner: a hint, sometimes wrong. Drawn once per slot from the day
@@ -234,6 +207,13 @@ const publicClues = (clues: readonly Clue[] | undefined): { clues?: Clue[] } =>
       }
     : {};
 
+// The shown side's page; most cards have none, and then no page key is added anywhere.
+const pageOf = (card: Card, isTwin: boolean): Card['page'] => (isTwin ? card.realTwin.page : card.page);
+const withPage = <T extends object>(card: Card, isTwin: boolean, pick: (page: NonNullable<Card['page']>) => T): T | Record<string, never> => {
+  const page = pageOf(card, isTwin);
+  return page ? pick(page) : {};
+};
+
 function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string, bannerHint: PublicCard['bannerHint']): PublicCard {
   const cut = card.setup.length;
   const setup = isTwin ? card.realTwin.parts.slice(0, cut) : card.setup;
@@ -249,6 +229,7 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     arrivesAt,
     bannerHint,
     ...publicClues(isTwin ? card.realTwin.clues : card.clues),
+    ...withPage(card, isTwin, (page) => ({ page: publicPage(page) })),
   };
 }
 
@@ -258,12 +239,13 @@ const VERIFY: Action = 'verify_known_number';
 
 const toKey = (card: Card, isTwin: boolean): SlotKey => ({
   isTwin,
-  parts: isTwin ? card.realTwin.parts : [...card.setup, ...card.ask],
+  parts: [...(isTwin ? card.realTwin.parts : [...card.setup, ...card.ask]), ...(pageOf(card, isTwin)?.lines ?? [])],
   plantedTells: isTwin ? [] : card.plantedTells,
   safeReplies: unique([...card.safeReplies, VERIFY]),
   unsafeReplies: card.unsafeReplies.filter((action) => action !== VERIFY),
   acceptable: unique([...card.realTwin.acceptable, VERIFY]),
   stake: card.stake,
+  ...withPage(card, isTwin, (page) => ({ page: { kind: page.kind, needs: [...NEEDS[page.kind]], tells: pageTells(page) } })),
 });
 
 // The first-play trick for this seed, from the FIRST_TRICKS the deck holds; the seed picks, so the

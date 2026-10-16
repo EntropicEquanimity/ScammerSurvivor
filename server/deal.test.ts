@@ -191,7 +191,7 @@ test('the scam and its twin each get their own words\' buttons; the scam\'s own 
   const { slots } = dealDay({ dayId: 'own-words', pack, cards: [card, { ...card, id: 'twin-2' }], quick: true, seed: 1, firstPlay: false });
   const scam = slots.find((slot) => !slot.isTwin);
   const twin = slots.find((slot) => slot.isTwin);
-  assert.deepEqual(scam?.public.offered, [...STANDARD_ACTIONS, 'keep_secret', 'pay', 'send_money']);
+  assert.deepEqual(scam?.public.offered, [...STANDARD_ACTIONS, 'keep_secret', 'pay', 'open_link']); // one money button (offered.ts)
   assert.deepEqual(twin?.public.offered, [...STANDARD_ACTIONS]);
 });
 

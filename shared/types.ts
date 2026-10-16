@@ -1,4 +1,5 @@
 import type { Clue } from './clues.ts';
+import type { CardPage, FieldId, PublicPage } from './page.ts';
 // The data model from docs/build-plan.md section 5, plus the public and scoring
 // shapes the browser and the day routes share. Answer-key fields never leave
 // the server: see PublicCard.
@@ -134,7 +135,8 @@ export interface Card {
   neverAsks: string; // "A courier never asks for ..." line, shown in the lesson
   stake: number; // wallet amount at risk, in the pack's currency
   plantedTells: TellId[]; // union of ask part tells; answer key, server only
-  realTwin: { sender: Card['sender']; parts: MessagePart[]; acceptable: Action[]; clues?: Clue[] };
+  realTwin: { sender: Card['sender']; parts: MessagePart[]; acceptable: Action[]; clues?: Clue[]; page?: CardPage };
+  page?: CardPage; // what the scam's link opens (shared/page.ts); optional, most cards have none
   clues?: Clue[]; // inspectable objects on the scam's parts (shared/clues.ts); optional, old cards have none
   callBeats?: { tellId: TellId; instruction: string; fallbackLine: string }[];
   language: 'en';
@@ -208,6 +210,7 @@ export interface PublicCard {
   arrivesAt: string; // day clock label such as '08:10', decorative
   bannerHint?: 'likely_scam' | null; // a system banner like the ones phones show; a hint, sometimes wrong, never proof
   clues?: Clue[]; // the shown side's clues, scam or twin alike
+  page?: PublicPage; // the shown side's page, scam or twin alike
 }
 
 // The practice call. Beats are written by the Director at build time, voiced by TTS,
@@ -268,6 +271,12 @@ export interface ActBody {
   action: Action;
 }
 
+// POST /api/day/:dayId/page: the fields the page's send button sent, ids only, before the act.
+export interface PageBody {
+  slotId: string;
+  given: FieldId[];
+}
+
 export interface TapBody {
   slotId: string;
   tappedPartIds: string[]; // parts of setup and ask the player tapped
@@ -285,6 +294,8 @@ export interface SlotResult {
   walletAfter: number;
   peopleAfter: number;
   recovered?: number; // set by a recovery action after a slip
+  leaked?: FieldId[]; // page cards only: fields sent on a fake page, for What you gave away
+  pageCost?: number; // page cards only: the sent fields' weight, taken off the points
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model
   lesson: {
     tells: { id: TellId; label: string; why: string }[]; // from shared/taxonomy.ts

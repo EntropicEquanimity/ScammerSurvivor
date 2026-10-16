@@ -14,6 +14,7 @@ import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState, StoredSlot } from '../store.ts';
 import { recordDay, statsRouter } from './stats.ts';
 import { loadNote, planJobs, readPersonalState, runJobs, traceRouter } from './trace.ts';
+import { givenOf } from './page.ts';
 import type { PersonalState, Writer } from './trace.ts';
 
 export type Reply<T> = { status: 200; body: T } | { status: 400 | 404; body: { error: string } };
@@ -167,6 +168,7 @@ function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDe
     trace: [],
     personalising: 0,
     opened: [],
+    leaked: [],
   };
   const personalise = modelAllowed && (onSkip || Object.keys(people).length > 0);
   const jobs = personalise ? planJobs(base, pack, deps.note) : [];
@@ -241,7 +243,7 @@ export function recordAct(dayId: string, body: unknown): Reply<{ ok: true }> {
 }
 
 function parseTaps(slot: StoredSlot, value: unknown): string[] | null {
-  const partIds = [...slot.public.setup, ...slot.public.ask].map((part) => part.id);
+  const partIds = [...slot.public.setup, ...slot.public.ask, ...(slot.public.page?.lines ?? [])].map((part) => part.id);
   if (!Array.isArray(value) || value.length > partIds.length) return null;
   if (!value.every((id) => typeof id === 'string' && partIds.includes(id))) return null;
   return [...(value as string[])];
@@ -268,9 +270,11 @@ const scoredFields = (slot: StoredSlot): { scoredAt: number; lost: number } => {
 // left the wallet yet, so no transfer sheet opens.
 const MONEY_MOVES: readonly Action[] = ['pay', 'send_money', 'share_code', 'read_code'];
 
+// On a page card open_link is neutral and the page decides: a card plus a code sent there moves money.
 const scoreOf = (slot: StoredSlot, action: Action, taps: string[]): SlotScore => {
-  const score = scoreSlot(slot.key, action, taps);
-  return MONEY_MOVES.includes(action) ? score : { ...score, walletDelta: 0 };
+  const score = scoreSlot(slot.key, action, taps, givenOf(slot));
+  const paged = Boolean(slot.key.page) && action === 'open_link';
+  return MONEY_MOVES.includes(action) || paged ? score : { ...score, walletDelta: 0 };
 };
 
 // `now` is injectable so the recovery window can be tested; the route passes nothing.
@@ -286,14 +290,14 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
   if (!taps) return fail(400, 'bad_taps');
   const score = scoreOf(slot, slot.action, taps);
   const before = runningTotals(state);
-  const { walletDelta, peopleDelta, ...rest } = score;
+  const { walletDelta, peopleDelta, pageLeft, ...rest } = score;
   const walletAfter = Math.max(0, before.wallet + walletDelta);
   const result: SlotResult = {
     slotId: slot.slotId,
     ...rest,
     walletAfter,
     peopleAfter: Math.max(0, before.people + peopleDelta),
-    followUp: score.falseAlarm ? followUpFor(slot.card.realTwin.sender) : null,
+    followUp: score.falseAlarm || pageLeft ? followUpFor(slot.card.realTwin.sender) : null,
     lesson: lessonFor(slot.card, state.hotline),
   };
   const next: ScoredSlot = { ...slot, taps, result, scoredAt: now, lost: before.wallet - walletAfter };

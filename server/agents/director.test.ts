@@ -8,7 +8,7 @@ import { ACTIONS } from '../../shared/types.ts';
 import type { Action, PatternNote, People, TellId, TraceEvent } from '../../shared/types.ts';
 import { CLUE_KINDS } from '../../shared/clues.ts';
 import type { Clue } from '../../shared/clues.ts';
-import { DIRECTOR_SCHEMA, DIRECTOR_SYSTEM, PEOPLE_TRICKS, namesFor, stakeFor, toDraft, userMessage, writeCard } from './director.ts';
+import { DIRECTOR_SCHEMA, DIRECTOR_SYSTEM, NEUTRAL_NAMES, PEOPLE_TRICKS, namesFor, stakeFor, toDraft, userMessage, writeCard } from './director.ts';
 import type { Generate } from './director.ts';
 
 const pack = PACKS.get('SG');
@@ -171,7 +171,7 @@ test('a broken draft gets exactly one repair turn that quotes the guard reasons'
   for (const reason of reasons) assert.ok(repairText.includes(reasonText(reason)), `quotes ${reason}`);
   assert.ok(repairText.endsWith('Return the corrected card in the same JSON shape, nothing else.'));
   assert.equal(textOf(repair, 0), textOf(generate.requests[0], 0), 'the first user message is replayed');
-  assert.ok(textOf(repair, 0).includes('Mira, Tomas, Dev, Lena'), 'people first, then the neutral names');
+  assert.ok(textOf(repair, 0).includes('Mira, Tomas, Ren, Lena'), 'people first, then the neutral names');
 
   assert.ok(card);
   assert.deepEqual(trace.map((event) => [event.agent, event.outcome]), [
@@ -309,10 +309,12 @@ test('card faults next to clue faults after the repair still drop the card', asy
   assert.equal(card, null);
 });
 
+test('no neutral name is a tech word', () => assert.ok(!NEUTRAL_NAMES.some((name) => ['Dev', 'Test', 'Admin', 'User'].includes(name))));
+
 test('strangers never carry the player\'s people\'s names; people tricks still do', () => {
   const stranger = namesFor(people, ['Mira', 'Ari'], false);
   assert.ok(!stranger.includes('Mira') && !stranger.includes('Tomas'), stranger.join(','));
-  assert.ok(stranger.includes('Ari') && stranger.includes('Dev'));
+  assert.ok(stranger.includes('Ari') && stranger.includes('Ren'));
   assert.deepEqual(namesFor(people).slice(0, 2), ['Mira', 'Tomas']);
   assert.ok(PEOPLE_TRICKS.includes('family_trouble') && !PEOPLE_TRICKS.includes('fast_romance'));
 });
@@ -322,14 +324,14 @@ test('a stranger trick reaches the model and the Guard without the people\'s nam
   const generate = fakeGenerate([clean]);
   await writeCard({ note: romance, pack, people, level: 1, generate });
   const sent = textOf(generate.requests[0], 0);
-  assert.ok(/Allowed first names: Dev, Lena\./.test(sent), sent);
+  assert.ok(/Allowed first names: Ren, Lena\./.test(sent), sent);
   assert.ok(sent.includes('Sender: a stranger'));
 });
 
 test('the user message carries the stake in the local currency, written with separators', () => {
   const jp = PACKS.get('JP');
   assert.ok(jp);
-  const sent = userMessage(note, jp, 2, ['Dev']);
+  const sent = userMessage(note, jp, 2, ['Ren']);
   assert.ok(sent.includes('Stake: JPY 30,000'), sent);
   assert.ok(!/\d{5,}/.test(sent.replace(/Pattern note.*\n/, '')));
   assert.ok(!DIRECTOR_SYSTEM.includes('short figures like'));

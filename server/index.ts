@@ -9,6 +9,7 @@ import { labRouter } from './routes/lab.ts';
 import { roomRouter } from './routes/room.ts';
 import { lessonRouter } from './routes/lesson.ts';
 import { packsRouter } from './routes/packs.ts';
+import { pageRouter } from './routes/page.ts';
 
 const DEFAULT_PORT = 8080;
 const JSON_LIMIT = '10kb';
@@ -45,6 +46,7 @@ app.use('/api', labRouter);
 app.use('/api', roomRouter);
 app.use('/api', callRouter);
 app.use('/api', chatRouter);
+app.use('/api', pageRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'not_found' });
 });

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { RECOVERY_WINDOW_SECONDS, mostMissed, recoveryFor, scoreDay, scoreSlot } from './score.ts';
 import type { SlotKey } from './score.ts';
 import type { Action, MessagePart, TellId } from './types.ts';
+import { NEEDS } from './page.ts';
+import type { FieldId, PageKind } from './page.ts';
 
 // Keys hold ids and tell ids only. No message text lives in tests.
 const part = (id: string, tellIds: TellId[] = []): MessagePart => ({ id, text: `[${id}]`, tellIds });
@@ -114,4 +116,66 @@ test('recovery at the window edge counts, after it nothing, and only the three a
   assert.equal(recoveryFor({ stakeLost: 500, secondsSince: RECOVERY_WINDOW_SECONDS + 1, action: 'freeze_account' }), 0);
   assert.equal(recoveryFor({ stakeLost: 500, secondsSince: 5, action: 'send_money' }), 0);
   assert.equal(recoveryFor({ stakeLost: 0, secondsSince: 5, action: 'freeze_account' }), 0);
+});
+
+// Pages (docs/game-design.md section 3): only what is sent counts; open_link alone is neutral.
+const UNSAFE_LINK: Action[] = ['open_link', 'pay'];
+const pageScam = (kind: PageKind = 'sign_in'): SlotKey =>
+  Object.freeze({
+    ...scamKey([part('a1', ['authority']), part('p1', ['urgency'])], 500),
+    plantedTells: ['authority'] as TellId[],
+    unsafeReplies: UNSAFE_LINK,
+    page: { kind, needs: [...NEEDS[kind]], tells: ['urgency'] as TellId[] },
+  });
+const pageTwin = (kind: PageKind = 'tracking'): SlotKey =>
+  Object.freeze({ ...twinKey([part('r1'), part('p1')]), page: { kind, needs: [...NEEDS[kind]], tells: [] } });
+
+test('a page card: open_link and nothing sent is correct', () => {
+  for (const given of [undefined, []]) {
+    const score = scoreSlot(pageScam(), 'open_link', [], given);
+    assert.equal(score.actionCorrect, true);
+    assert.equal(score.walletDelta, 0);
+    assert.deepEqual(score.leaked, []);
+    assert.equal(score.pageCost, 0);
+  }
+});
+
+test('the scoring table: weights cost points, a heavy field or two light ones is a slip', () => {
+  const sent = (given: FieldId[]) => scoreSlot(pageScam(), 'open_link', [], given);
+  assert.deepEqual([sent(['password']).actionCorrect, sent(['password']).pageCost, sent(['password']).leaked], [false, 3, ['password']]);
+  assert.deepEqual([sent(['name']).actionCorrect, sent(['name']).pageCost], [true, 1]);
+  assert.deepEqual([sent(['name', 'address']).actionCorrect, sent(['name', 'address']).pageCost], [false, 2]);
+  assert.deepEqual([sent(['id_photo']).actionCorrect, sent(['id_photo']).pageCost], [false, 2]);
+  assert.equal(sent(['code']).walletDelta, 0);
+  assert.equal(scoreSlot(pageScam('redelivery'), 'open_link', [], ['tracking']).pageCost, 0);
+  assert.deepEqual(scoreSlot(pageScam('redelivery'), 'open_link', [], ['tracking']).leaked, []);
+});
+
+test('the card plus a code, or the card on a confirm-card page, takes the stake', () => {
+  assert.equal(scoreSlot(pageScam(), 'open_link', [], ['card', 'code']).walletDelta, -500);
+  assert.equal(scoreSlot(pageScam('card_confirm'), 'open_link', [], ['card']).walletDelta, -500);
+  assert.equal(scoreSlot(pageScam(), 'open_link', [], ['card']).walletDelta, 0);
+});
+
+test('a real page: sending what it needs is right; leaving it is no false alarm but brings the follow-up', () => {
+  const sentIt = scoreSlot(pageTwin(), 'open_link', [], ['tracking']);
+  assert.deepEqual([sentIt.actionCorrect, sentIt.falseAlarm, sentIt.pageLeft], [true, false, false]);
+  const left = scoreSlot(pageTwin(), 'open_link', [], undefined);
+  assert.deepEqual([left.actionCorrect, left.falseAlarm, left.peopleDelta, left.pageLeft], [false, false, 0, true]);
+  assert.equal(scoreSlot(pageTwin('bank_app_note'), 'open_link', []).actionCorrect, true);
+});
+
+test('page tells are caught by a tap and missed only once the page was sent', () => {
+  assert.deepEqual(scoreSlot(pageScam(), 'open_link', ['a1', 'p1'], []).caught, ['authority', 'urgency']);
+  assert.deepEqual(scoreSlot(pageScam(), 'open_link', ['a1'], undefined).missed, []);
+  assert.deepEqual(scoreSlot(pageScam(), 'open_link', ['a1'], []).missed, ['urgency']);
+  assert.deepEqual(scoreSlot(pageScam(), 'open_link', ['p1'], []).falseTaps, []);
+});
+
+test('a page card met with another button scores as today; a card without a page carries no page fields', () => {
+  const paid = scoreSlot(pageScam(), 'pay', []);
+  assert.deepEqual([paid.actionCorrect, paid.walletDelta], [false, -500]);
+  const plain = scoreSlot({ ...family, unsafeReplies: UNSAFE_LINK }, 'open_link', []);
+  assert.equal(plain.actionCorrect, false);
+  assert.ok(!('leaked' in plain) && !('pageCost' in plain) && !('pageLeft' in plain));
 });

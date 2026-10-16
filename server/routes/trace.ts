@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Router } from 'express';
 import type { Card, CountryPack, PatternNote, People, TraceEvent, TrickId } from '../../shared/types.ts';
+import type { FieldId } from '../../shared/profile.ts';
 import { NEUTRAL_NAMES, writeCard } from '../agents/director.ts';
 import type { WriteCardInput } from '../agents/director.ts';
 import { fitLayout, redealSlot } from '../deal.ts';
@@ -23,6 +24,7 @@ export interface PersonalState extends DayState {
   trace: TraceEvent[];
   personalising: number; // slots still being written in the background
   opened: string[]; // slots the player has seen; a late card never replaces one
+  leaked: FieldId[]; // field ids sent on fake pages today, never values (routes/page.ts)
 }
 
 export const readPersonalState = (dayId: string): PersonalState | undefined => {
@@ -35,6 +37,7 @@ export const readPersonalState = (dayId: string): PersonalState | undefined => {
     trace: extra.trace ?? [],
     personalising: extra.personalising ?? 0,
     opened: extra.opened ?? [],
+    leaked: extra.leaked ?? [],
   };
 };
 
@@ -55,6 +58,7 @@ export interface Job {
   note: PatternNote;
   pack: CountryPack;
   people: People;
+  leaked?: FieldId[]; // a rewrite after a leak (routes/page.ts)
 }
 
 // Slot 1 stays as dealt so the day opens at once; the rest get a job each when
@@ -87,8 +91,9 @@ function settle(dayId: string, slotId: string, card: Card | null, trace: TraceEv
 async function runJob(job: Job, write: Writer): Promise<void> {
   const started = Date.now();
   try {
-    const { note, pack, people } = job;
-    const { card, trace } = await write({ note, pack, people, level: LEVEL, allowedNames: [...new Set([...names(people), ...SKIP_NAMES])] });
+    const { note, pack, people, leaked } = job;
+    const allowedNames = [...new Set([...names(people), ...SKIP_NAMES])];
+    const { card, trace } = await write({ note, pack, people, level: LEVEL, allowedNames, ...(leaked ? { leaked } : {}) });
     settle(job.dayId, job.slotId, card && fitLayout(card, pack.layouts), trace);
   } catch {
     settle(job.dayId, job.slotId, null, [{ agent: 'director', ms: Date.now() - started, outcome: 'fallback' }]);

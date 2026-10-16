@@ -9,6 +9,12 @@ import { generateJson, MODELS } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
 import { guardDraft, isClueReason, reasonText } from '../guard/card.ts';
 import type { GuardReason } from '../guard/card.ts';
+import { guardPages, isPageReason, leakReasons, pageReasonText } from '../guard/page.ts';
+import type { LeakReason, PageReason } from '../guard/page.ts';
+import { PAGE_TRICKS } from '../../shared/page.ts';
+import type { CardPage } from '../../shared/page.ts';
+import type { FieldId } from '../../shared/profile.ts';
+import { PAGE_SYSTEM, draftTexts, leakLine, pageLines, realHostFor, toPage, withPages, withoutPages } from './page.ts';
 import { TELL_IDS, TRICKS } from '../../shared/taxonomy.ts';
 import { ACTIONS } from '../../shared/types.ts';
 import { CLUE_KINDS } from '../../shared/clues.ts';
@@ -78,6 +84,7 @@ export const DIRECTOR_SCHEMA: Schema = obj({
   realTwin: obj({ sender: senderSchema, parts: list(obj({ text: str })), acceptable: replies, clues: clueList }),
   clues: clueList,
 });
+const PAGE_SCHEMA = withPages(DIRECTOR_SCHEMA);
 
 export type Generate = (req: JsonRequest) => Promise<{ json: unknown; trace: TraceEvent }>;
 
@@ -91,10 +98,11 @@ export interface WriteCardInput {
   people: People;
   level: 1 | 2 | 3;
   allowedNames?: string[];
+  leaked?: FieldId[]; // a rewrite after a fake page: what the player gave away (ids only)
   generate?: Generate;
 }
 
-export const NEUTRAL_NAMES = ['Mira', 'Dev', 'Lena', 'Tomas'] as const;
+export const NEUTRAL_NAMES = ['Mira', 'Ren', 'Lena', 'Tomas'] as const; // no tech words as names (lessons row 23)
 
 // The tricks whose sender is one of the player's own people (or poses as one): a relative or friend,
 // or the boss. Category E is not the gate: fast_romance and video_threat sit there with strangers.
@@ -146,8 +154,11 @@ const SENDER_LINE = {
   stranger: "Sender: a stranger to the player. Use a role or business name, or a neutral first name from the list; the player's own people are not on this card.",
 };
 
-export function userMessage(note: PatternNote, pack: CountryPack, level: number, allowedNames: string[]): string {
+const hasPages = (note: PatternNote): boolean => PAGE_TRICKS.includes(trickFor(note));
+
+export function userMessage(note: PatternNote, pack: CountryPack, level: number, allowedNames: string[], leaked: readonly FieldId[] = []): string {
   const peopleSender = PEOPLE_TRICKS.includes(trickFor(note));
+  const leak = leakLine(leaked);
   return [
     `Pattern note (JSON): ${JSON.stringify(note)}`,
     `Country pack: ${pack.code}, currency ${pack.currency}, apps ${pack.layouts.join(', ')}, this card arrives on ${note.app}.`,
@@ -156,11 +167,18 @@ export function userMessage(note: PatternNote, pack: CountryPack, level: number,
     `Allowed first names: ${allowedNames.join(', ')}.`,
     peopleSender ? SENDER_LINE.people : SENDER_LINE.stranger,
     'The real twin has exactly as many parts as setup and ask together.',
+    ...(hasPages(note) ? [pageLines(note.category)] : []),
+    ...(leak ? [leak] : []),
   ].join('\n');
 }
 
-export const repairMessage = (reasons: GuardReason[]): string =>
-  `Code review rejected the card for these reasons: ${reasons.map(reasonText).join('; ')}. Return the corrected card in the same JSON shape, nothing else.`;
+export type DirectorReason = GuardReason | PageReason | LeakReason;
+const isLeakReason = (reason: DirectorReason): reason is LeakReason => reason === 'leak_token_missing' || reason === 'leak_token_extra';
+const textFor = (reason: DirectorReason): string =>
+  isPageReason(reason) || isLeakReason(reason) ? pageReasonText(reason) : reasonText(reason);
+
+export const repairMessage = (reasons: DirectorReason[]): string =>
+  `Code review rejected the card for these reasons: ${reasons.map(textFor).join('; ')}. Return the corrected card in the same JSON shape, nothing else.`;
 
 const turn = (role: 'user' | 'model', text: string): Content => ({ role, parts: [{ text }] });
 
@@ -201,6 +219,11 @@ const cluesField = (items: unknown): { clues?: Clue[] } => {
   return clues.length > 0 ? { clues } : {};
 };
 
+const pageField = (value: unknown, withTells: boolean): { page?: CardPage } => {
+  const page = toPage(value, withTells);
+  return page ? { page } : {};
+};
+
 const clampLevel = (value: unknown): 1 | 2 | 3 => (typeof value !== 'number' || value <= 1 ? 1 : value >= 3 ? 3 : 2);
 
 // Garbage in gives an empty draft out, which the Guard rejects, never a throw.
@@ -219,11 +242,13 @@ export function toDraft(json: unknown, note: PatternNote): Draft {
     usualEnding: asText(raw.usualEnding),
     plantedTells: asList<TellId>(raw.plantedTells),
     ...cluesField(raw.clues),
+    ...pageField(raw.page, true),
     realTwin: {
       sender: toSender(twin.sender),
       parts: toParts('r', twin.parts),
       acceptable: asList<Action>(twin.acceptable),
       ...cluesField(twin.clues),
+      ...pageField(twin.page, false),
     },
   };
 }
@@ -252,15 +277,24 @@ export function toCard(draft: Draft, note: PatternNote, pack: CountryPack): Card
 interface Pass {
   json: unknown;
   draft: Draft;
-  reasons: GuardReason[];
+  reasons: DirectorReason[];
   trace: TraceEvent[];
 }
 
+// The card Guard, the page Guard on page tricks, and the leak check on every card.
+const guardAll = (draft: Draft, input: WriteCardInput, allowedNames: string[]): DirectorReason[] => [
+  ...guardDraft(draft, { noteTells: input.note.tells, allowedNames, allowedReplies: [...ACTIONS] }).reasons,
+  ...(hasPages(input.note) ? guardPages(draft, { realHost: realHostFor(input.note.category), allowedNames }) : []),
+  ...leakReasons(draftTexts(draft), input.leaked ?? []),
+];
+
 async function pass(generate: Generate, contents: Content[], input: WriteCardInput, allowedNames: string[]): Promise<Pass> {
-  const { json, trace } = await generate({ system: DIRECTOR_SYSTEM, schema: DIRECTOR_SCHEMA, contents, model: MODELS.director });
+  const paged = hasPages(input.note);
+  const request = { system: paged ? DIRECTOR_SYSTEM + PAGE_SYSTEM : DIRECTOR_SYSTEM, schema: paged ? PAGE_SCHEMA : DIRECTOR_SCHEMA };
+  const { json, trace } = await generate({ ...request, contents, model: MODELS.director });
   const started = performance.now();
   const draft = toDraft(json, input.note);
-  const { reasons } = guardDraft(draft, { noteTells: input.note.tells, allowedNames, allowedReplies: [...ACTIONS] });
+  const reasons = guardAll(draft, input, allowedNames);
   const ms = Math.round(performance.now() - started);
   const guard: TraceEvent = reasons.length === 0 ? { agent: 'guard', ms, outcome: 'ok' } : { agent: 'guard', ms, outcome: 'rejected', reasons };
   return { json, draft, reasons, trace: [trace, guard] };
@@ -269,20 +303,27 @@ async function pass(generate: Generate, contents: Content[], input: WriteCardInp
 const withOutcome = (events: TraceEvent[], outcome: TraceEvent['outcome']): TraceEvent[] =>
   events.map((event) => (event.agent === 'director' ? { ...event, outcome } : event));
 
+// Clue or page faults alone after the repair: drop the clues or the pages, keep the card (a card is
+// never lost to a clue or a page; without its page the link behaves as it does today).
+function keepAfterRepair(draft: Draft, reasons: DirectorReason[]): Draft | null {
+  if (!reasons.every((reason) => isClueReason(reason) || isPageReason(reason))) return null;
+  const clueless = reasons.some(isClueReason) ? withoutClues(draft) : draft;
+  return reasons.some(isPageReason) ? withoutPages(clueless) : clueless;
+}
+
 // One generate, one Guard, at most one repair turn that quotes the Guard's
 // reasons, one more Guard. A refusal or error never throws: card is null and the
 // caller serves a cached card (AGENTS.md rule 5).
 export async function writeCard(input: WriteCardInput): Promise<{ card: Card | null; trace: TraceEvent[] }> {
   const { note, pack, people, level, generate = generateJson } = input;
   const allowedNames = namesFor(people, input.allowedNames, PEOPLE_TRICKS.includes(trickFor(note)));
-  const user = turn('user', userMessage(note, pack, level, allowedNames));
+  const user = turn('user', userMessage(note, pack, level, allowedNames, input.leaked));
   try {
     const first = await pass(generate, [user], input, allowedNames);
     if (first.reasons.length === 0) return { card: toCard(first.draft, note, pack), trace: first.trace };
     const contents = [user, turn('model', JSON.stringify(first.json)), turn('user', repairMessage(first.reasons))];
     const second = await pass(generate, contents, input, allowedNames);
-    // Clue faults alone after the repair: drop the clues, keep the card (a card is never lost to a clue).
-    const kept = second.reasons.length === 0 ? second.draft : second.reasons.every(isClueReason) ? withoutClues(second.draft) : null;
+    const kept = keepAfterRepair(second.draft, second.reasons);
     const trace = [...withOutcome(first.trace, 'rejected'), ...withOutcome(second.trace, kept ? 'repaired' : 'rejected')];
     return { card: kept ? toCard(kept, note, pack) : null, trace };
   } catch (err) {

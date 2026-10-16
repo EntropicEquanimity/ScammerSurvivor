@@ -6,6 +6,7 @@ export const POINTS = {
   realTrusted: 50, // a fitting reply to a real message
   tellCaught: 25, // each tell tapped correctly
   falseTap: -10, // each part tapped that carried no tell
+  fieldSent: -25, // each weight point sent on a fake page (shared/page.ts FIELD_WEIGHT)
 } as const;
 
 // Speed, quiz style: the clock runs from the app opening to the decision. A right call at or under
@@ -38,14 +39,14 @@ const speedTag = (ms: number): SpeedTag | undefined => {
   return ms <= SPEED.fastMs ? 'fast' : undefined;
 };
 
-type Scored = Pick<SlotResult, 'isScam' | 'actionCorrect' | 'caught' | 'falseTaps'>;
+type Scored = Pick<SlotResult, 'isScam' | 'actionCorrect' | 'caught' | 'falseTaps' | 'pageCost'>;
 
 // decisionMs is how long the player took to act; without it the decision scores its base.
 export function pointsFor(result: Scored, decisionMs?: number): PointsResult {
   const base = result.actionCorrect ? (result.isScam ? POINTS.scamHandled : POINTS.realTrusted) : 0;
   const timed = result.actionCorrect && decisionMs !== undefined;
   const decision = timed ? Math.round(base * speedFactor(decisionMs)) : base;
-  const tells = result.caught.length * POINTS.tellCaught + result.falseTaps.length * POINTS.falseTap;
+  const tells = result.caught.length * POINTS.tellCaught + result.falseTaps.length * POINTS.falseTap + (result.pageCost ?? 0) * POINTS.fieldSent;
   const speed = timed ? speedTag(decisionMs) : undefined;
   return { delta: Math.max(0, decision + tells), good: result.actionCorrect, ...(speed && { speed }) };
 }
