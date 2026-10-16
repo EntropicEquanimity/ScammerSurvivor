@@ -312,3 +312,25 @@ export interface DayScore {
   tellMostMissed: TellId | null;
   collected: { trickId: TrickId; category: Category }[];
 }
+
+// Back-and-forth chats: after Reply the player sends one of a few code-written chips, the sender
+// answers in character, up to two exchanges; the next pick is scored as before. Same on a scam
+// and its twin, so a reply never gives the answer away.
+export type ChatChipId = 'who_is_this' | 'why_so_urgent' | 'can_i_call_you' | 'ok_what_do_i_do';
+
+export interface ChatReplyBody {
+  turn: 1 | 2;
+  said: ChatChipId;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+}
+
+export interface ChatReplyResult {
+  message: ChatMessage; // the sender's answer
+  offered: Action[]; // the buttons for the thread so far, fitted to its words
+  chips: ChatChipId[]; // what the player may send next; empty once final
+  final: boolean; // no more exchanges: the next pick is scored
+}

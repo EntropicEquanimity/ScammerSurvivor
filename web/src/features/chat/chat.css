@@ -1,0 +1,105 @@
+/* The chat under a message: the same bubbles as the thread (card.css), outgoing on the right in the
+   accent colour, incoming on the left in the grey. Each bubble is its own line, tail corner squared. */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.chat-in,
+.chat-out {
+  max-width: 78%;
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: 18px;
+  font-size: var(--t19);
+  line-height: 1.35;
+  text-align: left;
+  overflow-wrap: anywhere;
+  animation: pop-in var(--dur-pop) var(--spring-out) both;
+}
+
+.chat-in {
+  align-self: flex-start;
+  border-bottom-left-radius: 6px;
+  background: #e9e9eb;
+  color: var(--ink);
+}
+
+.chat-out {
+  align-self: flex-end;
+  border-bottom-right-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+}
+
+/* The three dots, iOS style: a small grey bubble, the dots fading in turn. */
+.chat-typing {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.75rem 0.875rem;
+}
+
+.chat-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ink-2);
+  opacity: 0.35;
+  animation: chat-dot 1.2s ease-in-out infinite;
+}
+
+.chat-dot:nth-child(3) { animation-delay: 0.2s; }
+.chat-dot:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes chat-dot {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* Reduced motion: the dots hold still at three strengths, so the bubble still reads as typing. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-dot { animation: none; }
+  .chat-dot:nth-child(2) { opacity: 1; }
+  .chat-dot:nth-child(3) { opacity: 0.65; }
+  .chat-dot:nth-child(4) { opacity: 0.35; }
+}
+
+/* The reply chips: pills in a row above the buttons, filled in the accent like the bubble they send,
+   so they never read as one of the scored buttons under them. */
+/* It sits right above the action bar, outside it, on the same glass so the two read as one bar. */
+.chat-chips {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem 0;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+
+.chat-chip {
+  flex: 1 1 auto;
+  min-height: 48px;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: 600 var(--t16) / 1.2 var(--font-body);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform var(--dur-press) ease-out;
+}
+
+.chat-chip:active { transform: scale(0.96); }
+.chat-chip:disabled { opacity: 0.55; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-chip:active { opacity: 0.7; transform: none; }
+}
