@@ -8,13 +8,12 @@ import type { Response } from 'express';
 import type { Firestore } from '@google-cloud/firestore';
 import { TELLS, TELL_IDS, TRICKS } from '../../shared/taxonomy.ts';
 import type { DayPayload, Tally, TellId, TrickId } from '../../shared/types.ts';
-import { PACKS, resolveCountry } from '../country.ts';
-import { dealDay } from '../deal.ts';
+import { PACKS } from '../country.ts';
 import { streamText } from '../gemini.ts';
 import type { StreamRequest } from '../gemini.ts';
-import { readDay, saveDay } from '../store.ts';
-import { finishDay, startDay } from './day.ts';
-import type { Reply } from './day.ts';
+import { readDay } from '../store.ts';
+import { dealRoomDay, deckFor, finishDay } from './day.ts';
+import type { DayDeps, Deck, Reply } from './day.ts';
 
 export type Verdict = 'caught' | 'fell' | 'trusted' | 'blocked';
 
@@ -81,6 +80,9 @@ export const DEBRIEF_SYSTEM = [
 let rooms = new Map<string, Room>();
 let dayRooms = new Map<string, string>();
 let debriefs = new Map<string, { text: string; at: number }>();
+// The deck each room deals from, read once at its first join, so a cache that changes mid-session
+// never splits the room. Cards stay here in memory, never on the Room record or its Firestore mirror.
+let decks = new Map<string, Promise<Deck>>();
 
 const fail = (status: 400 | 404, error: string): Reply<never> => ({ status, body: { error } });
 const ok = <T>(body: T): Reply<T> => ({ status: 200, body });
@@ -98,6 +100,7 @@ function saveRoom(room: Room): Room {
   const overflow = [...next.keys()].slice(0, Math.max(0, next.size - ROOM_CAP));
   overflow.forEach((key) => next.delete(key));
   rooms = next;
+  if (overflow.length > 0) decks = new Map([...decks].filter(([key]) => next.has(key)));
   return room;
 }
 
@@ -105,6 +108,7 @@ export const resetRooms = (): void => {
   rooms = new Map();
   dayRooms = new Map();
   debriefs = new Map();
+  decks = new Map();
 };
 
 function newCode(): string {
@@ -162,20 +166,25 @@ export function getRoom(roomId: string): Reply<RoomInfo> {
   return ok({ roomId: room.roomId, country: room.country, players: room.players, link: `/#join=${room.roomId}` });
 }
 
-// Every phone in the room gets the same cards in the same order: startDay deals from the
-// fixtures with its own seed, then the slots are re-dealt from the room's seed and saved over.
+const deckOf = (room: Room, deps: DayDeps): Promise<Deck> => {
+  const known = decks.get(room.roomId);
+  if (known) return known;
+  const deck = deckFor({ country: room.country, quick: '0' }, deps);
+  decks = new Map(decks).set(room.roomId, deck);
+  return deck;
+};
+
+// Every phone in the room gets the same cards in the same order: one deal from the room's deck
+// (the cache, pages included, the way a solo day deals) with the room's seed.
 // ponytail: players counts GET /day calls, so a refresh counts twice; a device token is the upgrade.
-export function roomDay(roomId: string, query: { age?: unknown } = {}): Reply<DayPayload> {
+export async function roomDay(roomId: string, query: { age?: unknown } = {}, deps: DayDeps = {}): Promise<Reply<DayPayload>> {
   const room = readRoom(roomId);
   if (!room) return fail(404, 'unknown_room');
-  const started = startDay({ country: room.country, quick: '0', age: query.age });
-  const state = readDay(started.dayId);
-  if (!state) return fail(404, 'unknown_day');
-  const { pack, cards } = resolveCountry(room.country);
-  const { payload, slots } = dealDay({ dayId: state.dayId, pack, cards, quick: false, seed: room.seed });
-  saveDay({ ...state, slots });
-  dayRooms = new Map(dayRooms).set(state.dayId, room.roomId);
-  mirror(saveRoom({ ...room, players: room.players + 1 }));
+  const { payload } = dealRoomDay(query.age, await deckOf(room, deps), room.seed);
+  // Read again after the wait: another phone may have joined meanwhile.
+  const now = readRoom(room.roomId) ?? room;
+  dayRooms = new Map(dayRooms).set(payload.dayId, now.roomId);
+  mirror(saveRoom({ ...now, players: now.players + 1 }));
   return ok(payload);
 }
 
@@ -345,7 +354,7 @@ export const roomRouter = Router();
 
 roomRouter.post('/room', (req, res) => send(res, createRoom(req.body)));
 roomRouter.get('/room/:roomId', (req, res) => send(res, getRoom(String(req.params.roomId))));
-roomRouter.get('/room/:roomId/day', (req, res) => send(res, roomDay(String(req.params.roomId), req.query)));
+roomRouter.get('/room/:roomId/day', async (req, res) => send(res, await roomDay(String(req.params.roomId), req.query)));
 roomRouter.post('/room/:roomId/report', (req, res) => send(res, reportDay(String(req.params.roomId), req.body)));
 roomRouter.get('/room/:roomId/board', (req, res) => send(res, getBoard(String(req.params.roomId))));
 roomRouter.post('/room/:roomId/debrief', async (req, res) => {

@@ -14,7 +14,7 @@ import { readDay, saveDay, withSlot } from '../store.ts';
 import type { DayState, StoredSlot } from '../store.ts';
 import { recordDay, statsRouter } from './stats.ts';
 import { loadNote, planJobs, readPersonalState, runJobs, traceRouter } from './trace.ts';
-import { givenOf } from './page.ts';
+import { givenOf, withPageLesson } from './page.ts';
 import type { PersonalState, Writer } from './trace.ts';
 
 export type Reply<T> = { status: 200; body: T } | { status: 400 | 404; body: { error: string } };
@@ -145,12 +145,12 @@ export function dealFocused(input: DealInput, focus: unknown): Deal {
 // ponytail: every day is a first play until progress exists (slice 7).
 // `onSkip` personalises an adult full day with no people chosen too, around neutral names: the
 // day route sets it so the Gemini chip flips on the Skip path; rooms and test seams leave it off,
-// since a room's phones must hold the same cards.
-function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDeps, onSkip = false): Begun {
+// since a room's phones must hold the same cards. A room passes its own seed.
+function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDeps, onSkip = false, roomSeed?: number): Begun {
   const quick = toQuick(query.quick);
   const age = toAge(query.age);
   const dayId = randomUUID();
-  const seed = Number.parseInt(dayId.slice(0, 8), 16);
+  const seed = roomSeed ?? Number.parseInt(dayId.slice(0, 8), 16);
   const { payload, slots } = dealFocused({ dayId, pack, cards, quick, seed }, query.focus);
   // Only an adult full day is personalised; the quick day and younger players never reach a model.
   const modelAllowed = age === 'adult' && !quick;
@@ -169,6 +169,7 @@ function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDe
     personalising: 0,
     opened: [],
     leaked: [],
+    stamps: {},
   };
   const personalise = modelAllowed && (onSkip || Object.keys(people).length > 0);
   const jobs = personalise ? planJobs(base, pack, deps.note) : [];
@@ -178,14 +179,29 @@ function dealFrom(query: DayQuery, pack: CountryPack, cards: Card[], deps: DayDe
   return { payload, settled: runJobs(jobs, deps.write) };
 }
 
-// The route's path: the cache when it holds a whole day, the fixtures otherwise.
-export async function beginDay(query: DayQuery, deps: DayDeps = {}): Promise<Begun> {
+export interface Deck {
+  pack: CountryPack;
+  cards: Card[];
+}
+
+// The cache when it holds a whole day, the fixtures otherwise.
+export async function deckFor(query: DayQuery, deps: DayDeps = {}): Promise<Deck> {
   const { pack, cards: fixtures } = resolveCountry(toCountry(query.country));
   const need = toQuick(query.quick) ? QUICK_DAY : FULL_DAY;
   const waits = deps.waits ?? { first: CACHE_WAIT_MS, cold: COLD_WAIT_MS };
-  const cards = await cardsFor(pack.code, fixtures, need, deps.cards ?? readCards, waits);
+  return { pack, cards: await cardsFor(pack.code, fixtures, need, deps.cards ?? readCards, waits) };
+}
+
+// The route's path.
+export async function beginDay(query: DayQuery, deps: DayDeps = {}): Promise<Begun> {
+  const { pack, cards } = await deckFor(query, deps);
   return dealFrom(query, pack, cards, deps, true);
 }
+
+// A room's full day from the room's deck and seed: no focus and no people, so every phone in the
+// room holds the same deal, pages included (routes/room.ts).
+export const dealRoomDay = (age: unknown, deck: Deck, seed: number): Begun =>
+  dealFrom({ age, quick: '0' }, deck.pack, deck.cards, {}, false, seed);
 
 // A pack's deck is ready when its own fixtures exist or the cache holds a whole full day for it
 // (the day route deals the cache first). A slow or broken cache reads as not ready.
@@ -300,7 +316,7 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
     walletAfter,
     peopleAfter: Math.max(0, before.people + peopleDelta),
     followUp: score.falseAlarm || pageLeft ? followUpFor(slot.card.realTwin.sender) : null,
-    lesson: lessonFor(slot.card, state.hotline),
+    lesson: withPageLesson(slot, lessonFor(slot.card, state.hotline)),
   };
   const next: ScoredSlot = { ...slot, taps, result, scoredAt: now, lost: before.wallet - walletAfter };
   saveDay(withSlot(state, next));

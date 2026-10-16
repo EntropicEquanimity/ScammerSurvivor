@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TELLS } from '../../shared/taxonomy.ts';
 import { readDay } from '../store.ts';
+import { readPersonalState } from './trace.ts';
 import type { StoredSlot } from '../store.ts';
+import { resolveCountry } from '../country.ts';
 import { recordAct, scoreTap } from './day.ts';
+import type { DayDeps } from './day.ts';
 import { CODE_SHAPE, createRoom, debriefFor, debriefText, getBoard, getRoom, reportDay, resetRooms, roomDay, topMissed } from './room.ts';
 import type { RoomBoard, StreamFn } from './room.ts';
 
@@ -26,8 +29,11 @@ const create = (country = 'SG'): string => {
   return reply.body.roomId;
 };
 
-const dayIn = (roomId: string, age?: string): string => {
-  const reply = roomDay(roomId, { age });
+// The fixtures as the cache, so no test waits on a real cache read.
+const DEPS: DayDeps = { cards: (code) => resolveCountry(code).cards };
+
+const dayIn = async (roomId: string, age?: string): Promise<string> => {
+  const reply = await roomDay(roomId, { age }, DEPS);
   assert.equal(reply.status, 200);
   if (reply.status !== 200) throw new Error('unreachable');
   return reply.body.dayId;
@@ -75,7 +81,7 @@ const fake = (chunks: string[], fail = false) => {
 
 test.beforeEach(() => resetRooms());
 
-test('a room gets a six-letter code without I or O and only a pack country opens one', () => {
+test('a room gets a six-letter code without I or O and only a pack country opens one', async () => {
   const roomId = create('PH');
   assert.match(roomId, CODE_SHAPE);
   assert.equal(createRoom({ country: 'XX' }).status, 400);
@@ -87,10 +93,10 @@ test('a room gets a six-letter code without I or O and only a pack country opens
   assert.equal(getRoom('ABCDEF').status, 404);
 });
 
-test('two days in one room deal the same cards in the same order and count two players', () => {
+test('two days in one room deal the same cards in the same order and count two players', async () => {
   const roomId = create('SG');
-  const a = roomDay(roomId);
-  const b = roomDay(roomId);
+  const a = await roomDay(roomId, {}, DEPS);
+  const b = await roomDay(roomId, {}, DEPS);
   assert.equal(a.status, 200);
   assert.equal(b.status, 200);
   if (a.status !== 200 || b.status !== 200) return;
@@ -105,16 +111,16 @@ test('two days in one room deal the same cards in the same order and count two p
   assert.equal(info.status === 200 && info.body.players, 2);
 });
 
-test('a younger player keeps the younger age on the room day', () => {
-  const dayId = dayIn(create('JP'), 'younger');
+test('a younger player keeps the younger age on the room day', async () => {
+  const dayId = await dayIn(create('JP'), 'younger');
   assert.equal(readDay(dayId)?.age, 'younger');
-  assert.equal(readDay(dayIn(create('JP')))?.age, 'adult');
+  assert.equal(readDay(await dayIn(create('JP')))?.age, 'adult');
 });
 
-test('a report is refused for a day outside the room and for a day reported twice', () => {
+test('a report is refused for a day outside the room and for a day reported twice', async () => {
   const roomId = create('AU');
   const other = create('AU');
-  const dayId = dayIn(roomId);
+  const dayId = await dayIn(roomId);
   playPerfect(dayId);
   assert.equal(reportDay(other, { dayId }).status, 400);
   assert.equal(reportDay(roomId, { dayId: 'nope' }).status, 400);
@@ -125,10 +131,10 @@ test('a report is refused for a day outside the room and for a day reported twic
   assert.equal(reportDay('ABCDEF', { dayId }).status, 404);
 });
 
-test('the board carries counts and ids only, with one row per trick and per missed tell', () => {
+test('the board carries counts and ids only, with one row per trick and per missed tell', async () => {
   const roomId = create('IN');
-  const bad = playBadly(dayIn(roomId));
-  const good = dayIn(roomId);
+  const bad = playBadly(await dayIn(roomId));
+  const good = await dayIn(roomId);
   playPerfect(good);
   assert.equal(reportDay(roomId, { dayId: bad.dayId }).status, 200);
   assert.equal(reportDay(roomId, { dayId: good }).status, 200);
@@ -153,7 +159,7 @@ test('the board carries counts and ids only, with one row per trick and per miss
 
 test('the debrief streams the model, caches it, and falls back to the board text on an error', async () => {
   const roomId = create('MY');
-  const bad = playBadly(dayIn(roomId));
+  const bad = playBadly(await dayIn(roomId));
   assert.equal(reportDay(roomId, { dayId: bad.dayId }).status, 200);
   const model = fake(['Well ', 'done.']);
   const reply = debriefFor(roomId, { age: 'adult' }, model.stream, 1000);
@@ -181,10 +187,50 @@ test('a younger facilitator and an empty room never reach the model', async () =
   const model = fake(['never']);
   const empty = debriefFor(roomId, { age: 'adult' }, model.stream);
   assert.equal(empty.status === 200 && (await collect(empty.chunks)).join('').length > 0, true);
-  const bad = playBadly(dayIn(roomId));
+  const bad = playBadly(await dayIn(roomId));
   assert.equal(reportDay(roomId, { dayId: bad.dayId }).status, 200);
   const young = debriefFor(roomId, { age: 'younger' }, model.stream, 5);
   assert.equal(young.status === 200 && (await collect(young.chunks)).join('').includes('never'), false);
   assert.equal(model.calls.length, 0);
   assert.equal(debriefFor('ABCDEF', {}, model.stream).status, 404);
+});
+
+// Page cards in the bracket style of content/README.md: hosts and placeholders only (rule 6).
+const pageDeck = () => {
+  const base = resolveCountry('SG').cards[0];
+  return ['c1', 'c2', 'c3', 'c4', 'c5'].map((id) => ({
+    ...base,
+    id,
+    trickId: 'bank_check' as const,
+    page: { kind: 'sign_in' as const, host: 'harbourline-check.example', title: 'Account check', lines: [{ id: 'p1', text: 'Line', tellIds: ['urgency' as const] }], fields: ['name' as const, 'code' as const] },
+  }));
+};
+
+test('a room deals once from its cache deck with its seed: pages arrive, every phone and age gets the same deal', async () => {
+  const roomId = create('SG');
+  let reads = 0;
+  const deck = pageDeck();
+  const deps: DayDeps = { cards: () => ((reads += 1), deck) };
+  const joins = await Promise.all([roomDay(roomId, {}, deps), roomDay(roomId, {}, deps), roomDay(roomId, { age: 'younger' }, deps)]);
+  const bodies = joins.map((reply) => (reply.status === 200 ? reply.body : assert.fail('join failed')));
+  assert.equal(reads, 1, 'the deck is read once for the room, not once per phone or twice per join');
+  assert.ok(bodies[0].cards.some((card) => card.page), 'the arc: a page card reaches the room');
+  for (const body of bodies.slice(1)) assert.deepEqual(body.cards, bodies[0].cards);
+  const stored = bodies.map((body) => readPersonalState(body.dayId));
+  for (const state of stored) {
+    assert.ok(state);
+    assert.equal(state.personalising, 0, 'no personalisation job on a room day');
+    assert.deepEqual(state.slots.map((slot) => [slot.card.id, slot.isTwin]), stored[0]?.slots.map((slot) => [slot.card.id, slot.isTwin]));
+  }
+  const info = getRoom(roomId);
+  assert.equal(info.status === 200 && info.body.players, 3, 'concurrent joins all count');
+});
+
+test('a later join after the cache changed still gets the room deck', async () => {
+  const roomId = create('SG');
+  const first = await roomDay(roomId, {}, { cards: () => pageDeck() });
+  const later = await roomDay(roomId, {}, { cards: () => resolveCountry('SG').cards });
+  assert.ok(first.status === 200 && later.status === 200);
+  if (first.status !== 200 || later.status !== 200) return;
+  assert.deepEqual(later.body.cards, first.body.cards);
 });

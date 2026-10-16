@@ -3,7 +3,9 @@
 // A leak on a fake page plans one Director rewrite of the next unopened scam, which may then use the
 // pretend profile's tokens for what was given away (docs/game-design.md section 3).
 import { Router } from 'express';
-import { leakedOf } from '../../shared/page.ts';
+import { leakedOf, pageTells } from '../../shared/page.ts';
+import { TELLS } from '../../shared/taxonomy.ts';
+import type { SlotResult } from '../../shared/types.ts';
 import { TOKEN_FIELD, isFieldId } from '../../shared/profile.ts';
 import type { FieldId } from '../../shared/profile.ts';
 import { PACKS } from '../country.ts';
@@ -44,8 +46,6 @@ const rewriteTarget = (state: PersonalState, from: string): StoredSlot | undefin
   return order.find((slot) => !slot.isTwin && !slot.action && !state.opened.includes(slot.slotId));
 };
 
-// ponytail: a deal-time personalisation job and this rewrite can land on the same slot; the last to
-// finish wins. A per-slot pending flag is the upgrade if it shows up in play.
 // One Director job, only on an adult full day (the quick day and under 18 never reach a model),
 // only when a new leak has a token the rewrite can use.
 function planRewrite(state: PersonalState, from: string, fresh: FieldId[], deps: PageDeps): Job | null {
@@ -54,8 +54,16 @@ function planRewrite(state: PersonalState, from: string, fresh: FieldId[], deps:
   const pack = PACKS.get(state.country);
   const note = target && (deps.note ?? loadNote)(target.card.trickId);
   if (!target || !pack || !note) return null;
-  return { dayId: state.dayId, slotId: target.slotId, note, pack, people: state.people, leaked: state.leaked };
+  const stamp = (state.stamps[target.slotId] ?? 0) + 1;
+  return { dayId: state.dayId, slotId: target.slotId, note, pack, people: state.people, leaked: state.leaked, stamp };
 }
+
+// The planned rewrite's stamp goes on its slot, so any job already running there lands as trace only.
+const stamped = (state: PersonalState, job: Job): PersonalState => ({
+  ...state,
+  personalising: state.personalising + 1,
+  stamps: { ...state.stamps, [job.slotId]: job.stamp ?? 0 },
+});
 
 export function recordPage(dayId: string, body: unknown, deps: PageDeps = {}): PageSent {
   const state = readPersonalState(dayId);
@@ -71,8 +79,20 @@ export function recordPage(dayId: string, body: unknown, deps: PageDeps = {}): P
   const fresh = slot.isTwin ? [] : leakedOf(given).filter((id) => !state.leaked.includes(id));
   const next: PersonalState = { ...state, ...withSlot(state, { ...slot, given } as PagedSlot), leaked: [...state.leaked, ...fresh] };
   const job = planRewrite(next, slot.slotId, fresh, deps);
-  saveDay(job ? { ...next, personalising: next.personalising + 1 } : next);
+  saveDay(job ? stamped(next, job) : next);
   return { reply: { status: 200, body: { ok: true } }, settled: job ? runJobs([job], deps.write) : Promise.resolve() };
+}
+
+// lessonFor in deal.ts stamps the message only. A scam's page lines follow its message in the
+// lesson, so a tell caught on the page gets its stamp, and the page's tells join the list, since
+// a page tell is never in plantedTells (server/guard/card.ts).
+export function withPageLesson(slot: StoredSlot, lesson: SlotResult['lesson']): SlotResult['lesson'] {
+  const page = slot.card.page;
+  if (!page) return lesson;
+  const known = lesson.tells.map((tell) => tell.id);
+  const added = pageTells(page).filter((id) => !known.includes(id)).map((id) => ({ id, ...TELLS[id] }));
+  const lines = page.lines.map(({ id, text, tellIds }) => ({ id, text, tellIds: [...tellIds] }));
+  return { ...lesson, tells: [...lesson.tells, ...added], scam: { ...lesson.scam, parts: [...lesson.scam.parts, ...lines] } };
 }
 
 export const pageRouter = Router();

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PROFILE } from '../../shared/profile.ts';
+import { TELLS } from '../../shared/taxonomy.ts';
 import type { Card, PatternNote, TraceEvent } from '../../shared/types.ts';
 import type { WriteCardInput } from '../agents/director.ts';
 import { resolveCountry } from '../country.ts';
@@ -136,4 +137,47 @@ test('open_link with nothing sent is correct; the card and the code take the sta
   assert.ok(left.status === 200 && !left.body.falseAlarm && left.body.followUp, 'leaving a real page brings the follow-up');
   assert.ok(left.status === 200 && !('pageLeft' in left.body));
   assert.equal(finishDay(dayId).status, 200);
+});
+
+test('a leak rewrite always wins its slot: a slow deal-time job that lands after it changes nothing', async () => {
+  let release = (): void => undefined;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  const leakWrite = writer().write;
+  const write = async (input: WriteCardInput) => {
+    if (input.leaked) return leakWrite(input);
+    await gate; // the deal-time personalisation, slower than the rewrite
+    return { card: pageCard('personal'), trace: [{ agent: 'director' as const, ms: 1, outcome: 'ok' as const }] };
+  };
+  const begun = await beginDay({ country: 'SG' }, { cards: () => CARDS, note: () => NOTE, write });
+  const state = readDay(begun.payload.dayId);
+  assert.ok(state);
+  const [first, target] = scams(state.slots);
+  assert.ok(first && target && target.slotId !== 'slot-1', 'the target has a deal-time job of its own');
+  const sent = recordPage(state.dayId, { slotId: first.slotId, given: ['name'] }, { note: () => NOTE, write });
+  await sent.settled;
+  const named = () => readDay(state.dayId)?.slots.find((slot) => slot.slotId === target.slotId);
+  assert.ok(named()?.public.ask[0].text.includes(PROFILE.name), 'the rewrite landed');
+  release();
+  await begun.settled;
+  assert.ok(named()?.public.ask[0].text.includes(PROFILE.name), 'the leaked name survives the late job');
+  assert.equal(named()?.card.id, 'rewrite');
+  const others = readDay(state.dayId)?.slots.filter((slot) => slot.slotId !== target.slotId && slot.slotId !== 'slot-1');
+  assert.ok(others?.every((slot) => slot.card.id === 'personal'), 'every other slot still takes its personalised card');
+  const listed = listCards(state.dayId);
+  assert.ok(listed.status === 200 && listed.body.ready, 'the late job still counts down');
+});
+
+test('a tell on a page line is stamped in the lesson and named in its tells', async () => {
+  const { dayId, state } = await day();
+  const [slot] = scams(state.slots);
+  recordAct(dayId, { slotId: slot.slotId, action: 'open_link' });
+  const scored = scoreTap(dayId, { slotId: slot.slotId, tappedPartIds: ['p1'] });
+  assert.ok(scored.status === 200 && scored.body.caught.includes('urgency'));
+  if (scored.status !== 200) return;
+  const { lesson } = scored.body;
+  const line = lesson.scam.parts.find((part) => part.id === 'p1');
+  assert.deepEqual(line?.tellIds, ['urgency'], 'the page line follows the message, stamped');
+  assert.ok(lesson.scam.parts.findIndex((part) => part.id === 'a1') < lesson.scam.parts.findIndex((part) => part.id === 'p1'));
+  assert.deepEqual(lesson.tells.map((tell) => tell.id), ['authority', 'urgency']);
+  assert.equal(lesson.tells[1].label, TELLS.urgency.label);
 });

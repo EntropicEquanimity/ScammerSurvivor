@@ -25,6 +25,7 @@ export interface PersonalState extends DayState {
   personalising: number; // slots still being written in the background
   opened: string[]; // slots the player has seen; a late card never replaces one
   leaked: FieldId[]; // field ids sent on fake pages today, never values (routes/page.ts)
+  stamps: Record<string, number>; // per slot: bumped when a leak rewrite is planned; only a job holding the current stamp lands
 }
 
 export const readPersonalState = (dayId: string): PersonalState | undefined => {
@@ -38,6 +39,7 @@ export const readPersonalState = (dayId: string): PersonalState | undefined => {
     personalising: extra.personalising ?? 0,
     opened: extra.opened ?? [],
     leaked: extra.leaked ?? [],
+    stamps: extra.stamps ?? {},
   };
 };
 
@@ -59,6 +61,7 @@ export interface Job {
   pack: CountryPack;
   people: People;
   leaked?: FieldId[]; // a rewrite after a leak (routes/page.ts)
+  stamp?: number; // the slot's stamp when planned; a deal-time job holds 0
 }
 
 // Slot 1 stays as dealt so the day opens at once; the rest get a job each when
@@ -79,11 +82,15 @@ const names = (people: People): string[] => Object.values(people).filter((name):
 // Re-reads the day at the moment the card lands: the player may have opened or
 // acted on that slot meanwhile (POST open and POST act), and such a slot is never
 // swapped, so the player is only ever scored and taught on the message they saw.
-function settle(dayId: string, slotId: string, card: Card | null, trace: TraceEvent[]): void {
+// A job planned before a leak rewrite on its slot holds an old stamp and lands as trace only,
+// so a slow deal-time job never overwrites the rewrite that carries the leaked name.
+function settle(job: Job, card: Card | null, trace: TraceEvent[]): void {
+  const { dayId, slotId } = job;
   const fresh = readPersonalState(dayId);
   if (!fresh) return;
   const slot = fresh.slots.find((candidate) => candidate.slotId === slotId);
-  const seen = fresh.opened.includes(slotId) || Boolean(slot?.action);
+  const stale = (fresh.stamps[slotId] ?? 0) !== (job.stamp ?? 0);
+  const seen = stale || fresh.opened.includes(slotId) || Boolean(slot?.action);
   const next = { ...fresh, trace: [...fresh.trace, ...trace], personalising: Math.max(0, fresh.personalising - 1) };
   saveDay(card && slot && !seen ? withSlot(next, redealSlot(slot, card)) : next);
 }
@@ -94,9 +101,9 @@ async function runJob(job: Job, write: Writer): Promise<void> {
     const { note, pack, people, leaked } = job;
     const allowedNames = [...new Set([...names(people), ...SKIP_NAMES])];
     const { card, trace } = await write({ note, pack, people, level: LEVEL, allowedNames, ...(leaked ? { leaked } : {}) });
-    settle(job.dayId, job.slotId, card && fitLayout(card, pack.layouts), trace);
+    settle(job, card && fitLayout(card, pack.layouts), trace);
   } catch {
-    settle(job.dayId, job.slotId, null, [{ agent: 'director', ms: Date.now() - started, outcome: 'fallback' }]);
+    settle(job, null, [{ agent: 'director', ms: Date.now() - started, outcome: 'fallback' }]);
   }
 }
 
