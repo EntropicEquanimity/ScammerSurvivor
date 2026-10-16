@@ -2,7 +2,6 @@ import type { CSSProperties } from 'react';
 import type { PublicCard, SlotResult, TraceEvent } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
-import { ACTION_LABELS } from '../card/actionLabels.ts';
 import { AppHeader } from '../card/AppHeader.tsx';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { MessageView, PartView } from '../layouts/MessageView.tsx';
@@ -27,7 +26,7 @@ interface LessonProps extends StepProps {
 // How long after the note the wronged person's message lands.
 const FOLLOW_UP_MS = 3000;
 
-const SAFEST = `Safest move next time: ${ACTION_LABELS.block_report}, or ${ACTION_LABELS.verify_known_number.toLowerCase()}.`;
+const SAFEST = 'Safest move next time: block and report, or call the number you already know to check.';
 
 // Never shames. The headline names what happened, not what the player did wrong, in one short
 // line: the large title is 34px, so about 18 characters fit at 390 wide.

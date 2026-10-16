@@ -329,6 +329,7 @@
 
 .action-std,
 .cta {
+  white-space: nowrap; /* one line, always; a label that needs two is too long (docs/agent-lessons.md row 11) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
