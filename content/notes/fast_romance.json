@@ -4,8 +4,8 @@
   "category": "E",
   "catalogueEntry": 34,
   "app": "sticker-chat",
-  "setup": "[a match from a dating app, or a direct message on social media, moves to [chat app name] and turns friendly, then affectionate, over a few weeks of small messages] [the person always has a reason not to meet or video call]",
-  "ask": "[the person, who still will not meet, offers to show the player the trading app that made them money, or asks for a crypto transfer for a shared plan, a little more than last time]",
+  "setup": "[a match from a dating app, or a direct message on social media, moves to [chat app name] and turns warm and affectionate over weeks of small daily messages: good mornings, photos, plans to meet one day] [the person always has a reason not to meet or video call: a broken camera, bad signal, work overseas]",
+  "ask": "[out of love, not pressure, the person asks for money just this once: a gift they sent is held at customs and needs a fee, or an accident means a hospital deposit, or their account is frozen and they need help with a ticket to finally visit; or they offer to show the trading app that made them money] [each later ask is a little more than the last]",
   "tells": [
     "trust_building",
     "synthetic_identity",
@@ -22,7 +22,7 @@
     "keep_secret"
   ],
   "usualEnding": "The transfers repeat, each with a new reason, and many of these chats turn into the investment pattern. The person in the photos never existed.",
-  "realTwin": "A friend the player already knows messages after a date to say they got home safe and suggests a place for next time.",
+  "realTwin": "A partner the player already knows in person video calls in the evening, and never asks for money.",
   "confidence": "medium",
   "source": {
     "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf",
