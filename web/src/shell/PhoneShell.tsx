@@ -3,6 +3,7 @@ import type { ReactNode, RefObject } from 'react';
 import { NON_AFFILIATION, PRACTICE_LABEL } from '../../../shared/strings.ts';
 import { Icon } from './Icon.tsx';
 import { haptic } from './feel.ts';
+import { closeOverlay, useOverlay } from './overlay.ts';
 import './shell.css';
 import './sheets.css';
 import './frame.css';
@@ -90,6 +91,18 @@ const DeviceKeys = () => (
   <span className="device-keys" aria-hidden="true"><i /><i /><i /><i /><i /></span>
 );
 
+// The one open overlay (overlay.ts), over the screen and under the call layer and the status bar.
+// Leaving the screen (the home indicator, the back button) closes it with the screen it covered.
+function OverlayHost() {
+  const overlay = useOverlay();
+  useEffect(() => {
+    const close = () => closeOverlay();
+    window.addEventListener('hashchange', close);
+    return () => window.removeEventListener('hashchange', close);
+  }, []);
+  return overlay ? <div className="overlay-host">{overlay.node}</div> : null;
+}
+
 // The only parent of every route. The practice label is read to assistive technology on every
 // screen and shown as a tag on every message surface; the non-affiliation sentence is the notice.
 export function PhoneShell({ children }: { children: ReactNode }) {
@@ -108,6 +121,7 @@ export function PhoneShell({ children }: { children: ReactNode }) {
           <p id={SIM_LABEL_ID} className="visually-hidden">{PRACTICE_LABEL}</p>
           <StatusBar />
           <main className="screen scroll">{children}</main>
+          <OverlayHost />
           {noticeDue && <Notice onDismiss={dismiss} />}
           <a className="home-indicator pressable" href="#/" aria-label="Return to home" onClick={() => haptic()}><span /></a>
         </div>

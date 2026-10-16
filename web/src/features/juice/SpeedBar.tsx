@@ -11,12 +11,18 @@ const still = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)
 // app opens, stays full through the full-bonus seconds, then drains to empty. Mount it with the
 // card's slot as its key so each card starts its own clock.
 export function SpeedBar() {
-  const [left, setLeft] = useState(1);
+  const [left, setLeft] = useState<number | null>(1);
   useEffect(() => {
     startClock();
-    const t = window.setInterval(() => setLeft(speedLeft(clockMs())), still() ? STILL_TICK_MS : TICK_MS);
+    // An untimed card (a practice page's link) has no bonus to drain, so the bar goes away.
+    const tick = () => {
+      const ms = clockMs();
+      setLeft(ms === undefined ? null : speedLeft(ms));
+    };
+    const t = window.setInterval(tick, still() ? STILL_TICK_MS : TICK_MS);
     return () => window.clearInterval(t);
   }, []);
+  if (left === null) return null;
   return (
     <div className="speed-bar" aria-hidden="true">
       <span className="speed-bar-fill" style={{ transform: `scaleX(${left})` }} />

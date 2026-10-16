@@ -57,9 +57,16 @@ export const fetchCards = async (dayId: string): Promise<DayCards> =>
 export const fetchTrace = async (dayId: string): Promise<TraceEvent[]> =>
   readJson(await fetch(`/api/day/${encodeURIComponent(dayId)}/trace`));
 
+// The day whose card was last opened: every card on screen came through postOpen, so a feature
+// over the card (the in-app browser) can post to that day without the day state machine.
+let openedDay: string | null = null;
+export const openDayId = (): string | null => openedDay;
+
 // Marks the slot as seen so a late personalised card never replaces it; returns the card the server holds.
-export const postOpen = (dayId: string, body: { slotId: string }): Promise<PublicCard> =>
-  postJson(`/api/day/${encodeURIComponent(dayId)}/open`, body);
+export const postOpen = (dayId: string, body: { slotId: string }): Promise<PublicCard> => {
+  openedDay = dayId;
+  return postJson(`/api/day/${encodeURIComponent(dayId)}/open`, body);
+};
 
 export const postAct = (dayId: string, body: ActBody): Promise<{ ok: true }> =>
   postJson(`/api/day/${encodeURIComponent(dayId)}/act`, body);

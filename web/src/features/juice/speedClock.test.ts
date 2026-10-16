@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { clockMs, pauseClock, resumeClock, startClock } from './speedClock.ts';
+import { clockMs, pauseClock, resumeClock, startClock, untimeClock } from './speedClock.ts';
 
 test('a paused stretch is not counted', () => {
   startClock(1_000);
@@ -17,4 +17,12 @@ test('a second pause or a resume without a pause changes nothing', () => {
   pauseClock(2_000);
   resumeClock(4_000);
   assert.equal(clockMs(5_000), 2_000);
+});
+
+test('an untimed card has no decision time until the next card starts its clock', () => {
+  startClock(0);
+  untimeClock();
+  assert.equal(clockMs(5_000), undefined);
+  startClock(6_000);
+  assert.equal(clockMs(7_000), 1_000);
 });

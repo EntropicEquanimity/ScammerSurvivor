@@ -3,6 +3,7 @@ import type { PublicCard } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { MessageView } from '../layouts/MessageView.tsx';
+import { PageTells } from '../browser/PageView.tsx';
 import './tells.css';
 
 interface Props {
@@ -49,6 +50,8 @@ export function TellPicker({ card, busy, failed, onDone }: Props) {
           hideSender
           tap={{ pressed, onToggle: toggle }}
         />
+        {/* The page the link opened: its lines can carry tells too. */}
+        {card.page && card.page.lines.length > 0 && <PageTells page={card.page} tap={{ pressed, onToggle: toggle }} />}
         {failed && (
           <p className="plain-note on-wall" role="alert">
             Your taps did not go through. Tap Done again.

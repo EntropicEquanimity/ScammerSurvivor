@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SlotResult, TellId } from '../../../../shared/types.ts';
+import type { FieldId } from '../../../../shared/profile.ts';
+import { POINTS } from '../../../../shared/points.ts';
 import { Icon } from '../../shell/Icon.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
@@ -57,6 +59,37 @@ export function TwinMessage({ lesson }: { lesson: Lesson }) {
           <PartView part={part} />
         </li>
       ))}
+    </InsetGroup>
+  );
+}
+
+// What each detail sent on a fake page lets someone do. Fixed copy, never a model's.
+const GAVE_AWAY: Record<FieldId, { label: string; use: string }> = {
+  tracking: { label: 'Tracking number', use: 'Only finds a parcel.' },
+  name: { label: 'Your name', use: 'The next fake message can greet you by name and sound like it knows you.' },
+  birthday: { label: 'Your birthday', use: 'With your name, it answers security questions and helps open accounts as you.' },
+  address: { label: 'Your address', use: 'A fake courier or bank message that quotes it looks real.' },
+  id_photo: { label: 'A photo of your ID', use: 'Someone can open accounts or take loans in your name.' },
+  password: { label: 'Your password', use: 'Anyone with it signs in as you, and tries it on your other accounts.' },
+  code: { label: 'A one-time code', use: 'It approves the sign-in or payment the scammer started.' },
+  card: { label: 'Your card', use: 'With a code, it pays for things in your name.' },
+};
+
+// The page's send button sent these to a fake page: each detail, who could use it and how, and the
+// points it cost (shared/points.ts). Nothing shows when nothing was given away.
+export function GaveAwayGroup({ result }: { result: SlotResult }) {
+  const leaked = result.leaked ?? [];
+  if (leaked.length === 0) return null;
+  const cost = (result.pageCost ?? 0) * -POINTS.fieldSent;
+  return (
+    <InsetGroup header="What you gave away">
+      {leaked.map((id) => (
+        <li key={id} className="inset-row inset-body lesson-part">
+          <strong>{GAVE_AWAY[id].label}</strong>
+          <span>{GAVE_AWAY[id].use}</span>
+        </li>
+      ))}
+      {cost > 0 && <li className="inset-row inset-body lesson-line">It cost you {cost} points.</li>}
     </InsetGroup>
   );
 }

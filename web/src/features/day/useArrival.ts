@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AgeGroup, PublicCard } from '../../../../shared/types.ts';
 import { fetchCards } from '../../api.ts';
+import { onPageSent } from '../browser/api.ts';
 import { haptic } from '../../shell/feel.ts';
 import { arrivalTone, gestured } from './tone.ts';
 
@@ -57,8 +58,16 @@ export function useLater(ms: number, enabled: boolean): boolean {
   return ready && enabled;
 }
 
+// A count that goes up each time a practice page sends: a leak plans a rewrite of a later scam after
+// the poll may have stopped, so the poll starts again (the server reports ready: false until it lands).
+function usePageSends(): number {
+  const [sends, setSends] = useState(0);
+  useEffect(() => onPageSent(() => setSends((count) => count + 1)), []);
+  return sends;
+}
+
 // Polls the cards route until the server says every personalisation settled, handing each batch
-// to `swap`. Only an adult full day is personalised, so the others never ask.
+// to `swap`. Only an adult full day is personalised, so the others never ask. A page send restarts it.
 // ponytail: no poll cap, since every job settles and the open route holds the shown card either
 // way; a day the server forgot keeps polling until the screen unmounts. Stop after N 404s if it matters.
 export function usePersonalised<S>(
@@ -68,6 +77,7 @@ export function usePersonalised<S>(
   swap: (s: S, cards: PublicCard[]) => S,
   setState: Dispatch<SetStateAction<S>>,
 ) {
+  const sends = usePageSends();
   useEffect(() => {
     if (!dayId || age !== 'adult' || quick) return undefined;
     let current = true;
@@ -87,5 +97,5 @@ export function usePersonalised<S>(
       current = false;
       clearTimeout(timer);
     };
-  }, [dayId, age, quick, swap, setState]);
+  }, [dayId, age, quick, swap, setState, sends]);
 }

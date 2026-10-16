@@ -10,7 +10,7 @@ import { appLookFor } from '../day/appNames.ts';
 import { useLater } from '../day/useArrival.ts';
 import { getPeople } from '../setup/storage.ts';
 import { twinLine } from '../../strings.ts';
-import { StampedScam, TwinMessage, useCoach } from './LessonGroups.tsx';
+import { GaveAwayGroup, StampedScam, TwinMessage, useCoach } from './LessonGroups.tsx';
 import './lesson.css';
 
 interface StepProps {
@@ -83,6 +83,7 @@ export function Lesson({ dayId, result, busy, failed, onNext }: LessonProps) {
       <div className="page-body scroll">
         <ScreenTitle className="large-title">{headline(result)}</ScreenTitle>
         <StampedScam lesson={lesson} caught={result.caught} />
+        <GaveAwayGroup result={result} />
         <CoachNote dayId={dayId} result={result} />
         <TwinMessage lesson={lesson} />
         <InsetGroup header="If you had complied">

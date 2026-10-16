@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Action, PublicCard } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
+import { openBrowser } from '../browser/SafariView.tsx';
+import { untimeClock } from '../juice/speedClock.ts';
 import { ACTION_LABELS } from './actionLabels.ts';
 import { FILLED, trayFor } from './tray.ts';
 import './tray.css';
@@ -65,10 +67,16 @@ export function ActionBar({ card, busy, onAct }: Props) {
   const tray = useRef<HTMLDivElement>(null);
   useAskInView(tray, card.slotId);
   const { primary, grid, more } = trayFor(card.offered);
+  // A card whose link opens a practice page has no speed bonus (the bar mounts first, so its
+  // clock has started by now). Its Open link opens the page; leaving it is the card's open_link.
+  useEffect(() => {
+    if (card.page) untimeClock();
+  }, [card.slotId, card.page]);
   const press = (action: Action) => {
     haptic();
     setSheet(false);
-    onAct(action);
+    if (action === 'open_link' && card.page) openBrowser(card, () => onAct('open_link'));
+    else onAct(action);
   };
   const button = (action: Action, className: string) => (
     <button key={action} type="button" className={`${className} pressable`} disabled={busy} onClick={() => press(action)}>
