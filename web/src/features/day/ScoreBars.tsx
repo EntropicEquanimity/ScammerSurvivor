@@ -11,16 +11,17 @@ const ROWS: { id: BreakdownId; label: string; colour: string }[] = [
   { id: 'speed', label: 'Speed bonus', colour: '#ffcc00' },
   { id: 'streak', label: 'Streak bonus', colour: '#af52de' },
   { id: 'questions', label: 'Questions asked', colour: '#30b0c7' },
-  { id: 'money', label: 'Money kept', colour: '#34c759' },
+  { id: 'money', label: 'Details given away', colour: '#34c759' }, // a cost only: shown when it cost something
 ];
 
 const signed = (n: number): string => (n > 0 ? `+${n.toLocaleString('en')}` : n.toLocaleString('en'));
 
 export function ScoreBars({ points }: { points: Breakdown }) {
-  const top = Math.max(1, ...ROWS.map((row) => points[row.id]));
+  const rows = ROWS.filter((row) => row.id !== 'money' || points.money < 0);
+  const top = Math.max(1, ...rows.map((row) => points[row.id]));
   return (
     <InsetGroup header="Points">
-      {ROWS.map((row, i) => {
+      {rows.map((row, i) => {
         const value = points[row.id];
         const style = {
           '--fill': Math.max(0, value) / top,
