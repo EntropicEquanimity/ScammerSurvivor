@@ -160,3 +160,57 @@ OpenAI second opinion: not run. The call returned 429 insufficient_quota, "credi
 HOLD on one trigger by the letter of the brief: the unreadable caller name and covered caption at 320 on the default call path. Fail 2 (no status time over the call and voicemail) is ranked, not a trigger.
 
 Verdict: **HOLD**.
+
+## 2026-10-17, preview revision scammer-survivor-00014-ner (commit d8ebfb6), measured on the live preview URL
+
+Method: seven live walks, headless Chromium, iPhone UA, DPR 3: SG 390x844 and 320x693, each normal and reduced motion; JP 390x844 (second pack); a day with history bubbles (a real /api/day response routed to the UI); under 18. Lock to score reveal through the app's own taps: chips, a typed reply with a real-detail block, Scam or real, the flag alert, tells, aftermath, recovery (card used), lesson with the diff, real-twin note, full-screen ring, ring banner over a card, voicemail banner and screen, call back, code notice, ended, browser fill and send, score reveal, ledger, result card, lab, room, about, privacy.
+
+Pass counts: lock and age alert 7/7, home 6/6, day lock 4/5, card and chat 4/8, typed reply 3/3, Scam or real 3/4, flag alert 2/4, tells 4/6, aftermath 3/4, recovery 6/6, lesson 5/6, real-twin note 4/4, ring full 5/5, ring banner 3/4, voicemail banner and voicemail 3/5, call talking and code notice 4/6, call ended 3/4, browser and send 5/6, score reveal and result card 5/7, under 18 3/3, lab 3/3, room 3/3, about 3/3, privacy 3/3. Total 94 of 115. Every reduced-motion twin resolves (score reveal final at 0.7 s; call wave and ring breathe fade in place; banners appear whole).
+
+Fails, ranked:
+1. Aftermath tail hidden under the floating Continue (320: "Later today, someone will try..." at y 624 under Continue 597-645; 390: "FINAL NOTICE..." at 687 under 748; 4 of 12 aftermaths): `AftermathScene.tsx ThreadTail` scrollIntoView block end, add scroll-margin-bottom of the page-end height on the end marker and re-scroll when Continue mounts.
+2. Score capsule bright above the flag alert's scrim (HUD pixel 237 vs page 140): `juice.css .game-hud` z 40 over `sheets.css .alert-scrim` z 31; add `.phone:has(.alert-scrim) .game-hud { visibility: hidden }`.
+3. Text behind the alert readable through it (Chromium renders no blur at 0.82): `sheets.css .alert`, raise to 0.92. Not verified on Safari.
+4. Scam or real opens at scrollTop 0 on a history thread; the ask's last bubble (bottom 840) under the tray (top 732): `VerdictStep.tsx .app-body` open at the end. The card opens 43 px short of the end.
+5. Code beat caption "the practice code on screen" (second time): bucket beats, re-run `scripts/tts-beats.ts`.
+6. `voicemail.css .vm-btn` 3.97:1 computed; voicemail avatar initial 1.68:1 (`.call-initial`).
+7. `juice.css .speed-bar` 3 px edge-to-edge accent rule under the tells nav.
+8. "ended" eyebrow above the ended title (row 3): `CallViews.tsx` PracticeLine tail="ended".
+9. Thread cut flat under a solid header with a hairline: `card.css .app-header`.
+10. Code row cut flat by Confirm card at 320: `browser.css .web-send`, `.safari-page`.
+11. Chat field 38 px, Send 40 px: `chat.css .chat-field`, `.chat-send`.
+12. Smaller: header text ghosts through the ring banner; outlined lesson stamps with "missed" on a lower baseline; outlined result-card tiles; HUD bare "0"; lock clock 04:27 while the status bar reads 04:26 (`FirstOpen.tsx useNow` and `PhoneShell.tsx` tick on separate intervals); call controls dimmed to 0.45 while the caller speaks; end nav ghost 1.07:1; tray buttons 9 px above the indicator against 33 for capsules (row 14).
+
+Changed since the previous entry (9b18a5e, 116 of 147, HOLD): fixed the caller name at 320 (visible, caption above the grid), status time over the ring, voicemail, call and ended (15.5:1 sampled), the day clock (08:10, 10:40, 13:20, 17:05 forward on every walk), 48 px tray buttons and Quick day, dot-masked numbers everywhere, the voicemail banner placement, recovery lead ("The clock has stopped." at the end), the browser Done right and address centred, the alert no longer covers the lock notification. Still open: code beat caption, HUD without a word, end nav ghost (now 1.07:1). Returned: the score capsule above a scrim, now through the alert. New: Scam or real, the flag alert, aftermath, typed reply, score reveal, history threads, under-18 block.
+
+Three worst web-page tells: the aftermath line covered by its own Continue; the edge-to-edge speed bar under the tells nav; content cut flat under solid headers and sticky buttons (card header hairline, browser Code row).
+
+OpenAI second opinion: not run. One call returned HTTP 429 Too Many Requests (the account's credit state, as in round 8).
+
+HOLD on one trigger: fail 1, text the player must read covered on the default path at 320 (the same class as round 8's covered caption). No two clocks (the call's 00:02 is the iOS duration counter), no two modals, no dead end, every reduced-motion twin present.
+
+Verdict: **HOLD**.
+
+## 2026-10-17, round 10, commit 83c2ddc, measured on a local build (d8ebfb6 plus the four 83c2ddc files, byte-identical), localhost:8097
+
+Method: a targeted re-rule of round 9's trigger and the two fixes that came with it. 14 headless days on the SG pack, iPhone UA, DPR 3: 320x693 normal x5 (one tap-to-skip, one with history and a More sheet as a fixture), 320 reduced x2, 390x844 normal x2, 390 reduced x3 (one fixture), 430x932 normal x1. Each aftermath sampled at 0 to 2000 ms after Continue appeared.
+
+Pass counts, measured this round: aftermath tail above `.page-end` 37/37 (smallest gap 21.3 px); banner or call aftermaths with the last bubble above Continue 17/17 (at least 30 px); HUD hidden under the alert 14/14 and under the action sheet 2/2 (fixture only); Scam or real opens at the bottom 46/46, history threads included; no regression on aftermath, verdict, flag alert and tells. Projected total 97 of 115 (round 9's 94 with fails 1, 2 and the verdict half of 4 cleared). Other screens not re-measured.
+
+Fails, ranked (known, non-blocking):
+1. Content readable through the alert (`sheets.css .alert`, raise to 0.92) and through the More sheet (`.app .action-group`: opaque `--surface`).
+2. Card opens 43 px short of the end: `ActionBar.tsx useAskInView`.
+3. Code beat caption "the practice code on screen": re-run `scripts/tts-beats.ts`.
+4. `voicemail.css .vm-btn` 3.97:1; voicemail initial 1.68:1 (`.call-initial`).
+5. `juice.css .speed-bar` full-width 3 px rule under the tells nav.
+6. "ended" eyebrow above the ended title: `CallViews.tsx`.
+7. Thread cut flat under a solid header with a hairline: `card.css .app-header`.
+8. Code row cut flat by the Confirm card at 320: `browser.css .web-send`, `.safari-page`.
+9. Chat field 38 px, Send 40 px: `chat.css .chat-field`, `.chat-send`.
+10. Smaller: header ghosts through the ring banner; outlined lesson stamps; outlined result-card tiles; bare "0" HUD; lock clock and status bar tick separately; call controls dim to 0.45; end nav ghost 1.07:1; tray 9 px above the indicator. New: the OTP clue's magnifier overlaps the sixth digit tile by about 5 px.
+
+Changed since round 9 (d8ebfb6, 94 of 115, HOLD): aftermath tail fixed (320: 624 under 597 now 575 against 597; 390: 687 under 748 now 726 against 748); score capsule hidden under the alert; Scam or real opens at the latest message on history threads.
+
+OpenAI second opinion: not run, HTTP 429.
+
+Verdict: **SHIP**.
