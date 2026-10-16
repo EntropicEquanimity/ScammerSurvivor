@@ -64,6 +64,10 @@ const CALLER_BY_TRICK: Partial<Record<TrickId, CallerIdentity>> = {
   loan_threat: { displayName: 'Cedar Trading Circle', role: 'the collections desk' },
   fast_romance: PARCEL,
   video_threat: CIVIC,
+  // The names match fill.ts institutionOf, so the card and the call agree.
+  sim_swap: { displayName: 'Westbay Mobile', role: 'the number transfer desk' },
+  preorder_deposit: { displayName: 'Meridian Market', role: 'seller support' },
+  slow_add: { displayName: 'Cedar Trading Circle', role: 'an account manager' },
 };
 
 export const callerFor = (trickId: TrickId): CallerIdentity => ({ ...(CALLER_BY_TRICK[trickId] ?? CALLER_FOR[trickCategory(trickId)]) });

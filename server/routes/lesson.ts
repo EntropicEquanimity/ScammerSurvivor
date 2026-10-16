@@ -110,7 +110,7 @@ async function* coached(dayId: string, result: SlotResult, source: AsyncIterable
 
 const coachSource = (slot: StoredSlot, result: SlotResult, hotline: CountryPack['hotline'], stream: StreamText): AsyncIterable<string> => {
   const { caught, missed, actionCorrect, falseAlarm, lesson } = result;
-  return primed(lessonStream({ scam: lesson.scam, real: lesson.real, caught, missed, action: slot.action ?? 'ignore', actionCorrect, falseAlarm, hotline, stream }));
+  return primed(lessonStream({ scam: lesson.scam, real: lesson.real, caught, missed, action: slot.action ?? 'ignore', actionCorrect, falseAlarm, hotline, trickId: lesson.trickId, stream }));
 };
 
 export function lessonFor(dayId: string, body: unknown, stream?: StreamText): LessonReply {

@@ -72,7 +72,7 @@ export const isCategory = (id: unknown): id is Category =>
 
 type TrickRow = Pick<Trick, 'id' | 'category' | 'name' | 'commonRank' | 'majorIn'>;
 
-// The 16 common patterns (spec section 3), in rank order. Category per trick is a
+// The 16 common patterns (spec section 3), in rank order, then five unranked ones. Category per trick is a
 // draft for the Content lead; catalogue entry numbers and source links join when
 // the catalogue is matched.
 export const TRICKS: readonly TrickRow[] = [
@@ -92,6 +92,13 @@ export const TRICKS: readonly TrickRow[] = [
   { id: 'loan_threat', category: 'B', name: 'Loan fee or debt threat', commonRank: 14, majorIn: ['ID', 'PH', 'IN', 'SG'] },
   { id: 'overseas_job', category: 'A', name: 'Overseas job that takes the passport', commonRank: 15, majorIn: ['PH', 'ID', 'IN', 'NP', 'BD', 'MM'] },
   { id: 'refund_payment', category: 'D', name: 'Refund that is actually a payment', commonRank: 16, majorIn: ['IN', 'SG', 'MY'] },
+  // The five the team added on Oct 16, unranked. majorIn names only packs with a primary source
+  // (docs/new-scams-for-content-lead.md); wrong_number has none yet.
+  { id: 'wrong_number', category: 'B', name: 'Wrong number that turns into a pitch', majorIn: [] },
+  { id: 'toll_fine', category: 'F', name: 'Unpaid toll or parking fine', majorIn: ['HK'] },
+  { id: 'preorder_deposit', category: 'D', name: 'Pre-order deposit for a sold-out item', majorIn: ['SG', 'HK'] },
+  { id: 'sim_swap', category: 'C', name: 'Number moving to a new SIM', majorIn: ['AU'] },
+  { id: 'slow_add', category: 'E', name: 'New contact who chats first, asks later', majorIn: ['SG', 'AU', 'JP'] },
 ];
 
 export const TRICK_IDS: TrickId[] = TRICKS.map((trick) => trick.id);
@@ -127,6 +134,11 @@ export const TRICK_TITLES: Record<TrickId, string> = {
   loan_threat: 'a fake loan fee',
   overseas_job: 'a fake overseas job',
   refund_payment: 'a fake refund',
+  wrong_number: 'a friendly wrong number',
+  toll_fine: 'a fake toll fine',
+  preorder_deposit: 'a fake pre-order',
+  sim_swap: 'a SIM swap',
+  slow_add: 'a slow-burn new friend',
 };
 
 // The fixed "why it was real" lines, served when the Coach's lines are missing or fail the check.
@@ -136,3 +148,15 @@ export const REAL_WHY: readonly string[] = [
   'It came from the number you already have for them, not a new one.',
   'Nothing in it rushes you, asks you to keep it quiet or asks for a code.',
 ];
+
+// Where the pair above is wrong for a trick: a real wrong number or a new acquaintance is a number
+// you have never had, so "the number you already have" cannot be what shows it is real.
+const REAL_WHY_BY_TRICK: Partial<Record<TrickId, readonly string[]>> = {
+  wrong_number: ['They said sorry for the wrong number and left it there.', 'Nothing in it turns to money, an app or a tip.'],
+  slow_add: ['The chat stays ordinary: no favour, no tip, no money.', 'You can meet them where you met, with other people around.'],
+  toll_fine: ['It points you to the official app or site you already use, with no link to tap.', 'Nothing in it rushes you or asks for card details.'],
+  preorder_deposit: ['The seller meets in person or uses the marketplace checkout.', 'Nothing is paid to a personal account before you see the item.'],
+  sim_swap: ['It asks for no code and no reply.', 'It says to visit a store or open the official app if it was not you.'],
+};
+
+export const realWhyFor = (trickId?: TrickId): readonly string[] => (trickId && REAL_WHY_BY_TRICK[trickId]) || REAL_WHY;

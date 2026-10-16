@@ -10,7 +10,7 @@ export type { FieldId } from './profile.ts';
 // The UX fixer (Oct 16) added a kind per linked trick that had none: a case portal sign-in (digital
 // arrest), a trading sign-up or deposit (investment), a video chat or verify page (romance), a task
 // platform deposit (paid task); their real twins get info_page, which only shows what the message said.
-export const SCAM_PAGE_KINDS = ['sign_in', 'redelivery', 'id_check', 'card_confirm', 'attachment_gate', 'case_portal', 'trading_signup', 'video_verify', 'task_deposit'] as const;
+export const SCAM_PAGE_KINDS = ['sign_in', 'redelivery', 'id_check', 'card_confirm', 'attachment_gate', 'case_portal', 'trading_signup', 'video_verify', 'task_deposit', 'fine_payment', 'deposit_checkout'] as const;
 export const TWIN_PAGE_KINDS = ['tracking', 'bank_app_note', 'info_page'] as const;
 export const PAGE_KINDS = [...SCAM_PAGE_KINDS, ...TWIN_PAGE_KINDS] as const;
 export type PageKind = (typeof PAGE_KINDS)[number];
@@ -30,6 +30,8 @@ export const NEEDS: Record<PageKind, readonly FieldId[]> = {
   trading_signup: [],
   video_verify: [],
   task_deposit: [],
+  fine_payment: [],
+  deposit_checkout: [],
   tracking: ['tracking'],
   bank_app_note: [],
   info_page: [],
@@ -69,6 +71,10 @@ const KINDS_BY_TRICK: Partial<Record<TrickId, PageKinds>> = {
   investment_group: { scam: ['trading_signup'], twin: ['info_page'] },
   fast_romance: { scam: ['video_verify'], twin: ['info_page'] },
   paid_task: { scam: ['task_deposit'], twin: ['info_page'] },
+  // Oct 16: a toll fine opens a pay-the-fine page and its real notice says to open the official app;
+  // a pre-order opens a deposit checkout and the real seller's page only shows the meetup or listing.
+  toll_fine: { scam: ['fine_payment'], twin: ['bank_app_note'] },
+  preorder_deposit: { scam: ['deposit_checkout'], twin: ['info_page'] },
 };
 
 export const pageKindsFor = (trick: TrickId): PageKinds | undefined => KINDS_BY_TRICK[trick];
@@ -117,7 +123,7 @@ export const isSlip = (given: readonly FieldId[]): boolean =>
   given.some((id) => FIELD_WEIGHT[id] >= 2) || given.filter((id) => FIELD_WEIGHT[id] === 1).length >= 2;
 
 // The card plus a code, or the card alone on a page that charges it (a card confirm, a trading or
-// task deposit), lets money move at once.
-const CHARGES_CARD: readonly PageKind[] = ['card_confirm', 'trading_signup', 'task_deposit'];
+// task deposit, a fine, a pre-order deposit), lets money move at once.
+const CHARGES_CARD: readonly PageKind[] = ['card_confirm', 'trading_signup', 'task_deposit', 'fine_payment', 'deposit_checkout'];
 export const movesMoney = (kind: PageKind, given: readonly FieldId[]): boolean =>
   given.includes('card') && (given.includes('code') || CHARGES_CARD.includes(kind));

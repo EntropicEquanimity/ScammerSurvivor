@@ -52,7 +52,7 @@ export const ACTIONS = [
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
-// The 16 common patterns from the spec, section 3. The long tail widens this later.
+// The 16 common patterns from the spec, section 3, then the five the team added on Oct 16.
 export type TrickId =
   | 'family_trouble'
   | 'paid_task'
@@ -69,7 +69,12 @@ export type TrickId =
   | 'prize_fee'
   | 'loan_threat'
   | 'overseas_job'
-  | 'refund_payment';
+  | 'refund_payment'
+  | 'wrong_number'
+  | 'toll_fine'
+  | 'preorder_deposit'
+  | 'sim_swap'
+  | 'slow_add';
 
 export interface CountryPack {
   code: string; // ISO 3166 alpha-2

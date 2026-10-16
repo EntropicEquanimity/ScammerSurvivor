@@ -8,9 +8,8 @@ import type { CardPage, PageKind } from '../../shared/page.ts';
 import { FIELD_IDS, TOKEN_FIELD, isFieldId } from '../../shared/profile.ts';
 import type { FieldId } from '../../shared/profile.ts';
 import { TELL_IDS } from '../../shared/taxonomy.ts';
-import { trickCategory } from '../../shared/taxonomy.ts';
 import type { TellId, TrickId } from '../../shared/types.ts';
-import { INVENTED_INSTITUTION } from '../deal.ts';
+import { institutionOf } from '../fill.ts';
 import type { Draft } from './director.ts';
 
 export const PAGE_SYSTEM = `
@@ -61,7 +60,7 @@ const SITE_BY_TRICK: Partial<Record<TrickId, string>> = { fast_romance: 'Lantern
 
 // The invented institution's own site: "Northgate Parcel" gives northgate-parcel.example.
 export const realHostFor = (trick: TrickId): string =>
-  `${(SITE_BY_TRICK[trick] ?? INVENTED_INSTITUTION[trickCategory(trick)]).toLowerCase().replace(/\s+/g, '-')}.example`;
+  `${(SITE_BY_TRICK[trick] ?? institutionOf(trick)).toLowerCase().replace(/\s+/g, '-')}.example`;
 
 // What each kind is, for the Director: the scam kinds ask for more than the task needs.
 const KIND_TEXT: Record<PageKind, string> = {
@@ -74,6 +73,8 @@ const KIND_TEXT: Record<PageKind, string> = {
   trading_signup: 'a trading app sign-up or first deposit page',
   video_verify: 'a "video chat" or "verify you are real" page before the call opens',
   task_deposit: 'a task platform page that asks a deposit to unlock the next task',
+  fine_payment: 'a page to pay a small unpaid toll or parking fine before a late fee',
+  deposit_checkout: 'a checkout page that takes a deposit to hold a pre-ordered item',
   tracking: 'a courier tracking page',
   bank_app_note: 'a page that only says to open the official app',
   info_page: 'an honest page that only shows what the message said (an office to visit, a talk, a meetup, an interview time) and asks nothing',

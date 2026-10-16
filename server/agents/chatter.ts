@@ -80,7 +80,7 @@ const NOT_NAMES = new Set([
   'officer', 'manager', 'support', 'customer', 'parcel', 'courier', 'bank', 'account', 'desk', 'office', 'friend', 'family',
   ...Object.values(INSTITUTIONS).flatMap((label) => label.toLowerCase().split(/\s+/)),
   ...Object.values(BRANDS).map((brand) => brand.name.toLowerCase()),
-  'harbourline', 'northgate', 'kestrel', 'cedar', 'meridian', 'civic', 'westbay',
+  'harbourline', 'northgate', 'kestrel', 'cedar', 'meridian', 'civic', 'westbay', 'mobile', 'market',
 ]);
 
 const EM_DASH = String.fromCharCode(0x2014);
@@ -127,13 +127,20 @@ const TRICK_KIND: Record<string, SenderKind> = {
   investment_group: 'mentor', digital_arrest: 'police', code_or_account: 'wallet', bank_check: 'bank',
   parcel_fee: 'courier', refund_payment: 'courier', listing_leaver: 'buyer', payment_change: 'boss',
   prize_fee: 'prize_office', app_in_chat: 'bank',
+  // Oct 16: the nearest existing voice for each new trick (ponytail: no telco or toll kind; add one
+  // to chatterLines when these need their own fixed lines).
+  wrong_number: 'friend', slow_add: 'friend', toll_fine: 'police', sim_swap: 'wallet', preorder_deposit: 'buyer',
 };
+// A real twin that is a stranger, not a friend: a genuine wrong number, a new acquaintance, a real
+// seller. They answer in the plain voice, never "ring my usual number".
+const TWIN_KIND: Record<string, SenderKind> = { wrong_number: 'unknown', slow_add: 'unknown', preorder_deposit: 'unknown' };
 const OFFICES: ReadonlySet<SenderKind> = new Set(['bank', 'wallet', 'courier', 'police', 'prize_office', 'unknown']);
 const isPerson = (name: string): boolean => /^[A-Z][a-z]+$/.test(name) && !NOT_NAMES.has(name.toLowerCase());
 
 export function senderKind(card: Card, isTwin: boolean): SenderKind {
   const sender = isTwin ? card.realTwin.sender : card.sender;
   if (isInstitutionId(sender.institutionId)) return sender.institutionId;
+  if (isTwin && TWIN_KIND[card.trickId]) return TWIN_KIND[card.trickId];
   const kind = TRICK_KIND[card.trickId] ?? 'unknown';
   const person = isPerson(sender.displayName.trim());
   return person && (OFFICES.has(kind) || (isTwin && kind === 'mentor')) ? 'friend' : kind;
@@ -188,6 +195,16 @@ const TWIN_MOVE: Record<ChatChipId, string> = {
   what_link: 'Say they do not need a link: they can open the official app or call the number they have.',
 };
 const LAST_SCAM = 'This is your last message in this chat: make one last push, then say you will wait.';
+
+// The slow add (Oct 16): a new contact who chats like anyone would, and only turns to the ask from
+// the player's second reply on. Scam side only; its twin stays an ordinary new acquaintance.
+export const SLOW_TURN = 2;
+const SLOW_EARLY = 'For this message, ignore the pressure move: stay an ordinary friendly new contact. Small talk only: no favour, no tip, no money, no link.';
+const SLOW_ASK = 'Now turn the chat, casually, to the small favour or the investment tip from your first message, as if it just came up.';
+export const slowStage = (card: Card, isTwin: boolean, thread: readonly ChatLine[]): string | null => {
+  if (isTwin || card.trickId !== 'slow_add') return null;
+  return thread.filter((line) => line.from === 'player').length < SLOW_TURN ? SLOW_EARLY : SLOW_ASK;
+};
 const LAST_TWIN = 'This is your last message in this chat: say a warm goodbye.';
 
 // The move line for the newest chip, plus the wrap-up on the last exchange.
@@ -327,7 +344,9 @@ async function attempt(input: ChatterInput, started: number, deadline: number): 
   const system = input.isTwin ? TWIN_SYSTEM : SCAM_SYSTEM;
   const move = input.said ? `
 ${moveLine(input.isTwin, input.said, input.last ?? false)}` : '';
-  const contents = chatPrompt(input.card, input.isTwin, input.thread, input.allowedNames) + move;
+  const stage = slowStage(input.card, input.isTwin, input.thread);
+  const contents = chatPrompt(input.card, input.isTwin, input.thread, input.allowedNames) + move + (stage ? `
+${stage}` : '');
   // The repair goes to the fallback model: about a second faster, and its own quota under a 429.
   const ask = (extra: string, model: string) => generate({ system, contents: contents + extra, schema: CHAT_SCHEMA, model, temperature: 0.8 });
   const check = (text: string) => chatReasons(text, input.allowedNames, input.isTwin, input.said);
@@ -343,8 +362,14 @@ ${moveLine(input.isTwin, input.said, input.last ?? false)}` : '';
   return fallbackAttempt(input, again);
 }
 
+// Before the slow add turns, its fixed line is the plain new-contact one, not a push.
+const slowEarlyLine = (input: ChatterInput): string | null =>
+  slowStage(input.card, input.isTwin, input.thread) === SLOW_EARLY
+    ? TWIN_LINES.unknown[input.said ?? 'ok_what_do_i_do'].replace('{name}', nameOf(input.card.sender.displayName))
+    : null;
+
 const fallbackAttempt = (input: ChatterInput, reasons: ChatReason[]): Attempt => ({
-  text: fallbackLine(input.card, input.isTwin, input.said),
+  text: slowEarlyLine(input) ?? fallbackLine(input.card, input.isTwin, input.said),
   outcome: 'fallback',
   reasons,
   trace: null,

@@ -122,7 +122,7 @@ export function RealNote({ card, result, busy, failed, onNext, trace, personalis
           <p className={`lesson-did lesson-did-${outcome.tone}`}>{outcome.text}</p>
           <p className="real-note-header">Why it was real</p>
           <ul className="real-note-why">
-            {realLines(notes).map((line) => <li key={line}>{line}</li>)}
+            {realLines(notes, result.lesson.trickId).map((line) => <li key={line}>{line}</li>)}
           </ul>
         </div>
         <div className="real-note-groups">

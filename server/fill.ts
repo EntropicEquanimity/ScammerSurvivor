@@ -3,7 +3,7 @@
 // every card it deals, so a cached card that predates a Guard rule is still clean on screen.
 import { BRANDS, INSTITUTIONS, isInstitutionId } from '../shared/brands.ts';
 import { trickCategory } from '../shared/taxonomy.ts';
-import type { Card, Category, Layout } from '../shared/types.ts';
+import type { Card, Category, Layout, TrickId } from '../shared/types.ts';
 import { PROFILE_TOKENS } from '../shared/profile.ts';
 import { localNumber } from '../shared/mask.ts';
 
@@ -23,6 +23,11 @@ export const INVENTED_INSTITUTION: Record<Category, string> = {
   I: 'Harbourline',
   J: 'Harbourline',
 };
+// Tricks whose category name would be the wrong kind of sender: a SIM swap claims a telco, not a
+// bank; a pre-order runs on a marketplace, not a courier. caller.ts and agents/page.ts read this
+// too, so the card, the call header and the real twin's site say one name.
+const INSTITUTION_BY_TRICK: Partial<Record<TrickId, string>> = { sim_swap: 'Westbay Mobile', preorder_deposit: 'Meridian Market' };
+export const institutionOf = (trick: TrickId): string => INSTITUTION_BY_TRICK[trick] ?? INVENTED_INSTITUTION[trickCategory(trick)];
 const INVENTED_BANK = 'Harbourline';
 const NEUTRAL_NAME = 'Mira';
 
@@ -53,7 +58,7 @@ export function fitLayout(card: Card, layouts: readonly Layout[]): Card {
 }
 
 const institutionFor = (card: Card): string =>
-  isInstitutionId(card.sender.institutionId) ? INSTITUTIONS[card.sender.institutionId] : INVENTED_INSTITUTION[trickCategory(card.trickId)];
+  isInstitutionId(card.sender.institutionId) ? INSTITUTIONS[card.sender.institutionId] : institutionOf(card.trickId);
 
 // Innermost brackets only; an outer description is looked at again once its inner tokens are filled.
 const TOKEN = /\[([^[\]]{1,80})\]/g;

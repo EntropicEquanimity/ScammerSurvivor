@@ -1,0 +1,33 @@
+{
+  "id": "preorder-deposit",
+  "country": "*",
+  "category": "D",
+  "catalogueEntry": 52,
+  "app": "green-chat",
+  "setup": "[a seller on a marketplace or a social media page offers concert tickets or a sold-out gadget at a fair price, with good reviews and photos] [the seller says only a few are left and other buyers are waiting]",
+  "ask": "[the seller asks for a deposit now to hold the item, paid to a personal account or through a checkout link instead of the marketplace's own checkout, with delivery weeks away]",
+  "tells": [
+    "trust_building",
+    "urgency",
+    "payment_substitution",
+    "platform_migration"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "ask_reference"
+  ],
+  "unsafeReplies": [
+    "pay",
+    "send_money",
+    "open_link"
+  ],
+  "usualEnding": "The deposit goes, the delivery date keeps moving, then the seller asks for the balance or a shipping fee and disappears.",
+  "realTwin": "A real seller on the marketplace offers to meet in a public place so the player can see the item first, or to sell through the marketplace's own checkout.",
+  "confidence": "medium",
+  "source": {
+    "url": "https://www.scamshield.gov.sg/i-want-protection-from-scams/learn-to-recognise-scams/e-commerce-scams/ (updated 26 May 2026: payment outside the platform's checkout, a limited-time price, links sent by the seller); SPF Mid-Year Scam and Cybercrime Brief 2026 (pre-order deposits lead e-commerce cases) and the HK Government 2025 law and order release of 11 Feb 2026 (concert-ticket fraud up 61.8%), both cited in docs/scam-realism-2026.md. Catalogue entry 52 is the ticket row.",
+    "date": "2026-10-16"
+  },
+  "approved": false
+}

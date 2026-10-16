@@ -51,6 +51,8 @@ const SEND_LABEL: Record<PageKind, string> = {
   trading_signup: 'Open account',
   video_verify: 'Join video chat',
   task_deposit: 'Start task',
+  fine_payment: 'Pay now',
+  deposit_checkout: 'Pay deposit',
   tracking: 'Track parcel',
   bank_app_note: 'Continue',
   info_page: 'Continue',

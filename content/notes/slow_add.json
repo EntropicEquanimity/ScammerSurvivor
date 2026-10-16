@@ -1,0 +1,32 @@
+{
+  "id": "slow-add",
+  "country": "*",
+  "category": "E",
+  "catalogueEntry": 35,
+  "app": "green-chat",
+  "setup": "[a new contact adds the player on [chat app name] after a group chat, a hobby group or a class they both seem to be in, and chats in an ordinary way about the day or the group] [nothing in these first messages asks for anything]",
+  "ask": "[later in the chat, as if it just came up, the contact asks a small favour, such as a little money until payday or a gift card bought for them, or shares an investment tip they say has worked well]",
+  "tells": [
+    "trust_building",
+    "synthetic_identity",
+    "escalation"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "tell_someone"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "pay",
+    "open_link"
+  ],
+  "usualEnding": "The small favour is paid back once to build trust, then the asks grow, or the tip leads to a fake trading app that keeps every deposit.",
+  "realTwin": "A real new acquaintance, a classmate or a neighbour, messages about the class or the building, keeps the chat ordinary and suggests saying hello next time they meet.",
+  "confidence": "medium",
+  "source": {
+    "url": "https://www.scamshield.gov.sg/i-want-protection-from-scams/learn-to-recognise-scams/internet-love-scams/ (updated 28 May 2026: weeks of contact to build trust, then money asks or a fake investment); Scamwatch investment alert of 28 Sep 2026 (added to a friendly hobby group before the pitch), cited in docs/scam-realism-2026.md. Catalogue entry 35 is the nearest row.",
+    "date": "2026-10-16"
+  },
+  "approved": false
+}

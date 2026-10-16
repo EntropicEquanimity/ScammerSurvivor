@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { CoachNotes, SlotResult, TellId } from '../../../../shared/types.ts';
-import { REAL_WHY, TELLS } from '../../../../shared/taxonomy.ts';
+import type { CoachNotes, SlotResult, TellId, TrickId } from '../../../../shared/types.ts';
+import { TELLS, realWhyFor } from '../../../../shared/taxonomy.ts';
 import type { FieldId } from '../../../../shared/profile.ts';
 import { POINTS } from '../../../../shared/points.ts';
 import { Icon } from '../../shell/Icon.tsx';
@@ -57,8 +57,8 @@ export function TellsGroup({ result, notes }: { result: SlotResult; notes: Coach
 }
 
 // The Coach's lines on why the real one was real, else the fixed pair.
-export const realLines = (notes: CoachNotes | null): readonly string[] =>
-  notes && notes.real.length > 0 ? notes.real.slice(0, 2) : REAL_WHY;
+export const realLines = (notes: CoachNotes | null, trickId?: TrickId): readonly string[] =>
+  notes && notes.real.length > 0 ? notes.real.slice(0, 2) : realWhyFor(trickId);
 
 export function TwinMessage({ lesson, notes }: { lesson: Lesson; notes: CoachNotes | null }) {
   return (
@@ -69,7 +69,7 @@ export function TwinMessage({ lesson, notes }: { lesson: Lesson; notes: CoachNot
           <PartView part={part} />
         </li>
       ))}
-      <li className="inset-row inset-body lesson-why">{realLines(notes)[0]}</li>
+      <li className="inset-row inset-body lesson-why">{realLines(notes, lesson.trickId)[0]}</li>
     </InsetGroup>
   );
 }

@@ -171,6 +171,11 @@ const SENDER_LINE = {
 
 const hasPages = (note: PatternNote): boolean => PAGE_TRICKS.includes(trickFor(note));
 
+// The slow add (Oct 16): its opening must read, and score, as an ordinary new contact.
+const TRICK_LINE: Partial<Record<TrickId, string>> = {
+  slow_add: 'This card is a slow add: the setup parts are ordinary small talk from a new contact and carry no tellIds at all; every tell sits on the ask, which turns to the favour or the tip as if it just came up.',
+};
+
 export function userMessage(note: PatternNote, pack: CountryPack, level: number, allowedNames: string[], leaked: readonly FieldId[] = []): string {
   const peopleSender = PEOPLE_TRICKS.includes(trickFor(note));
   const leak = leakLine(leaked);
@@ -184,6 +189,7 @@ export function userMessage(note: PatternNote, pack: CountryPack, level: number,
     peopleSender ? SENDER_LINE.people : SENDER_LINE.stranger,
     'The real twin has exactly as many parts as setup and ask together.',
     ...(hasPages(note) ? [pageLines(trickFor(note))] : []),
+    ...(TRICK_LINE[trickFor(note)] ? [TRICK_LINE[trickFor(note)] as string] : []),
     ...(leak ? [leak] : []),
   ].join('\n');
 }

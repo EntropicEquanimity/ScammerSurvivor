@@ -7,8 +7,8 @@
 // line; a line that fails is the fixed line from shared/taxonomy.ts instead.
 import { Type } from '@google/genai';
 import type { Schema } from '@google/genai';
-import type { Action, CoachNotes, SlotResult, TellId } from '../../shared/types.ts';
-import { REAL_WHY, TELLS, isTellId } from '../../shared/taxonomy.ts';
+import type { Action, CoachNotes, SlotResult, TellId, TrickId } from '../../shared/types.ts';
+import { TELLS, isTellId, realWhyFor } from '../../shared/taxonomy.ts';
 import { hasBrand } from '../guard/card.ts';
 import { MODELS, streamText } from '../gemini.ts';
 import type { StreamRequest } from '../gemini.ts';
@@ -47,6 +47,7 @@ export interface LessonInput {
   actionCorrect: boolean;
   falseAlarm: boolean;
   hotline: Lesson['hotline']; // kept for the route's shape; the lesson shows it in its own row, so the prompt leaves it out
+  trickId?: TrickId; // picks the fixed real lines when the model's fail; never sent to the model
   stream?: StreamText;
 }
 
@@ -96,10 +97,11 @@ export function lineOk(text: unknown): text is string {
   return !DIGIT_RUN.test(text) && !hasBrand(text) && !LINK.test(text);
 }
 
-// The fixed notes: the taxonomy's line per tell, the two fixed real lines.
-export const fixedNotes = (tellIds: TellId[]): CoachNotes => ({
+// The fixed notes: the taxonomy's line per tell, the two fixed real lines (the trick's own pair
+// where the usual one is wrong for it).
+export const fixedNotes = (tellIds: TellId[], trickId?: TrickId): CoachNotes => ({
   tells: tellIds.map((tellId) => ({ tellId, why: TELLS[tellId].why })),
-  real: [...REAL_WHY],
+  real: [...realWhyFor(trickId)],
 });
 
 const asRecord = (value: unknown): Record<string, unknown> =>
@@ -108,8 +110,8 @@ const asRecord = (value: unknown): Record<string, unknown> =>
 // Checks the Coach's answer against the card: only the card's tell ids, each line passing lineOk.
 // Every tell gets a line, the Coach's when it passes and the fixed one when not. `checked` counts
 // the Coach's lines that passed, so the caller knows when nothing of the model's survived.
-export function checkNotes(raw: unknown, tellIds: TellId[]): { notes: CoachNotes; checked: number } {
-  const fixed = fixedNotes(tellIds);
+export function checkNotes(raw: unknown, tellIds: TellId[], trickId?: TrickId): { notes: CoachNotes; checked: number } {
+  const fixed = fixedNotes(tellIds, trickId);
   const record = asRecord(raw);
   const given = new Map<TellId, string>();
   for (const entry of Array.isArray(record.tells) ? record.tells : []) {
@@ -136,7 +138,7 @@ export async function* lessonStream({ stream = streamText, ...input }: LessonInp
   } catch {
     throw new Error('coach_unparsable');
   }
-  const { notes, checked } = checkNotes(raw, tellsOf(input));
+  const { notes, checked } = checkNotes(raw, tellsOf(input), input.trickId);
   if (checked === 0) throw new Error('coach_unchecked');
   yield JSON.stringify(notes);
 }
@@ -147,5 +149,5 @@ const resultTells = (result: SlotResult): TellId[] =>
 // The deterministic notes as the same one JSON chunk. Served to younger players, on quick days and
 // whenever the model fails (AGENTS.md rules 5 and 9).
 export function lessonText(result: SlotResult): string {
-  return JSON.stringify(fixedNotes(resultTells(result)));
+  return JSON.stringify(fixedNotes(resultTells(result), result.lesson.trickId));
 }

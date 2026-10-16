@@ -1,0 +1,32 @@
+{
+  "id": "wrong-number",
+  "country": "*",
+  "category": "B",
+  "catalogueEntry": 35,
+  "app": "sms",
+  "setup": "[a text from an unknown number greets someone by a name that is not the player's, as if it were meant for a friend or a client] [told it is the wrong number, the sender apologises warmly and keeps the chat going with small talk and a compliment]",
+  "ask": "[a few friendly messages later the sender mentions how well an investment app or a crypto plan has gone for them, offers to show the player how it works, and suggests a small first deposit]",
+  "tells": [
+    "trust_building",
+    "synthetic_identity",
+    "payment_substitution"
+  ],
+  "safeReplies": [
+    "ignore",
+    "block_report",
+    "tell_someone"
+  ],
+  "unsafeReplies": [
+    "send_money",
+    "install",
+    "open_link"
+  ],
+  "usualEnding": "The app shows growing profits and a small early withdrawal works, then larger deposits are asked for and a fee blocks every withdrawal after that.",
+  "realTwin": "A real person who texted the wrong number says sorry, says they will check the number with their friend, and does not write again.",
+  "confidence": "medium",
+  "source": {
+    "url": "JAPAC_WhatsApp_Viber_Scam_Catalogue_Expanded.pdf (entry 35); https://www.scamshield.gov.sg/i-want-protection-from-scams/learn-to-recognise-scams/investment-scams/ (updated 2 Jun 2026: investments recommended by online friends or strangers, small profits first, then no withdrawals). The wrong-number opener itself is not verified at a primary source.",
+    "date": "2026-10-16"
+  },
+  "approved": false
+}

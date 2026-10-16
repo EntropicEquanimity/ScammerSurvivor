@@ -145,6 +145,18 @@ Source: SPF Mid-Year Scam and Cybercrime Brief 2026 (Jan to Jun 2026), https://w
 6. **Mobile number takeover.** AU alert 2026. No note; partly overlaps code-or-account.
 7. **Betting or sports "investment".** AU, small but tripling. No note.
 
+### 2c. Five notes added on 16 Oct 2026 (awaiting the Content lead)
+
+Drafts in `content/notes/`, all `approved: false`. Plain-words summary in `docs/new-scams-for-content-lead.md`.
+
+| Note | Source opened, date | Status |
+|---|---|---|
+| wrong-number | Catalogue entry 35; ScamShield investment scams page, updated 2 Jun 2026 | The wrong-number opener is **not verified** at a primary |
+| toll-fine | HK Transport Department press release, 28 Oct 2024, https://www.info.gov.hk/gia/general/202410/28/P2024102800253.htm | Verified (HK) |
+| preorder-deposit | ScamShield e-commerce scams page, updated 26 May 2026; SPF Mid-Year Brief 2026 and HK 2025 figures above | Verified (SG, HK) |
+| sim-swap | Scamwatch mobile fraud alert, 7 Apr 2026 (above); catalogue entry 22 | Takeover verified (AU); the reply-with-code step **not verified** |
+| slow-add | ScamShield internet love scams page, updated 28 May 2026; Scamwatch investment alert, 28 Sep 2026 (above) | Verified (SG, AU) |
+
 ---
 
 ## 3. Live card sample, 16 Oct 2026
