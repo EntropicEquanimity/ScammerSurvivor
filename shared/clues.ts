@@ -40,7 +40,7 @@ export function clueReason(clue: Partial<Clue>, parts: readonly { id: string; te
     if (!host || !text.includes(host)) return 'clue_grounding';
   }
   if (clue.kind === 'payment_request' && (typeof clue.amount !== 'number' || !text.includes(String(clue.amount)))) return 'clue_grounding';
-  // A payment request needs a part that asks for money: a friend's share coming in is not one (Angel, Oct 16).
+  // A payment request needs a part that asks for money: a friend's share coming in is not one (the Builder, Oct 16).
   if (clue.kind === 'payment_request' && moneyComesIn(part.text)) return 'clue_grounding';
   if (clue.kind === 'countdown' && (typeof clue.minutes !== 'number' || clue.minutes < 1 || clue.minutes > 60)) return 'clue_grounding';
   if (clue.kind === 'code_box' && !/\bcode\b/.test(text)) return 'clue_grounding';

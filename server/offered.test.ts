@@ -32,7 +32,7 @@ test('a report that also asks still offers its one money button', () => {
   assert.deepEqual(money(extras('Your card was charged twice, please send SGD 50 to release the refund.')), ['send_money']);
 });
 
-test('a friend transferring their share in offers no money button (Angel, Oct 16)', () => {
+test('a friend transferring their share in offers no money button (the Builder, Oct 16)', () => {
   const parts = [{ text: 'My share was PHP 2,000 for dinner, transferring it over now.' }];
   assert.deepEqual(offeredFor(parts), ['reply', 'ignore', 'block_report', 'verify_known_number']);
   for (const text of ['Sending you the PHP 500 tonight.', 'Paying you back for the tickets.', 'My share of the rent goes to you today.', 'Your refund to you is on its way.', 'PHP 300 credited to your wallet.']) {

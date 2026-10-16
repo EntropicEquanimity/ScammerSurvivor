@@ -1,6 +1,6 @@
 # iOS Ruler log
 
-One entry per run of `.claude/agents/ios-ruler.md`. Measured through computed styles at 390x844 and 430x932, DPR 3. SHIP or HOLD; HOLD blocks a deploy until the named fails are fixed or Angel overrides in words. Deliberate divergences never flagged: 18 px body, 16 px chrome, 15 px alert message, 13 px home labels, 48 px targets, accent #0a70e8, 19 px message text.
+One entry per run of `.claude/agents/ios-ruler.md`. Measured through computed styles at 390x844 and 430x932, DPR 3. SHIP or HOLD; HOLD blocks a deploy until the named fails are fixed or the Builder overrides in words. Deliberate divergences never flagged: 18 px body, 16 px chrome, 15 px alert message, 13 px home labels, 48 px targets, accent #0a70e8, 19 px message text.
 
 ## 2026-10-16, uncommitted tree after the UI run (31 web files plus tells.css), local build
 

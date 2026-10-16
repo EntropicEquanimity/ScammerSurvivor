@@ -12,7 +12,7 @@ interface Props {
   onPick: (verdict: Verdict) => void;
 }
 
-// "Scam or real?" (Angel, Oct 16: "make them decide"): the player commits to a verdict after acting.
+// "Scam or real?" (the Builder, Oct 16: "make them decide"): the player commits to a verdict after acting.
 // The message again in its own app, scrollable, its clues still inspectable and its banner as it was,
 // then the question and two equal buttons where the tray sits. The same words, style and places on
 // every card, no hint either way, and no timer: deciding is unhurried.

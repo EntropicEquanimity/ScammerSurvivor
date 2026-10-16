@@ -12,7 +12,7 @@ export const asks = (text: string, cue: RegExp): boolean => {
 };
 
 // Money that already moved or is on its way to the player: a purchase alert, a refund, a friend's
-// share of a dinner being transferred over (Angel, Oct 16: "why does the user need to pay").
+// share of a dinner being transferred over (the Builder, Oct 16: "why does the user need to pay").
 const REPORTS =
   /\b(received|credited|refunded|deducted|debited|charged|spent|(sent|paid|transferred) you|(has|have|was|were) (just )?(been )?(paid|sent|transferred|approved)|transferring (it|this|that|the money|my share)( over| across| back)?( to you)?|sending (it to )?you|paying you back|pay you back|my share\b[^.!?]{0,40}\b(to you|over|across)|refund (to you|is on its way|is coming)|refund to your)\b/g;
 

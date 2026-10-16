@@ -27,7 +27,7 @@ test('no more than two clues on a side', () => {
   assert.deepEqual(cluesReasons([badge, badge, badge], parts), ['clue_count']);
 });
 
-test('a payment request on money coming in is not grounded (Angel, Oct 16)', () => {
+test('a payment request on money coming in is not grounded (the Builder, Oct 16)', () => {
   const incoming = [{ id: 'r1', text: 'My share was PHP 2,000 for dinner, transferring it over now.'.replace(',', '') }];
   assert.deepEqual(cluesReasons([{ kind: 'payment_request', partId: 'r1', title: 'Dinner split', detail: 'From a friend', amount: 2000 }], incoming), ['clue_grounding']);
 });

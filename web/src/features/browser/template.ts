@@ -1,7 +1,7 @@
 import type { PublicPage } from '../../../../shared/page.ts';
 import type { PublicCard } from '../../../../shared/types.ts';
 
-// The page a link opens when the card has no practice page of its own (Angel, Oct 16: "open link
+// The page a link opens when the card has no practice page of its own (the Builder, Oct 16: "open link
 // says just select tells"). Built in code from what both sides of a pair share, so a scam and its
 // real twin open the same template. It is a preview only: its rows show what the site asks for and
 // cannot be filled or sent, since the server has no page to score (it answers no_page). Nothing here
