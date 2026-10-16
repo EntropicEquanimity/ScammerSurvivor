@@ -337,3 +337,23 @@ test('the user message carries the stake in the local currency, written with sep
   assert.ok(!DIRECTOR_SYSTEM.includes('short figures like'));
   assert.ok(!DIRECTOR_SYSTEM.includes('practice code on screen'));
 });
+
+test('the register: each sender writes in its own voice, style notes only', () => {
+  for (const voice of ['Friends and family', 'Family trouble', 'Fake buyers and sellers', 'Fake bank, wallet, courier and prize desks', 'Fake police and officials', 'Romance', 'Job and task recruiters', 'Real institutions', 'Real people never sound like a script']) {
+    assert.ok(DIRECTOR_SYSTEM.includes(`- ${voice}`), voice);
+  }
+  assert.ok(DIRECTOR_SYSTEM.includes('Contractions wherever a person would use them'));
+  assert.ok(DIRECTOR_SYSTEM.includes('Typos and lowercase never touch a name, an amount, a link or the word "code"'));
+  assert.ok(DIRECTOR_SYSTEM.includes('no dialect particles'));
+  // Style notes are fragments: no quoted note runs past ten words.
+  const quoted = [...DIRECTOR_SYSTEM.matchAll(/Style: ([^\n]*)/g)].flatMap((m) => [...m[1].matchAll(/"([^"]*)"/g)].map((q) => q[1]));
+  assert.ok(quoted.length >= 14);
+  for (const note of quoted) assert.ok(note.split(/\s+/).length <= 8, note);
+});
+
+test('curly apostrophes come back straight on the draft', () => {
+  const curly = String.fromCharCode(0x2019);
+  const draft = toDraft({ setup: [{ text: `it${curly}s me`, tellIds: [] }], ask: [], realTwin: { parts: [{ text: `can${curly}t talk` }] } }, note);
+  assert.equal(draft.setup[0].text, "it's me");
+  assert.equal(draft.realTwin.parts[0].text, "can't talk");
+});

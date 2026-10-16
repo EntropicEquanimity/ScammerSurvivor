@@ -17,8 +17,8 @@ export const ACTION_LABELS: Record<Action, string> = {
   freeze_account: 'Freeze account',
   ask_reference: 'Ask for ID',
   call_back: 'Call back',
-  refuse_code: 'Refuse code',
-  read_code: 'Read the code',
+  refuse_code: 'Say no',
+  read_code: 'Read code',
   hang_up: 'Hang up',
-  hang_up_call_official: 'Call official',
+  hang_up_call_official: 'Call bank',
 };

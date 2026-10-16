@@ -136,20 +136,20 @@ function MostMissed({ score, tells, boss }: Pick<Props, 'score' | 'tells'> & { b
   const id = score.tellMostMissed;
   if (!id) {
     return (
-      <InsetGroup header="The tell to watch">
-        <li className="inset-row inset-body end-row">No tell slipped past you today.</li>
+      <InsetGroup header="The red flag to watch">
+        <li className="inset-row inset-body end-row">No red flag got past you today.</li>
         {boss}
       </InsetGroup>
     );
   }
   const info = tells[id] ?? { label: id.replaceAll('_', ' '), why: '' };
   return (
-    <InsetGroup header="The tell you miss most">
+    <InsetGroup header="The red flag you miss most">
       <li className="inset-row inset-body end-row">
         <span>
           <strong>{info.label}.</strong> {info.why}
         </span>
-        <span>It comes back subtler tomorrow.</span>
+        <span>Tomorrow it comes back harder to spot.</span>
       </li>
       {boss}
     </InsetGroup>

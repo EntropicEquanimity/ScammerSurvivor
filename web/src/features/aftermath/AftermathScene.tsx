@@ -86,7 +86,7 @@ function TopStack({ items, view, card }: { items: readonly AftermathItem[]; view
 }
 
 // The new bubbles and the phone's own lines, under the message in the same thread.
-function ThreadTail({ items, view }: { items: readonly AftermathItem[]; view: View }) {
+function ThreadTail({ items, view, sender }: { items: readonly AftermathItem[]; view: View; sender: string }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
@@ -98,7 +98,7 @@ function ThreadTail({ items, view }: { items: readonly AftermathItem[]; view: Vi
         if (item.kind === 'bubble') {
           return (
             <p key={i} className="chat-in am-in">
-              <span className="visually-hidden">They: </span>
+              <span className="visually-hidden">{sender}: </span>
               {item.text}
             </p>
           );
@@ -143,7 +143,7 @@ export function AftermathView({ card, items, onDone }: ViewProps) {
         <ClueClockStopped.Provider value>
           <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
         </ClueClockStopped.Provider>
-        {items && <ThreadTail items={items} view={view} />}
+        {items && <ThreadTail items={items} view={view} sender={card.sender.displayName} />}
       </div>
       {items && <TopStack items={items} view={view} card={card} />}
       {view.ready && (

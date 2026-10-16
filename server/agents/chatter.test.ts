@@ -4,7 +4,7 @@ import type { JsonRequest } from '../gemini.ts';
 import type { Card, TraceEvent } from '../../shared/types.ts';
 import { fixturesFor } from '../country.ts';
 import { BRAND_DENYLIST } from '../guard/card.ts';
-import { CHAT_CHIPS, CHAT_DEADLINE_MS, MAX_WORDS, chatReasons, chatterReply, fallbackLine, hedge, moveLine, onTopic, senderKind } from './chatter.ts';
+import { CHAT_CHIPS, CHAT_DEADLINE_MS, MAX_WORDS, chatPrompt, chatReasons, chatterReply, fallbackLine, hedge, moveLine, onTopic, senderKind } from './chatter.ts';
 import type { SenderKind } from './chatterLines.ts';
 import { INSTITUTIONS } from '../../shared/brands.ts';
 import { MODELS } from '../gemini.ts';
@@ -99,7 +99,7 @@ test('a friend asked "Who is this?" answers as a friend, by name, even on a card
   assert.doesNotMatch(line, /official app|call the number you already have for us/);
   assert.equal(senderKind({ ...card, realTwin: { ...card.realTwin, sender: { ...sender, displayName: 'Harbourline Alert' } } }, true), 'mentor');
   assert.equal(senderKind({ ...card, trickId: 'family_trouble' }, true), 'relative');
-  assert.match(fallbackLine({ ...card, trickId: 'family_trouble', sender }, false, 'is_it_you'), /it's me, my phone broke/);
+  assert.match(fallbackLine({ ...card, trickId: 'family_trouble', sender }, false, 'is_it_you'), /it's me!! phone broke/);
 });
 
 test('the on-topic check: who is this names or describes the sender, proof talks about proof', () => {
@@ -206,4 +206,27 @@ test('the hedge: a slow main call starts the backup and the first answer wins; a
 test('the twin rule catches "not asking for money" and "do not need to pay"', () => {
   assert.deepEqual(chatReasons('Ha, I was not asking for any money.', NAMES, true), ['twin_disclaims']);
   assert.deepEqual(chatReasons('That is fine, you do not need to pay.', NAMES, true), ['twin_disclaims']);
+});
+
+test('voices: each side carries its own sender voice, and contractions pass in either apostrophe', () => {
+  const romance: Card = { ...CARD, trickId: 'fast_romance' };
+  assert.match(chatPrompt(romance, false, [], NAMES), /Voice: a romance contact: warm and flowery/);
+  const bank = asKind('bank');
+  assert.match(chatPrompt(bank, true, [], NAMES), /Voice: an automated bank alert: terse/);
+  assert.match(chatPrompt(bank, false, [], NAMES), /Voice: a copy of a bank alert that is slightly off/);
+  const curly = String.fromCharCode(0x2019);
+  for (const text of [`yeah it${curly}s me, can${curly}t talk rn lol`, "yeah it's me, can't talk rn lol", 'hey Sis, it is me']) {
+    assert.deepEqual(chatReasons(text, NAMES, false, 'is_it_you'), [], text);
+  }
+});
+
+test('fixed lines read like texts: people use contractions, no stiff "it is" or "let us" from a person', () => {
+  for (const kind of ['relative', 'friend', 'buyer', 'boss', 'unknown'] as SenderKind[]) {
+    const card = asKind(kind);
+    for (const said of CHAT_CHIPS) {
+      for (const isTwin of kind === 'buyer' ? [true] : [false, true]) {
+        assert.doesNotMatch(fallbackLine(card, isTwin, said), /\b(?:it is|let us|I am unable|do not)\b/i, `${kind} ${said} ${isTwin}`);
+      }
+    }
+  }
 });

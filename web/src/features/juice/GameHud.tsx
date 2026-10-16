@@ -70,7 +70,7 @@ export function GameHud({ score, bump, streak, wallet, walletStart, hudRef }: Pr
         {combo > 1 && (
           <span className="game-hud-combo">
             x{combo}
-            <span className="visually-hidden"> combo, points double</span>
+            <span className="visually-hidden"> streak, double points</span>
           </span>
         )}
       </span>

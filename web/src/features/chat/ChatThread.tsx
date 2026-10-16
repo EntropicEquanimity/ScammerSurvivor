@@ -39,7 +39,7 @@ export function ChatThread({ chat }: { chat: Chat }) {
       )}
       {capped(chat.state) && !waiting && (
         <p className="chat-capped" role="status">
-          They stopped answering. Decide now: a Reply now is your final answer.
+          They stopped replying. Your next tap is your final answer.
         </p>
       )}
       <div ref={end} aria-hidden="true" />
@@ -48,12 +48,19 @@ export function ChatThread({ chat }: { chat: Chat }) {
 }
 
 // The reply chips, as pills above the action bar, once Reply was tapped and exchanges are left.
-export function ReplyChips({ chat }: { chat: Chat }) {
+// The questions keep the chat going; "Say OK" is the reply that answers and ends it, the one way
+// Reply becomes the decision before the questions run out (never silently: the UX audit, Oct 16).
+export function ReplyChips({ chat, onSayOk }: { chat: Chat; onSayOk: () => void }) {
   const { open, chips, waiting } = chat.state;
   if (!open || waiting || chips.length === 0) return null;
   const press = (chip: (typeof chips)[number]) => {
     haptic();
     chat.send(chip);
+  };
+  const sayOk = () => {
+    haptic();
+    chat.close();
+    onSayOk();
   };
   return (
     <div className="chat-chips" role="group" aria-label="Send a reply">
@@ -62,6 +69,9 @@ export function ReplyChips({ chat }: { chat: Chat }) {
           {CHIP_LABELS[chip]}
         </button>
       ))}
+      <button type="button" className="chat-chip chat-chip-ok pressable" onClick={sayOk}>
+        Say OK
+      </button>
       <button type="button" className="chat-chip chat-chip-quiet pressable" onClick={chat.close}>
         Not now
       </button>

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { Card } from '../shared/types.ts';
 import { PACKS, fixturesFor, resolveCountry } from './country.ts';
 import { dealDay, fillCard, lessonFor, redealSlot } from './deal.ts';
-import { collapse, secondPerson } from './fill.ts';
+import { collapse, renamed, secondPerson } from './fill.ts';
 
 // Nothing raw reaches a screen (Skeptic round 4): no look id ("green-chat"), no doubled word
 // ("Civic Notice Notices"), no production word ("the player"), no empty token ("[]" or a space before a full stop), no X-masked number.
@@ -121,4 +121,12 @@ test('a friend transferring their share in shows no payment clue; its buttons ar
     assert.ok(!(twin.public.clues ?? []).some((clue) => clue.kind === 'payment_request'), twin.slotId);
     assert.deepEqual(twin.public.offered, redealSlot({ ...twin, isTwin: false }, twin.card).public.offered, twin.slotId);
   }
+});
+
+test('a retired name in a cached card reads as its replacement, whole words only', () => {
+  assert.equal(renamed('Hey, this is Dev on my new number.'), 'Hey, this is Rohan on my new number.');
+  assert.equal(renamed('Developer Devi and the dev team'), 'Developer Devi and the dev team');
+  const base = resolveCountry('SG').cards[0];
+  const card = fillCard({ ...base, sender: { ...base.sender, displayName: 'Dev' } });
+  assert.equal(card.sender.displayName, 'Rohan');
 });

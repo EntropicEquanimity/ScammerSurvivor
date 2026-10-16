@@ -38,7 +38,7 @@ export function cardText({ score, dayNumber, tells, points, checked = 0 }: Props
       { value: fraction(score.scamsCaught), label: 'Scams caught' },
       { value: fraction(score.realTrusted), label: 'Real ones trusted' },
     ],
-    watch: missedLabel ? `Watch for: ${missedLabel.toLowerCase()}` : 'No tell got past you',
+    watch: missedLabel ? `Watch for: ${missedLabel.toLowerCase()}` : 'No red flag got past you',
   };
 }
 

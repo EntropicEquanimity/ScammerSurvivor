@@ -11,6 +11,7 @@ export interface SlotKey {
   safeReplies: Action[];
   unsafeReplies: Action[];
   acceptable: Action[]; // the real twin's acceptable actions
+  checkFits?: boolean; // the real message itself calls for a check (a bank alert's "not you? call us"): checking it is not over-cautious
   stake: number;
   page?: { kind: PageKind; needs: FieldId[]; tells: TellId[] }; // the shown side's page; its lines sit in parts
 }
@@ -73,7 +74,7 @@ export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[],
     falseTaps,
     walletDelta: !key.isTwin && moves ? -key.stake : 0,
     peopleDelta: falseAlarm ? -1 : 0,
-    ...(key.isTwin && action === VERIFY && actionCorrect ? { cautious: true } : {}),
+    ...(key.isTwin && action === VERIFY && actionCorrect && !key.checkFits ? { cautious: true } : {}),
   };
 }
 
@@ -100,6 +101,19 @@ function scorePage(key: SlotKey, page: NonNullable<SlotKey['page']>, tells: Tell
     pageLeft: leftReal,
   };
 }
+
+// Going along with a message (playtest, Oct 16: "it should immediately show that it was a scam"):
+// these actions skip "Scam or real?" and the flags on every card, scam and real alike, so the skip
+// never tells the answer, and go straight to what happened next. No verdict is scored; on a scam
+// every tell counts as missed, on a real message none count.
+export const GOES_ALONG: readonly Action[] = ['open_link', 'pay', 'send_money', 'share_code', 'read_code', 'install'];
+export const goesAlong = (action: Action): boolean => GOES_ALONG.includes(action);
+
+// Whether the slot skips the verdict and the flags. On a practice page, opening the link is neutral
+// (the page decides the slot), so it goes along only once the page sent something; leaving it unsent
+// keeps the steps, and its own lines can be flagged.
+export const skipsSteps = (action: Action, hasPage: boolean, pageSent: boolean): boolean =>
+  goesAlong(action) && (action !== 'open_link' || !hasPage || pageSent);
 
 // "Scam or real?" scored on its own: right when it names what the message was. The action keeps
 // its own score, so a right verdict with a wrong action still loses the money.

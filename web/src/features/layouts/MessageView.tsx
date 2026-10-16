@@ -47,8 +47,8 @@ function PartText({ text }: { text: string }) {
   return looksLikeLink(text) ? <span className="fake-link">{text}</span> : <>{text}</>;
 }
 
-// A part in tap mode: a button that lifts when marked and takes a neutral stamp, and shivers when a
-// mark is taken back. The client never knows which parts are tells, so the shiver is the only
+// A part in tap mode: a button that lifts when flagged and takes a red-flag stamp, "Flagged as
+// suspicious" (playtest, Oct 16: flagging always means suspicious), and shivers when a flag is taken back. The client never knows which parts are tells, so the shiver is the only
 // "wrong tap" it can show. The tell's name comes back only after scoring, in the lesson.
 function TapPart({ part, tap }: { part: Part; tap: TapMode }) {
   const [shiver, setShiver] = useState(false);
@@ -65,7 +65,10 @@ function TapPart({ part, tap }: { part: Part; tap: TapMode }) {
         <PartText text={part.text} />
       </span>
       <span className="part-stamp" aria-hidden="true">
-        Marked
+        <svg className="part-flag" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+          <path d="M3 1.5v13M3 2.5h8.5l-2 3 2 3H3" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+        Flagged as suspicious
       </span>
     </button>
   );

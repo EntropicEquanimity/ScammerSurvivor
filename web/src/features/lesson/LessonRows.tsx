@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { SlotResult, TellId } from '../../../../shared/types.ts';
 import { TELLS } from '../../../../shared/taxonomy.ts';
-import { flagsOf, secondPerson } from './title.ts';
+import { flagSummary, flagsOf, secondPerson } from './title.ts';
 import { Icon } from '../../shell/Icon.tsx';
 import type { IconName } from '../../shell/Icon.tsx';
 import { haptic } from '../../shell/feel.ts';
@@ -45,20 +45,21 @@ const labelOf = (lesson: Lesson, id: TellId): string => lesson.tells.find((tell)
 // tells left unmarked. A mark carries a word as well as its glyph, so colour is never the only carrier.
 export function FlaggedGroup({ result }: { result: SlotResult }) {
   const { flagged, missed } = flagsOf(result);
+  const summary = flagSummary(result);
   const { lesson } = result;
   return (
     <InsetGroup header="What you flagged">
-      {flagged.length === 0 && <li className="inset-row inset-body lesson-why">You didn't flag anything.</li>}
+      {summary && <li className="inset-row inset-body lesson-why">{summary}</li>}
       {flagged.map((flag) => (
         <li key={flag.partId} className={`inset-row inset-body lesson-flag lesson-flag-${flag.tells.length > 0 ? 'good' : 'slip'}`}>
           <span className="lesson-flag-mark" aria-hidden="true">{flag.tells.length > 0 ? '✓' : '✗'}</span>
           <span className="lesson-glyph-text">
             {flag.quote && <q className="lesson-quote">{flag.quote}</q>}
-            <span className="lesson-flag-word">{flag.tells.length > 0 ? `Caught: ${flag.tells.map((id) => labelOf(lesson, id).toLowerCase()).join(', ')}` : 'Not a tell'}</span>
+            <span className="lesson-flag-word">{flag.tells.length > 0 ? `Caught: ${flag.tells.map((id) => labelOf(lesson, id).toLowerCase()).join(', ')}` : 'Not a red flag'}</span>
           </span>
         </li>
       ))}
-      {missed.length > 0 && (
+      {missed.length > 0 && !result.wentAlong && (
         <li className="inset-row inset-body lesson-flag lesson-flag-missed">
           <span className="lesson-flag-mark" aria-hidden="true">{'•'}</span>
           <span className="lesson-glyph-text">You missed: {missed.map((id) => labelOf(lesson, id).toLowerCase()).join(', ')}.</span>

@@ -28,7 +28,7 @@ export type OutcomeTone = 'good' | 'slip';
 const FELL = 'You fell for it';
 const MONEY = ['Fine, it was really them.', FELL] as const;
 export const ACTION_LINES: Record<Action, readonly [string, string]> = {
-  reply: ['You answered a real message.', 'You engaged with a scam.'],
+  reply: ['You answered a real message.', 'You replied to a scam.'],
   ignore: ['You left a real message unanswered. They did not hear back.', 'You ignored it. Safe.'],
   verify_known_number: ['You checked, and it was real. Safe, just slower.', 'You checked and caught it.'],
   block_report: ['You blocked someone real.', 'You blocked and reported it.'],
@@ -144,6 +144,15 @@ export interface Flag {
 }
 
 type Part = { id: string; text: string; tellIds?: TellId[] };
+
+// The line that leads "What you flagged": flagging always means suspicious (playtest, Oct 16), so
+// a real message flagged clean is a right answer and a flagged one says how many parts.
+export function flagSummary(result: SlotResult): string | null {
+  if (result.wentAlong) return 'You went along with it.';
+  const n = result.caught.length + result.falseTaps.length;
+  if (!result.isScam) return n === 0 ? 'You flagged nothing. Correct, it was real.' : `You flagged ${n} ${n === 1 ? 'part' : 'parts'} of a real message.`;
+  return n === 0 ? 'You flagged nothing. It was a scam.' : null;
+}
 
 // What the player marked in the tell picker: the lines that held a caught tell (each line once),
 // then each marked line that was not a tell. Missed are the tells left unmarked. On a real message every

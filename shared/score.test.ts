@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RECOVERY_WINDOW_SECONDS, isVerdict, mostMissed, recoveryFor, scoreDay, scoreSlot, verdictRight } from './score.ts';
+import { GOES_ALONG, RECOVERY_WINDOW_SECONDS, goesAlong, isVerdict, skipsSteps, mostMissed, recoveryFor, scoreDay, scoreSlot, verdictRight } from './score.ts';
 import type { SlotKey } from './score.ts';
 import type { Action, MessagePart, TellId } from './types.ts';
 import { NEEDS } from './page.ts';
@@ -210,4 +210,28 @@ test('the verdict is right when it names what the message was', () => {
 test('a real message checked by a call is handled but not counted as trusted', () => {
   const day = scoreDay([scoreSlot(familyTwin, 'verify_known_number', []), scoreSlot(parcelTwin, 'reply', [])], { wallet: 2000, people: 3 });
   assert.deepEqual(day.realTrusted, { handled: 1, total: 2 });
+});
+
+test('a real message that itself calls for a check is trusted when checked, not over-cautious', () => {
+  const alert = { ...familyTwin, checkFits: true };
+  const score = scoreSlot(alert, 'verify_known_number', []);
+  assert.equal(score.actionCorrect, true);
+  assert.equal(score.cautious, undefined);
+  assert.deepEqual(scoreDay([score], { wallet: 2000, people: 3 }).realTrusted, { handled: 1, total: 1 });
+});
+
+test('going along skips the verdict and the flags; every other action keeps them', () => {
+  assert.deepEqual([...GOES_ALONG].sort(), ['install', 'open_link', 'pay', 'read_code', 'send_money', 'share_code']);
+  for (const action of ['reply', 'ignore', 'block_report', 'verify_known_number', 'keep_secret', 'call_back'] as const) assert.equal(goesAlong(action), false, action);
+  const skipped = scoreSlot(family, 'send_money', []);
+  assert.deepEqual(skipped.missed, family.plantedTells, 'on a scam every tell counts as missed');
+  assert.deepEqual(scoreSlot(familyTwin, 'pay', []).caught, []);
+});
+
+test('a practice page left unsent keeps the steps; sent, or any other going-along action, skips them', () => {
+  assert.equal(skipsSteps('open_link', true, false), false);
+  assert.equal(skipsSteps('open_link', true, true), true);
+  assert.equal(skipsSteps('open_link', false, false), true);
+  assert.equal(skipsSteps('pay', true, false), true);
+  assert.equal(skipsSteps('block_report', false, false), false);
 });

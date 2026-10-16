@@ -222,3 +222,23 @@ test('scaffold_word: production words about the player never reach the copy', ()
   expectOnly({ ...clean(), usualEnding: 'Every contact gets the same message in the player\'s name.' }, 'scaffold_word');
   expectOnly({ ...clean(), usualEnding: 'The scam asks the player for more.' }, 'scaffold_word');
 });
+
+test('contractions and casual texting pass the text rules: friends sound like friends', () => {
+  const probes = [
+    "it's me lol, can't talk rn. [ask line]",
+    "hey Sis, don't tell Mom yet. [ask line]",
+    "Hi Babe, I'm stuck, pls help. [ask line]",
+    "Hello dear, I am genuine buyer, pls check. [ask line]",
+    "you're the best!! won't take long. [ask line]",
+  ];
+  for (const text of probes) {
+    const draft = { ...clean(), ask: [part('a1', text, ['authority', 'urgency'])] };
+    assert.deepEqual(guardDraft(draft, OPTIONS), { ok: true, reasons: [] }, text);
+  }
+});
+
+test('twin_disclaims catches the contracted form too', () => {
+  const base = clean();
+  const twin = { ...base, realTwin: { ...base.realTwin, parts: [part('r1', "[real twin line]. You don't need to pay anything.")] } };
+  expectOnly(twin, 'twin_disclaims');
+});

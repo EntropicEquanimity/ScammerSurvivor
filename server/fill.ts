@@ -147,13 +147,19 @@ export const secondPerson = (text: string): string =>
     return match[0] === 'T' ? word[0].toUpperCase() + word.slice(1) : word;
   });
 
+// Names retired from the people lists (a tech word read as scaffolding, agent-lessons row 23) and
+// their replacements, for cards cached before the rename. Whole words, capital first only.
+const RETIRED_NAMES: Readonly<Record<string, string>> = { Dev: 'Rohan' };
+const RETIRED = new RegExp(`\\b(${Object.keys(RETIRED_NAMES).join('|')})\\b`, 'g');
+export const renamed = (text: string): string => text.replace(RETIRED, (name: string) => RETIRED_NAMES[name] ?? name);
+
 // A card with every placeholder filled, in every text field, its look ids named, no doubled word, and
 // its X-masked numbers in the pack's local format. A card with nothing to change (every fixture) is
 // returned as is, so a day dealt from the fixtures still holds the fixture objects.
 export function fillCard(card: Card): Card {
   const fills = tokenFills(card);
   const fill = (text: string, key: string): string =>
-    key === 'maskedNumber' ? localNumber(text, card.country ?? '') : collapse(secondPerson(named(undouble(fillText(text, fills), fills.institution))));
+    key === 'maskedNumber' ? localNumber(text, card.country ?? '') : renamed(collapse(secondPerson(named(undouble(fillText(text, fills), fills.institution)))));
   const filled = mapStrings(card, fill) as Card;
   return JSON.stringify(filled) === JSON.stringify(card) ? card : filled;
 }

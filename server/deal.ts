@@ -134,6 +134,7 @@ const toKey = (card: Card, isTwin: boolean): SlotKey => ({
   safeReplies: unique([...card.safeReplies, VERIFY]),
   unsafeReplies: card.unsafeReplies.filter((action) => action !== VERIFY),
   acceptable: withoutCodes(unique([...card.realTwin.acceptable, VERIFY]), true),
+  checkFits: card.realTwin.acceptable.includes(VERIFY), // the note lists the call as the fitting reply
   stake: card.stake,
   ...withPage(card, isTwin, (page) => ({ page: { kind: page.kind, needs: [...NEEDS[page.kind]], tells: pageTells(page) } })),
 });
@@ -262,7 +263,7 @@ export function followUpFor(sender: Card['sender']): NonNullable<SlotResult['fol
 }
 
 // On a real message the scam's "never asks" line reads off-topic: the lesson's next-time line is the real side's.
-const REAL_NEXT_TIME = 'Keep checking the same way: the number you know, the official app.';
+const REAL_NEXT_TIME = 'Keep checking this way: call the number you know, or open the official app.';
 
 export function lessonFor(raw: Card, hotline: CountryPack['hotline'], isTwin = false): SlotResult['lesson'] {
   const card = fillCard(raw);

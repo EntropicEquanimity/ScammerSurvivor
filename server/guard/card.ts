@@ -101,7 +101,7 @@ export interface GuardResult {
 export const BRAND_DENYLIST = [
   'google', 'microsoft', 'amazon', 'netflix', 'mastercard', 'dhl', 'fedex', 'interpol',
   'samsung', 'binance', 'coinbase', 'youtube', 'linkedin', 'twitter', 'snapchat', 'wechat',
-  'alipay', 'grabpay', 'spotify', 'uber',
+  'alipay', 'grabpay', 'spotify', 'uber', 'facetime', 'skype',
 ];
 
 // Capitalised words that are not names: the people roles, the institution labels,
@@ -115,6 +115,8 @@ const NAME_STOPLIST = new Set([
   ...APP_WORDS,
   'mum', 'mother', 'father', 'aunt', 'uncle', 'son', 'daughter', 'grandma', 'grandpa', 'cousin',
   'officer', 'court', 'customs', 'support', 'admin', 'department', 'service', 'delivery', 'account',
+  // Casual ways to address someone, so "hey Sis" or "Hi Babe" is not read as a stranger's name.
+  'sis', 'bro', 'babe', 'hun', 'honey', 'love', 'darling', 'sweetie', 'mate', 'guys', 'everyone',
   'dear', 'sir', 'madam', 'mr', 'ms', 'mrs', 'customer', 'hi', 'hello',
   'thank', 'thanks', 'please', 'yes', 'no', 'ok', 'reply', 'today', 'tomorrow',
   'your', 'our', 'my', 'the', 'this', 'that', 'it', 'me', 'us', 'we', 'you',
@@ -127,7 +129,7 @@ const NAME_STOPLIST = new Set([
 // A real message never says what it does not ask for: "no fee", "no payment needed", "we never ask".
 // Money and asking words only, so "no need to reply" or "no rush" stays an ordinary twin.
 // ponytail: a short phrase list, not meaning; a new disclaimer wording slips through until it is added.
-const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay)\b/i;
+const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay)\b|\b(?:do not|don't|dont)\s+(?:need|have)\s+to\s+pay\b/i;
 
 // A real twin never asks the player to share, read or enter a code or a password (Skeptic round 4):
 // that is the habit every scam in the game is built on. "never share your code" does not count.

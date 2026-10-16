@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, isVerdict, recoveryFor, scoreDay, scoreSlot, verdictRight } from '../../shared/score.ts';
+import { RECOVERY_ACTIONS, RECOVERY_WINDOW_SECONDS, isVerdict, skipsSteps, recoveryFor, scoreDay, scoreSlot, verdictRight } from '../../shared/score.ts';
 import type { SlotScore } from '../../shared/score.ts';
 import { ACTIONS, PEOPLE_ROLES } from '../../shared/types.ts';
 import type { Action, AgeGroup, Card, TellId, CountryPack, DayPayload, DayScore, People, PublicCard, RecoverResult, SlotResult } from '../../shared/types.ts';
@@ -301,10 +301,12 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
   if (!slot) return fail(400, 'unknown_slot');
   if (!slot.action) return fail(400, 'no_action_yet');
   if (slot.result) return ok(slot.result);
-  const taps = parseTaps(slot, fields.tappedPartIds);
+  // Going along skips the verdict and the flags on every card: none are taken, whatever was sent.
+  const along = skipsSteps(slot.action, Boolean(slot.public.page), (givenOf(slot) ?? []).length > 0);
+  const taps = along ? [] : parseTaps(slot, fields.tappedPartIds);
   if (!taps) return fail(400, 'bad_taps');
   if (fields.verdict !== undefined && !isVerdict(fields.verdict)) return fail(400, 'bad_verdict');
-  const verdict = fields.verdict;
+  const verdict = along ? undefined : fields.verdict;
   const score = scoreOf(slot, slot.action, taps);
   const before = runningTotals(state);
   const { walletDelta, peopleDelta, pageLeft, ...rest } = score;
@@ -319,6 +321,7 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
     lesson: withPageLesson(slot, lessonFor(slot.card, state.hotline, slot.isTwin)),
     ...(questionedOn(slot) ? { questioned: true } : {}),
     ...(verdict ? { verdict, verdictCorrect: verdictRight(!slot.isTwin, verdict) } : {}),
+    ...(along ? { wentAlong: true } : {}),
   };
   const next: ScoredSlot = { ...slot, taps, result, scoredAt: now, lost: before.wallet - walletAfter };
   saveDay(withSlot(state, next));

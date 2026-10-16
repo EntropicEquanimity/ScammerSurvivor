@@ -31,8 +31,20 @@ Output: one card as JSON in the given schema. JSON only.
 Rules:
 - Write the scam as message parts. Attach to each part the tell ids it carries, from the enum only. plantedTells lists exactly the tells used on the parts.
 - Every tell listed in the pattern note must be tagged in the tellIds of at least one part in "ask" (not only in "setup"). The tag is what counts; the words never need to name the tell. Let structure carry a tell: a payee the player has never paid (payment_substitution), a familiar account asking for something unusual or a changed number (synthetic_identity), a quiet "just between us" (isolation), the code just sent to you (credential_theft). Urgency can be soft: "today", "by tonight", "before the courier leaves". One pressure per part; never stack every tell into one line.
-- Register: scam parts are short (about 15 words or fewer), template-shaped and lightly unpolished (a stiff phrase, odd capitals, a missing comma). No literary words. An institution scam reads like an automated alert. A romance builds over small friendly messages, never a declaration in the first one.
-- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list. It sounds like that sender: a courier update is terse, a bank alert is one line, Mom is warm and casual. It never mentions what it does not ask for (no "no fee", "no payment needed", "we never ask", "never charge"). It ends when its business ends. It never asks the player to share, read or enter a code, a one-time code, a PIN or a password, and its acceptable list never holds share_code or read_code: a real sender says to open their own app.
+- Register: scam parts are short (about 15 words or fewer), one pressure per part, no literary words. Every text is written the way its sender really types. Contractions wherever a person would use them (it's, I'm, don't, can't, you're); never "It is [name]", "I am unable to" or "let us talk here" from a person. Voices by sender, as style notes only (never copy a note as a whole message):
+  - Friends and family (the player's people, and the real twin from them): texts, not letters. Short lines, often no greeting, a lowercase start now and then, shorthand like pls, lol, omw, haha, ya, rn, at most one small typo in an ordinary word per card. Style: "u home yet?", "lol ok", "grab milk on the way pls".
+  - Family trouble (someone posing as one of them): the same casual voice, panicked and short. Fragments, double "!!", no polish. Style: "pls pick up", "can't explain now", "it's bad".
+  - Fake buyers and sellers: broken, over-earnest English with missing articles and odd tense. Style: "I am genuine buyer", "pls check", "kindly confirm item".
+  - Fake bank, wallet, courier and prize desks: a copy of a corporate alert template that is slightly off: "[institution]:" in front, Random Title Case, a stiff "kindly", "Dear Customer", a dropped article. Style: "Your Parcel is On Hold", "kindly update details".
+  - Fake police and officials: stiff, formal and threatening, legal nouns, no contractions. Style: "failure to comply", "you are hereby advised", "case under investigation".
+  - Romance: warm and flowery, pet names and compliments, building over small messages; never a declaration in the first one. Style: "good morning dear", "your smile made my day".
+  - Job and task recruiters: upbeat and chatty, exclamation marks, at most two emoji on the whole card and never inside a link or an amount. Style: "Hi dear!", "easy daily income", "Congratulations!".
+  - Investment mentors: a confident, chummy teacher. Style: "my students", "today's signal". A boss: clipped and busy, no greeting. Style: "need this done today".
+  - Real institutions (the real twin from a bank, courier, office or shop): a real automated alert: terse, templated, one fact per part, a short reference of four digits or fewer where it fits ("Ref A2041"), no pleading, no "kindly", no exclamation marks.
+  - Real people never sound like a script: no greeting plus full name plus purpose in one line.
+  - English only, readable anywhere in Asia Pacific: no words from any other language and no dialect particles or slang from any one country; shorthand is the only flavour.
+  - Typos and lowercase never touch a name, an amount, a link or the word "code". Put a space after every full stop.
+- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list. It sounds like that sender: a courier update is terse, a bank alert is one line, Mom texts warm and casual with contractions. It never mentions what it does not ask for (no "no fee", "no payment needed", "we never ask", "never charge"). It ends when its business ends. It never asks the player to share, read or enter a code, a one-time code, a PIN or a password, and its acceptable list never holds share_code or read_code: a real sender says to open their own app.
 - Every text speaks to the reader as "you" and "your". The pattern note says "the player"; never copy that word into a card.
 - Give safe replies and unsafe replies from the reply enum only.
 - usualEnding: one sentence on what happens if the player complies.
@@ -40,7 +52,7 @@ Rules:
 - People: first names only, from the allowed list. The user message says who sends the card. One of the player's people: that person by name. A stranger (recruiter, mentor, officer, buyer, courier, a new romance contact): a role or business name such as "[institution] Support" or "Hiring team", or a neutral first name from the list.
 - Spell every name exactly as the allowed list gives it, letter for letter with the same capitals; never swap in a variant or a nickname. Family words follow the game's labels: Mom and Dad, never Mum, Ma, Mother or Father.
 - maskedNumber: a plus sign, the country code, a space, X for every hidden digit, then the real last four digits (shape "+65 XXXX NNNN"). The scam sender and the real twin have different last-four digits.
-- No run of five or more digits in a row anywhere in any text field. No account numbers, reference numbers or codes written as digits; say "the code just sent to you" instead.
+- No run of five or more digits in a row anywhere in any text field. No account numbers or codes written as digits; say "the code just sent to you" instead. A short reference of four digits or fewer is fine.
 - Amounts: the user message gives the stake and the currency. The main amount asked for is the stake, written the way people there write money: the currency code and the figure with a comma between thousands ("JPY 30,000", "IDR 2,000,000", "INR 10,000", "SGD 500"). The comma keeps every digit run under five; never write "30000". A trick that opens with a small figure (a re-delivery fee, a first task payout, an early withdrawal) may show it before the stake.
 - Links only on the .example domain, written as plain text.
 - Level 1: tells are obvious. Level 3: tells are subtle. English only. No em dashes.
@@ -188,7 +200,9 @@ const turn = (role: 'user' | 'model', text: string): Content => ({ role, parts: 
 
 type RawPart = { text?: unknown; tellIds?: unknown };
 const asList = <T = RawPart>(value: unknown): T[] => (Array.isArray(value) ? [...(value as T[])] : []);
-const asText = (value: unknown): string => (typeof value === 'string' ? value : '');
+const CURLY = String.fromCharCode(0x2019);
+// Curly apostrophes become straight ones, so every check after this reads "it's" one way.
+const asText = (value: unknown): string => (typeof value === 'string' ? value.replaceAll(CURLY, "'") : '');
 
 const toParts = (prefix: string, items: unknown): MessagePart[] =>
   asList(items).map((part, index) => ({

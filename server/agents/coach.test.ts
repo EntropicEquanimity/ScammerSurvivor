@@ -205,3 +205,9 @@ test('the trace keeps the last twenty events of a day', async () => {
   assert.equal(readTrace(dayId).length, 20);
   assert.deepEqual(readTrace('nope'), []);
 });
+
+test("the lesson keeps the game's own voice, never the sender's", () => {
+  assert.match(COACH_SYSTEM, /game's own voice/);
+  assert.match(COACH_SYSTEM, /Never copy the sender's slang, broken English, alert template or tone/);
+  assert.ok(lineOk("It's a new number asking for money, and that's the giveaway here."));
+});

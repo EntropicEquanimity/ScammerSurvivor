@@ -441,3 +441,28 @@ test('the verdict rides with the taps and is scored on its own; a bad one is ref
   const wrong = scoreTap(dayId, { slotId: second.slotId, tappedPartIds: [], verdict: second.isTwin ? 'scam' : 'real' });
   assert.ok(wrong.status === 200 && wrong.body.verdictCorrect === false);
 });
+
+test('every going-along action skips the verdict and the flags, on a scam and a real card alike', () => {
+  const found = new Set<string>();
+  for (const country of ['SG', 'AU', 'HK', 'ID', 'IN', 'JP', 'MY', 'PH']) {
+    for (let tries = 0; tries < 12; tries += 1) {
+      const { dayId } = startDay({ country });
+      for (const slot of readDay(dayId)?.slots ?? []) {
+        const action = slot.public.offered.find((a) => ['open_link', 'pay', 'send_money', 'share_code', 'read_code', 'install'].includes(a) && !found.has(`${a}-${slot.isTwin}`));
+        if (!action || slot.public.page) continue;
+        recordAct(dayId, { slotId: slot.slotId, action });
+        const scored = scoreTap(dayId, { slotId: slot.slotId });
+        assert.ok(scored.status === 200, `${action} ${slot.isTwin}`);
+        if (scored.status !== 200) continue;
+        assert.equal(scored.body.wentAlong, true);
+        assert.equal(scored.body.verdict, undefined);
+        assert.deepEqual(scored.body.caught, []);
+        assert.deepEqual(scored.body.missed.length, slot.isTwin ? 0 : slot.key.plantedTells.length);
+        found.add(`${action}-${slot.isTwin}`);
+      }
+    }
+  }
+  for (const action of ['open_link', 'pay', 'send_money', 'share_code']) {
+    assert.ok(found.has(`${action}-false`) && found.has(`${action}-true`), `${action} met on a scam and a twin`);
+  }
+});

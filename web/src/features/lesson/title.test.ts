@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { ACTIONS } from '../../../../shared/types.ts';
 import type { SlotResult } from '../../../../shared/types.ts';
 import { TRICK_IDS, TRICK_TITLES } from '../../../../shared/taxonomy.ts';
-import { ACTION_LINES, flagsOf, tellOrder, tellRows, lessonTitle, outcomeLine, parseNotes, quoteOf, secondPerson, verdictSaid } from './title.ts';
+import { ACTION_LINES, flagsOf, tellOrder, tellRows, lessonTitle, outcomeLine, parseNotes, quoteOf, secondPerson, verdictSaid, flagSummary } from './title.ts';
 
 const base = (over: Partial<SlotResult> = {}): SlotResult => ({
   slotId: 's1',
@@ -120,4 +120,13 @@ test('the verdict leads the line, right or wrong, and the action still follows',
   assert.equal(outcomeLine(base({ action: 'reply', isScam: false, verdict: 'scam', verdictCorrect: false })).text, 'You said Scam \u2717. You answered a real message.');
   assert.equal(verdictSaid(base({ verdict: 'real', verdictCorrect: true })), 'You said Real \u2713.');
   assert.equal(verdictSaid(base()), '');
+});
+
+test('the flag summary: nothing flagged on a real message is correct; flags on one are counted', () => {
+  assert.equal(flagSummary(base({ isScam: false, caught: [], falseTaps: [] })), 'You flagged nothing. Correct, it was real.');
+  assert.equal(flagSummary(base({ isScam: false, caught: [], falseTaps: ['r1', 'r2'] })), 'You flagged 2 parts of a real message.');
+  assert.equal(flagSummary(base({ isScam: false, caught: [], falseTaps: ['r1'] })), 'You flagged 1 part of a real message.');
+  assert.equal(flagSummary(base({ isScam: true, caught: [], falseTaps: [] })), 'You flagged nothing. It was a scam.');
+  assert.equal(flagSummary(base({ isScam: true, caught: ['urgency'], falseTaps: [] })), null);
+  assert.equal(flagSummary(base({ isScam: true, caught: [], falseTaps: [], wentAlong: true })), 'You went along with it.');
 });

@@ -7,6 +7,10 @@ import type { SendOutcome } from './fill.ts';
 // Ids only: the values live in shared/profile.ts and never leave the phone.
 
 const sentListeners = new Set<() => void>();
+const sentSlots = new Set<string>(); // slot ids whose page sent something, this visit
+
+// Whether the slot's practice page sent anything: opening the link then goes along (shared/score.ts skipsSteps).
+export const pageWasSent = (slotId: string): boolean => sentSlots.has(slotId);
 
 // The cards poll listens: a leak plans a rewrite of a later scam, so the poll has to run again.
 export function onPageSent(listener: () => void): () => void {
@@ -35,7 +39,10 @@ export async function sendPage(slotId: string, given: FieldId[]): Promise<SendOu
       body: JSON.stringify({ slotId, given }),
     });
     const outcome = outcomeOf(response.status, response.ok ? undefined : await errorOf(response));
-    if (outcome === 'sent') sentListeners.forEach((listener) => listener());
+    if (outcome === 'sent') {
+      sentSlots.add(slotId);
+      sentListeners.forEach((listener) => listener());
+    }
     return outcome;
   } catch {
     return outcomeOf(0, undefined);

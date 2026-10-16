@@ -7,6 +7,7 @@ import { CallLayer } from '../call/CallLayer.tsx';
 import { callStatus, covers } from '../call/ring.ts';
 import { useInterrupt } from '../call/useInterrupt.ts';
 import type { Interrupt } from '../call/useInterrupt.ts';
+import { AftermathScene } from '../aftermath/AftermathScene.tsx';
 import { ActionBar } from '../card/ActionBar.tsx';
 import { ChatThread, ReplyChips } from '../chat/ChatThread.tsx';
 import { useChat } from '../chat/useChat.ts';
@@ -107,7 +108,7 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
         )}
       </div>
       {/* Replying swaps the bottom area like a keyboard: the chips while you pick, nothing while they type. */}
-      <ReplyChips chat={chat} />
+      <ReplyChips chat={chat} onSayOk={() => onAct('reply')} />
       {!chat.state.open && !chat.state.waiting && <ActionBar card={chat.card} busy={busy} onAct={act} />}
     </section>
   );
@@ -117,7 +118,7 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
 // lesson are full app screens of their own (the Ruler's HOLD), the call has its own full-screen
 // look, and the end screen has its own score. A call over the day hides it too.
 // The tells keep the HUD: the points fly into it from Done there.
-const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'lesson', 'call', 'end'];
+const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'aftermath', 'lesson', 'call', 'end'];
 
 type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
@@ -136,11 +137,14 @@ function slotScreen(d: Day, step: Step) {
   const { phase, day, lastResult } = d;
   if (!day || !('slotId' in phase)) return null;
   const card = day.cards.find((candidate) => candidate.slotId === phase.slotId);
-  if (phase.kind === 'lesson' && lastResult) return <Lesson dayId={day.dayId} result={lastResult} lost={lostText(d)} {...step} />;
-  if (phase.kind === 'note' && card && lastResult) return <RealNote dayId={day.dayId} card={card} result={lastResult} {...step} />;
+  // The aftermath scene shows the follow-up now, so the lesson and the note do not show it twice.
+  const shown = lastResult && { ...lastResult, followUp: null };
+  if (phase.kind === 'aftermath' && card) return <AftermathScene key={card.slotId} dayId={day.dayId} card={card} onDone={d.afterAftermath} />;
+  if (phase.kind === 'lesson' && shown) return <Lesson dayId={day.dayId} result={shown} lost={lostText(d)} {...step} />;
+  if (phase.kind === 'note' && card && shown) return <RealNote dayId={day.dayId} card={card} result={shown} {...step} />;
   if (phase.kind === 'recovery' && Recovery && card) {
     return (
-      <Suspense fallback={<Notice title="One moment" line="Checking what can still be done." />}>
+      <Suspense fallback={<Notice title="One moment" line="Seeing what you can still do." />}>
         <Recovery dayId={day.dayId} slotId={phase.slotId} stake={card.stake} onDone={d.recovered} onSkip={d.skipRecovery} />
       </Suspense>
     );
@@ -201,7 +205,7 @@ function useDayWithCall({ country, age, quick, onCall, onResult }: DayCallInput)
 export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const juice = useJuice();
   // The points fly from the tell picker's Done; the bonus counts the marks that held a tell.
-  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .tells-done'), correctMarkMs(result.falseTaps));
+  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .tells-done'), result.wentAlong ? [] : correctMarkMs(result.falseTaps));
   const { d, call, endCall } = useDayWithCall({ country, age, quick, onCall, onResult });
   const step = { busy: d.busy, failed: d.failed, onNext: d.next };
   const { phase } = d;

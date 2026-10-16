@@ -57,7 +57,7 @@ export function SafariView({ slotId, page, preview = false, onLeave }: Props) {
     if (event.key === 'Escape' && phase !== 'sending') onLeave();
   };
   const offering = sent || preview ? null : form.focus;
-  const hint = sent || preview || page.fields.length === 0 ? 'Tap Done to go back.' : 'Tap a row to fill it, or Done to leave.';
+  const hint = sent || preview || page.fields.length === 0 ? 'Tap Done to go back.' : 'Tap a row to fill it in. Tap Done to leave.';
   return (
     <section className="safari anim-sheet" role="dialog" aria-label={`Browser, ${page.host}`} onKeyDown={onKey}>
       <header className="safari-bar">

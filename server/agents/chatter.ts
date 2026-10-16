@@ -14,7 +14,7 @@ import { INSTITUTIONS, BRANDS, isInstitutionId } from '../../shared/brands.ts';
 import { CHIP_LABELS } from '../../shared/chips.ts';
 import { TELLS, TRICKS } from '../../shared/taxonomy.ts';
 import type { Card, ChatChipId, TraceEvent } from '../../shared/types.ts';
-import { SCAM_LINES, TWIN_LINES } from './chatterLines.ts';
+import { ROMANCE_VOICE, SCAM_LINES, SCAM_VOICE, TWIN_LINES, TWIN_VOICE } from './chatterLines.ts';
 import type { SenderKind } from './chatterLines.ts';
 
 export { CHAT_CHIPS, CHIP_LABELS, MAX_EXCHANGES, pickChips } from '../../shared/chips.ts';
@@ -76,6 +76,7 @@ const NOT_NAMES = new Set([
   'my', 'our', 'we', 'it', 'this', 'that', 'what', 'about', 'urgent', 'important', 'fine', 'ok', 'okay', 'busy', 'calling',
   'from', 'with', 'at', 'in', 'on', 'for', 'to', 'all', 'now', 'today', 'mum', 'mom', 'dad', 'sir', 'madam', 'dear', 'team',
   'again', 'afraid', 'glad', 'happy', 'sure', 'safe', 'home', 'back', 'out', 'late', 'stuck', 'waiting', 'serious', 'real',
+  'sis', 'bro', 'babe', 'hun', 'honey', 'love', 'darling', 'sweetie', 'mate', 'guys', 'everyone',
   'officer', 'manager', 'support', 'customer', 'parcel', 'courier', 'bank', 'account', 'desk', 'office', 'friend', 'family',
   ...Object.values(INSTITUTIONS).flatMap((label) => label.toLowerCase().split(/\s+/)),
   ...Object.values(BRANDS).map((brand) => brand.name.toLowerCase()),
@@ -86,6 +87,9 @@ const EM_DASH = String.fromCharCode(0x2014);
 // The Guard's twin rule (server/guard/card.ts, not exported there): a real sender never says what it
 // does not ask for, since only someone expecting suspicion says "no fee" or "we never ask".
 const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay|nothing to pay)\b|\b(?:not|never)\s+asking\s+(?:you\s+)?for\s+(?:any\s+)?(?:money|payment|anything)\b|\b(?:do not|don't|dont)\s+need\s+to\s+pay\b/i;
+// Curly apostrophes read as straight ones, so both kinds of "it's" pass the same checks.
+const CURLY = String.fromCharCode(0x2019);
+const straight = (text: string): string => text.replaceAll(CURLY, "'");
 const words = (text: string): string[] => text.trim().split(/\s+/).filter(Boolean);
 const hasBrand = (text: string): boolean => (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 const offExampleLink = (text: string): boolean => [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
@@ -97,7 +101,7 @@ const strangeName = (text: string, allowed: Set<string>): boolean =>
 
 // Reason ids only, never the text. Pure, so the route test and the live run read the same rules.
 export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false, said?: ChatChipId): ChatReason[] {
-  const text = typeof raw === 'string' ? raw.trim() : '';
+  const text = typeof raw === 'string' ? straight(raw).trim() : '';
   if (!text) return ['empty'];
   const allowed = new Set(allowedNames.flatMap((name) => name.toLowerCase().split(/\s+/)));
   const checks: [ChatReason, boolean][] = [
@@ -149,9 +153,9 @@ export interface ChatLine {
   text: string;
 }
 
-const SCAM_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice and is learning to spot tricks. You play the sender of a scam message the player received. The player tapped a short reply. Your first sentence answers exactly what the player asked, in the sender's own voice: asked who you are, say who; asked for proof, talk about the proof; asked to call, talk about the call. Then keep the trick going and push harder with one classic pressure move that fits it, such as more urgency, a new excuse for why a call cannot happen, a request to keep it quiet, or a link or a code ask, but only a move the trick description supports. Never admit it is a scam. Never break character. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, any link only on a host ending in .example, no personal name except the ones given. JSON only.`;
+const SCAM_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice and is learning to spot tricks. You play the sender of a scam message the player received. The player tapped a short reply. Your first sentence answers exactly what the player asked, in the sender's own voice: asked who you are, say who; asked for proof, talk about the proof; asked to call, talk about the call. Then keep the trick going and push harder with one classic pressure move that fits it, such as more urgency, a new excuse for why a call cannot happen, a request to keep it quiet, or a link or a code ask, but only a move the trick description supports. Never admit it is a scam. Never break character. Write it the way that kind of scammer really types (the Voice line says how): contractions where a person would use them, never a stiff "It is" or "let us" from someone texting. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, any link only on a host ending in .example, no personal name except the ones given. JSON only.`;
 
-const TWIN_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice. You play the real, honest sender of an ordinary message the player received. The player tapped a short reply. Your first sentence answers exactly what the player asked, the way the real person or the real company would: a friend or relative sounds like one (casual, warm, first name), a company sounds like a company. Stay calm, friendly, no pressure, no secrecy, no request for money, codes or passwords. If asked who you are, say so plainly. If the player wants to check, welcome it: say call me on the number you have, or point to the official app or the number they already know. Never send a link. Never say what you would never ask for or that something is free; just answer. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, no personal name except the ones given. JSON only.`;
+const TWIN_SYSTEM = `You write one chat message inside a scam-awareness practice game. The player knows it is practice. You play the real, honest sender of an ordinary message the player received. The player tapped a short reply. Your first sentence answers exactly what the player asked, the way the real person or the real company would: a friend or relative texts like one (casual, warm, contractions, short lines, shorthand like pls or lol is fine), a company sends a terse automated line with no pleading. Follow the Voice line. Stay calm, friendly, no pressure, no secrecy, no request for money, codes or passwords. If asked who you are, say so plainly. If the player wants to check, welcome it: say call me on the number you have, or point to the official app or the number they already know. Never send a link. Never say what you would never ask for or that something is free; just answer. Rules: under ${MAX_WORDS} words, plain English, no em dash, no square brackets, no digits in a run of five or more, no real company, bank, app, country or agency name, no personal name except the ones given. JSON only.`;
 
 // The move for the chip just sent. A scam slips the way real ones do (no proof, keep off the
 // official line); a twin answers like the real sender. One short line each, appended to the prompt.
@@ -205,6 +209,13 @@ const kindLabel = (card: Card, isTwin: boolean): string => {
   return kind === 'unknown' ? 'a sender' : INSTITUTIONS[kind].toLowerCase();
 };
 
+// How this sender writes, one line of style notes; romance scams have their own voice.
+export const voiceLine = (card: Card, isTwin: boolean): string => {
+  const kind = senderKind(card, isTwin);
+  const voice = isTwin ? TWIN_VOICE[kind] : card.trickId === 'fast_romance' ? ROMANCE_VOICE : SCAM_VOICE[kind];
+  return `Voice: ${voice}. English only, no words from other languages, a space after every full stop.`;
+};
+
 const threadLines = (thread: readonly ChatLine[]): string[] =>
   thread.map((line) => `${line.from === 'player' ? 'Player' : 'You'}: ${line.text}`);
 
@@ -213,13 +224,14 @@ export function chatPrompt(card: Card, isTwin: boolean, thread: readonly ChatLin
   const names = `Names you may use: ${[...allowedNames].join(', ') || 'none'}.`;
   if (isTwin) {
     const { sender, parts } = card.realTwin;
-    return [`You are: ${sender.displayName} (${kindLabel(card, true)}).`, `Your message: ${parts.map((p) => p.text).join(' ')}`, names, 'Chat so far:', ...threadLines(thread)].join('\n');
+    return [`You are: ${sender.displayName} (${kindLabel(card, true)}).`, voiceLine(card, true), `Your message: ${parts.map((p) => p.text).join(' ')}`, names, 'Chat so far:', ...threadLines(thread)].join('\n');
   }
   const trick = TRICKS.find((row) => row.id === card.trickId)?.name ?? card.trickId;
   const moves = card.plantedTells.map((id) => TELLS[id].label).join(', ');
   const shown = [...card.setup, ...card.ask].map((p) => p.text).join(' ');
   return [
     `You are: ${card.sender.displayName}, posing as: ${kindLabel(card, false)}.`,
+    voiceLine(card, false),
     `The trick: ${trick}. Its pressure moves: ${moves}.`,
     `How it usually goes: ${card.usualEnding}`,
     `Your first message: ${shown}`,
@@ -299,7 +311,7 @@ export const quickGenerate: Generate = (req) => {
 
 const textOf = (json: unknown): string => {
   const raw = (json && typeof json === 'object' ? json : {}) as { text?: unknown };
-  return typeof raw.text === 'string' ? raw.text.trim() : '';
+  return typeof raw.text === 'string' ? straight(raw.text).trim() : '';
 };
 
 const reasonText = (reason: ChatReason, said?: ChatChipId): string =>

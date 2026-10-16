@@ -68,29 +68,35 @@
 }
 
 .part-tap[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  box-shadow: var(--shadow);
+  background: color-mix(in srgb, var(--flag) 10%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px var(--flag), var(--shadow);
   transform: translateY(-3px);
 }
 
-/* The stamp springs in over the press beat (120ms). */
+/* The red-flag stamp, "Flagged as suspicious": it takes no room until the part is flagged, then
+   springs in over the press beat (120ms). */
 .part-stamp {
+  display: none;
   flex: none;
+  gap: 0.25rem;
+  align-items: center;
   padding: 0 0.5rem;
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--flag);
   color: var(--surface);
   font-size: var(--t13);
   font-weight: 700;
   line-height: 1.5;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity var(--dur-press) ease-out, transform var(--dur-press) var(--spring-out);
+}
+
+@keyframes stamp-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .part-tap[aria-pressed='true'] .part-stamp {
-  opacity: 1;
-  transform: scale(1);
+  display: inline-flex;
+  animation: stamp-pop var(--dur-press) var(--spring-out);
 }
 
 /* A mark taken back: the part shivers once. */
@@ -118,10 +124,8 @@
     transition: background-color 160ms ease-out !important;
   }
 
-  .part-stamp,
   .part-tap[aria-pressed='true'] .part-stamp {
-    transform: none !important;
-    transition: opacity 160ms ease-out !important;
+    animation: part-dip 160ms ease-out reverse !important;
   }
 
   .part-shiver {
@@ -137,6 +141,8 @@
 
 /* Every part reads as tappable before a mark (the UX audit, Oct 16): a hairline outline and a small
    plus at the right, where the Marked stamp lands. */
+.tells { --flag: #c4001a; } /* iOS red, deepened to 6:1 for white words */
+
 .part-tap {
   position: relative;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--surface));
@@ -164,11 +170,11 @@
   padding-right: 1.75rem;
 }
 
-/* The skip and Done, two equal capsules where the tray sits; the thread fades out above them. */
+/* Nothing suspicious and Done, two capsules where the tray sits; the thread fades out above them. */
 .tells-end {
   display: grid;
   flex: none;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* "Nothing suspicious" is the longer label */
   gap: 0.5rem;
   position: relative;
   padding: 0.5rem 1rem 0.25rem;

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId, TraceEvent, Verdict } from '../../../../shared/types.ts';
 import { fetchDay, fetchTrace, postAct, postFinish, postOpen, postTap } from '../../api.ts';
+import { prepareAftermath } from '../aftermath/api.ts';
+import { skipsSteps } from '../../../../shared/score.ts';
+import { pageWasSent } from '../browser/api.ts';
 import { usePersonalised } from './useArrival.ts';
 import { getRoom, reportDay, startRoomDay } from '../room/api.ts';
 
@@ -10,7 +13,8 @@ export type Phase =
   | { kind: 'load-failed' }
   | { kind: 'notifications' }
   | { kind: 'card'; slotId: string }
-  | { kind: 'tells'; slotId: string }
+  | { kind: 'tells'; slotId: string } // "Scam or real?", then flagging (TellPicker.tsx)
+  | { kind: 'aftermath'; slotId: string } // what happened next, before the recovery, note or lesson
   | { kind: 'recovery'; slotId: string } // an unsafe action on a scam: the short window to claw it back
   | { kind: 'lesson'; slotId: string } // scams only
   | { kind: 'note'; slotId: string } // a real message: one quiet line in the thread, no lesson
@@ -135,8 +139,6 @@ export function phaseAfter(result: SlotResult, walletBefore: number, canRecover:
   return { kind: 'lesson', slotId };
 }
 
-// The wallet the player held before this slot: the last result's, else the day's start.
-const walletOf = (s: State): number => s.results.at(-1)?.walletAfter ?? s.day?.wallet ?? 0;
 
 // The last result with the recovery applied: the wallet after the claw-back, and how much came back.
 const withRecovery = (results: SlotResult[], recovery: RecoverResult): SlotResult[] =>
@@ -199,7 +201,20 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
   const act = (action: Action) => {
     if (!day || phase.kind !== 'card') return;
     const { slotId } = phase;
-    request(setState, () => postAct(day.dayId, { slotId, action }), (_ok, s) => ({ ...s, phase: { kind: 'tells', slotId } }));
+    // Going along skips "Scam or real?" and the flags on every card (shared/score.ts GOES_ALONG): the
+    // slot is scored at once and the aftermath shows what happened. Anything else decides, then flags.
+    const scoreNow = (): Promise<SlotResult | null> => {
+      prepareAftermath(day.dayId, slotId); // the lines are written while the player decides and flags
+      const page = Boolean(day.cards.find((card) => card.slotId === slotId)?.page);
+      if (!skipsSteps(action, page, pageWasSent(slotId))) return Promise.resolve(null);
+      return postTap(day.dayId, { slotId, tappedPartIds: [] }).then((result) => {
+        options.onResult?.(result);
+        return result;
+      });
+    };
+    request(setState, () => postAct(day.dayId, { slotId, action }).then(scoreNow), (result, s) =>
+      result ? { ...s, results: [...s.results, result], phase: { kind: 'aftermath', slotId } } : { ...s, phase: { kind: 'tells', slotId } },
+    );
   };
   const tap = (tappedPartIds: string[], verdict?: Verdict) => {
     if (!day || phase.kind !== 'tells') return;
@@ -213,7 +228,7 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
           options.onResult?.(result);
           return result;
         }),
-      (result, s) => ({ ...s, results: [...s.results, result], phase: phaseAfter(result, walletOf(s), options.canRecover) }),
+      (result, s) => ({ ...s, results: [...s.results, result], phase: { kind: 'aftermath', slotId: result.slotId } }),
     );
   };
   const recovered = (recovery: RecoverResult) => {
@@ -225,7 +240,20 @@ function transitions(day: DayPayload | null, phase: Phase, remaining: number, op
     if (phase.kind !== 'recovery') return;
     setState((s) => ({ ...s, busy: false, failed: false, phase: { kind: 'lesson', slotId: phase.slotId } }));
   };
-  return { open, act, tap, recovered, skipRecovery, ...endTransitions(day, phase, remaining, options, setState) };
+  return { open, act, tap, recovered, skipRecovery, afterAftermath: afterAftermath(phase, options, setState), ...endTransitions(day, phase, remaining, options, setState) };
+}
+
+// The aftermath scene is over: on to the recovery window, the note or the lesson, as the result says.
+function afterAftermath(phase: Phase, options: DayOptions, setState: SetState) {
+  return () => {
+    if (phase.kind !== 'aftermath') return;
+    setState((s) => {
+      const result = s.results.at(-1);
+      if (!result) return s;
+      const before = s.results.at(-2)?.walletAfter ?? s.day?.wallet ?? 0;
+      return { ...s, phase: phaseAfter(result, before, options.canRecover) };
+    });
+  };
 }
 
 // The day state machine: loading, notifications, card, tells, then a lesson, a note or the

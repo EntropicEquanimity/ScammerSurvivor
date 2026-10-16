@@ -302,6 +302,7 @@ export interface SlotResult {
   cautious?: boolean; // a real message met with Call to check: trusted, but it did not need the call
   verdict?: Verdict; // what the player said it was, when they said
   verdictCorrect?: boolean; // set with verdict: shared/score.ts verdictRight
+  wentAlong?: boolean; // the action went along with the message (shared/score.ts GOES_ALONG): no verdict, no flags
   action?: Action; // the action scored, so the lesson can say what it meant; routes/day.ts scoreTap sets it
   questioned?: boolean; // the player sent at least one reply chip before the final action
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model

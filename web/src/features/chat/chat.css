@@ -105,9 +105,10 @@
   .chat-chip:active { opacity: 0.7; transform: none; }
 }
 
-/* Back to the decisions without sending: the quiet pill, across both columns. */
+/* "Say OK" (answer and end the chat) and "Not now" (back to the decisions): the two quiet pills,
+   side by side in the last row. */
+.chat-chip-ok,
 .chat-chip-quiet {
-  grid-column: 1 / -1;
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
 }

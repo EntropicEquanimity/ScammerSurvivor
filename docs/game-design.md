@@ -252,3 +252,33 @@ Asked as a mobile game designer and Cup judge, on the draft of this file. Each p
 | 16 | The bank alert is a coin flip if untaught | Agree. It comes only right after a leak; the approval-scam twist moves after the freeze |
 | 17 | Safari has tabs and no Done; the in-app Safari view has Done and no tabs | Agree. The browser is the in-app Safari view: Done and the address, no tabs |
 | 18 | Ship and demo the leak loop even if the rest is thin | Agree. It is the first cut line and the video's main shot |
+
+## Voice: how every sender writes (all Gemini text)
+
+The team found cards stiff ("It is [name]", "let us talk here", no contractions from friends). Every agent that writes text a sender says follows this table: the Director (`server/agents/director.ts`, the Register rule), the Chatter (`server/agents/chatter.ts` and the `TWIN_VOICE` and `SCAM_VOICE` lines in `chatterLines.ts`) and the Aftermath. Style notes only, never a whole message (rule 6).
+
+| Sender | Voice | Style fragments |
+|---|---|---|
+| Friends and family | texts, not letters: short lines, often no greeting, a lowercase start now and then, shorthand, at most one small typo | "u home yet?", "lol ok", "omw" |
+| Family trouble (scam) | the same casual voice, panicked and short, double "!!", no polish | "pls pick up", "can't explain now" |
+| Fake buyer or seller | broken, over-earnest English, missing articles, odd tense | "I am genuine buyer", "pls check" |
+| Fake bank, wallet, courier, prize desk | a corporate alert template that is slightly off: "[institution]:" in front, Random Title Case, a stiff "kindly", a dropped article | "Your Parcel is On Hold" |
+| Fake police or official | stiff, formal, threatening, legal nouns, no contractions | "failure to comply" |
+| Romance | warm and flowery, pet names, compliments, builds slowly | "good morning dear" |
+| Job and task recruiter | upbeat, chatty, exclamation marks, two emoji at most per card | "Hi dear!", "easy daily income" |
+| Investment mentor | confident, chummy teacher | "my students", "today's signal" |
+| Boss | clipped and busy, no greeting | "need this done today" |
+| Real institution | a real automated alert: terse, templated, one fact per line, a reference of four digits or fewer, no pleading, no "kindly", no "!" | "Ref A2041" |
+| The lesson (Coach) | the game's own friendly coach voice, contractions fine, never the sender's slang or template | |
+
+Rules every voice keeps:
+- Contractions wherever a person would use them; a person never writes "It is [name]" or "let us".
+- English only, readable across Asia Pacific: no words from another language, no dialect particles or slang from any one country. Shorthand (pls, lol, omw, rn, ya) is the only flavour.
+- Typos and lowercase never touch a name, an amount, a link or the word "code" (a typo in a name burns the repair turn on `name_not_allowed`).
+- A space after every full stop: "ok.see" reads as a link to the Guard.
+- Emoji: no Guard or Chatter rule bans them (checked by grep, 16 Oct); recruiters only, never inside a link or an amount.
+- Curly apostrophes are turned straight before any check (`asText` in the Director, `straight` in the Chatter), so "it's" passes either way.
+- The Guard reads "hey Sis", "Hi Babe", "hun", "mate" as ways to address someone, not names.
+- Every Guard text rule still holds: digit runs of four or fewer, made-up brands, `.example` links, no em dash, no "the player", no layout ids, names from the allowed list.
+
+Live check, 16 Oct, developer route: 8 cards across SG, PH, JP and AU, 7 passed the Guard first try and 8 after repair (the one repair was `scaffold_word`, as in the old prompt); 6 of 6 chat replies passed first try. One chat reply named a real video-call app; it is now on the Guard's brand denylist.
