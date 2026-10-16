@@ -1,10 +1,10 @@
+import { PROFILE } from '../../../../shared/profile.ts';
 import { AppIcon } from '../day/AppIcon.tsx';
 import './banner.css';
 
-// The code shown in the text: dots only, never more than four digits (no code is ever readable).
-// ponytail: one function to swap for the pretend profile's code once shared/profile.ts lands, so
-// the text and the practice pages show the same value (masked to its last four digits at most).
-export const codeShown = (): string => '••••••';
+// The code in the text is the pretend profile's code, the same one the practice pages autofill, in
+// groups of three so no run of digits passes four. It is pretend: nothing real is ever shown.
+export const codeShown = (): string => PROFILE.code.replace(/(\d{3})(?=\d)/g, '$1 ');
 
 // The player's bank: the invented bank every bank-side card and call names (server/deal.ts,
 // category C). ponytail: mirrored by hand; a shared bank name constant is the upgrade.
