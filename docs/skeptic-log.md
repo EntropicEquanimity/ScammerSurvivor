@@ -45,3 +45,22 @@ Verdict: does not place first. Estimate 4 percent; 12 after question 1; about 20
 Also: sign-in still promised in two places after it was cut; the Privacy contact is a placeholder address; the home widget says "from police statistics" where the source is ScamShield; About says Vertex and later "developer route"; a card wrote "Mum" next to a "Mom" chip; the ended call shows no hotline.
 
 Cuts accepted: the 34 "Deck coming" countries in the picker; the sign-in lines; the laptop-run reliability block until a Cloud Run run replaces it.
+
+## Round 4, 2026-10-16 night, HEAD 9b18a5e on the local preview and live revision 8
+
+Verdict: does not place first. Estimate 4 percent; 14 after the single change; about 20 if the video leads with the arc.
+
+| # | Question | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 1 | Why does the day run backwards? | Notifications.tsx reverses the stack; clock 17:05 to 08:10; the rewrite target is played before the page scam | Messages arrive one at a time in slot order | builder, in progress |
+| 2 | Does Gemini answer on the preview? | 13 coach_error on the local preview (rate limit); on the Cloud Run test link 2 of 3 chat replies were the model | Play on Cloud Run | checked on revision 9 |
+| 3 | Does a call ever ring? | local 503 no_beats; on revision 9 call/start returns 200 | none | checked on revision 9 |
+| 4 | Does card plus code cost money? | AU: nothing lost, no recovery | Fix the day route | builder, in progress |
+| 5 | Why does the ledger contradict itself? | "400 gone" beside "Wallet 4,000 of 4,000" | One wallet source | builder, in progress |
+| 6 | Is there a dominant strategy? | Call to check on every card scores perfectly | Verifying a real message scores trusted but slow | builder, in progress |
+| 7 | Do real twins teach unsafe habits? | a real twin asks for a one-time code | Twins never ask for a code (Guard rule) | builder, in progress |
+| 8 | Is the cache fit to deploy? | 6 packs had no pages or email | Regenerated all 8 packs on Cloud Run | done |
+| 9 | Do raw tokens still ship? | "green-chat", "Notice Notices", "on .", X masks | Token survival test | builder, in progress |
+| 10 | Where is AI on the default path? | trace removed from play; video and deck still promise it | Lead the video with the leak reuse | Deck lead |
+
+OpenAI second opinion not run: the account's credit balance is exhausted.
