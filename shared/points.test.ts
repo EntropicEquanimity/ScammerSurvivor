@@ -165,6 +165,8 @@ test('ranks: five steps, Untouchable only for a perfect day', () => {
   assert.equal(dayStars([flag, flag, judged(), judged()], true).rank, 'Untouchable');
   const falseFlag = judged({ caught: ['urgency'], falseTaps: ['p1'] });
   assert.equal(dayStars([falseFlag, flag, judged(), judged()], true).rank, 'Scam Spotter', 'a false flag is not perfect');
+  const blockedReal = judged({ actionCorrect: false, verdict: 'real', verdictCorrect: true });
+  assert.equal(dayStars([blockedReal, flag, judged(), judged()], true).rank, 'Scam Spotter', 'said real but blocked them: not perfect');
   assert.equal(dayStars([flag, judged({ caught: ['urgency'], missed: ['escalation'] }), judged(), judged()], true).rank, 'Scam Spotter');
 });
 

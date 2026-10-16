@@ -125,7 +125,7 @@ export type Rank = 'Easy Target, almost' | 'Getting Wiser' | 'Sharp Eye' | 'Scam
 export interface DayStars {
   stars: 1 | 2 | 3;
   rank: Rank;
-  perfect: boolean; // every call right, every red flag spotted, no false flag, nothing lost
+  perfect: boolean; // every call and every action right, every red flag spotted, no false flag, nothing lost
   callsShare: number;
   flagsShare: number;
   moneyKept: boolean;
@@ -146,8 +146,8 @@ export function dayStars(results: readonly Judged[], moneyKept: boolean): DaySta
   const two = callsShare >= STARS.callsShare;
   const three = two && flagsShare >= STARS.flagsShare && moneyKept;
   const stars = three ? 3 : two ? 2 : 1;
-  const noFalseFlags = results.every((r) => r.falseTaps.length === 0);
-  const perfect = results.length > 0 && callsShare === 1 && flagsShare === 1 && noFalseFlags && moneyKept;
+  const clean = results.every((r) => r.falseTaps.length === 0 && r.actionCorrect);
+  const perfect = results.length > 0 && callsShare === 1 && flagsShare === 1 && clean && moneyKept;
   const rank: Rank = perfect ? 'Untouchable' : three ? 'Scam Spotter' : two ? 'Sharp Eye' : callsShare >= 0.5 ? 'Getting Wiser' : 'Easy Target, almost';
   return { stars, rank, perfect, callsShare, flagsShare, moneyKept, messages: results.length };
 }

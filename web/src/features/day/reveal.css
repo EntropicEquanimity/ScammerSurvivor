@@ -180,7 +180,8 @@
 }
 
 @keyframes reveal-throw {
-  0% { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 1; }
+  0% { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 0; }
+  8% { opacity: 1; }
   45% { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--spin) / 2)) scale(1); opacity: 1; }
   100% { transform: translate(var(--dx), calc(var(--dy) + var(--fall))) rotate(var(--spin)) scale(1); opacity: 0; }
 }
