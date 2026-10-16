@@ -72,7 +72,7 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
 export type CardSource = (country: string) => Card[] | Promise<Card[]>;
 
 // The last read per pack that held cards: a slow read is answered from it instead of the fixtures.
-// ponytail: server memory, empty after a restart; warming it at boot is the upgrade.
+// Server memory, filled at boot by warmCards so a slow first read after a restart never shows fixtures.
 const lastGood = new Map<string, Card[]>();
 
 const remember = (code: string, cards: unknown): Card[] | null => {
@@ -80,6 +80,14 @@ const remember = (code: string, cards: unknown): Card[] | null => {
   lastGood.set(code, cards as Card[]);
   return cards as Card[];
 };
+
+// At boot: read every pack once in the background so lastGood holds a deck before the first player.
+export function warmCards(codes: Iterable<string>, source: CardSource = readCards): Promise<void> {
+  const reads = [...codes].map((code) => Promise.resolve().then(() => source(code)).then((cards) => void remember(code, cards), () => undefined));
+  return Promise.all(reads).then(() => undefined);
+}
+
+export const isWarm = (code: string): boolean => (lastGood.get(code)?.length ?? 0) > 0;
 
 const enough = (cards: Card[] | null | undefined, need: number): cards is Card[] => Array.isArray(cards) && cards.length >= need;
 

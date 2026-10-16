@@ -2,7 +2,8 @@ import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { join } from 'node:path';
 import { callRouter } from './routes/call.ts';
-import { dayRouter } from './routes/day.ts';
+import { dayRouter, warmCards } from './routes/day.ts';
+import { PACKS } from './country.ts';
 import { labRouter } from './routes/lab.ts';
 import { roomRouter } from './routes/room.ts';
 import { lessonRouter } from './routes/lesson.ts';
@@ -67,6 +68,8 @@ const onError: ErrorRequestHandler = (err, _req, res, _next) => {
 app.use(onError);
 
 const port = Number(process.env.PORT) || DEFAULT_PORT;
+void warmCards(PACKS.keys());
+
 app.listen(port, () => {
   console.log(`listening on http://localhost:${port}${dev ? ' (dev)' : ''}`);
 });

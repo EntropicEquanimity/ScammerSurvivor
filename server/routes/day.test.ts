@@ -10,7 +10,7 @@ import { FIXTURES, PACKS, resolveCountry } from '../country.ts';
 import { dealDay, offeredFor } from '../deal.ts';
 import { readDay } from '../store.ts';
 import type { StoredSlot } from '../store.ts';
-import { beginDay, dealFocused, deckReadyFor, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
+import { beginDay, dealFocused, deckReadyFor, isWarm, warmCards, finishDay, listCards, parsePeople, recordAct, scoreTap, startDay } from './day.ts';
 import { SKIP_NAMES, appendTrace, listTrace } from './trace.ts';
 import { lessonFor } from './lesson.ts';
 import { listPacks } from './packs.ts';
@@ -377,6 +377,20 @@ test('a slow cache after a good read deals the last good read at once', async ()
   assert.ok(Date.now() - started < 1000, 'answered from the last good read');
   const state = readDay(payload.dayId);
   assert.ok(state && state.slots.every((slot) => slot.card.id.startsWith('warm-')));
+});
+
+test('cards warmed at boot answer a slow first read with no earlier day', async () => {
+  const warm = cacheOf('boot');
+  await warmCards(['IN'], () => warm);
+  assert.equal(isWarm('IN'), true);
+  const { payload } = await beginDay({ country: 'IN' }, { cards: () => new Promise<Card[]>(() => {}), write: neverCalled, waits: SHORT_WAITS });
+  const state = readDay(payload.dayId);
+  assert.ok(state && state.slots.every((slot) => slot.card.id.startsWith('boot-')));
+});
+
+test('a pack that fails to warm stays cold and never throws', async () => {
+  await warmCards(['VN'], () => Promise.reject(new Error('down')));
+  assert.equal(isWarm('VN'), false);
 });
 
 test('a pack is deck-ready on its own fixtures or a cache that holds a full day', async () => {
