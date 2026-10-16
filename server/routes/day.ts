@@ -192,6 +192,8 @@ export async function beginDay(query: DayQuery, deps: DayDeps = {}): Promise<Beg
 // Call it for every pack in one Promise.all: the list then waits DECK_WAIT_MS at most, not per pack.
 export async function deckReadyFor(code: string, source: CardSource = readCards): Promise<boolean> {
   if (fixturesFor(code).length > 0) return true;
+  // The deck warmed at boot answers first, so the home's packs list costs no cache read.
+  if ((lastGood.get(code)?.length ?? 0) >= FULL_DAY) return true;
   try {
     const cached = await withTimeout(Promise.resolve(source(code)), DECK_WAIT_MS);
     return Array.isArray(cached) && cached.length >= FULL_DAY;
