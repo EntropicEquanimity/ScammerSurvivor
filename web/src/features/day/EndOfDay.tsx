@@ -9,7 +9,7 @@ import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { HotlineGroup } from '../lesson/LessonGroups.tsx';
 import { ResultCard } from './ResultCard.tsx';
-import { money } from './StakesBar.tsx';
+import { moneyIn } from './currency.ts';
 import { ledgerFrom } from './ledger.ts';
 import type { TellInfo } from './useDay.ts';
 import './end.css';
@@ -27,6 +27,7 @@ interface Props {
   dayId?: string;
   hotline?: SlotResult['lesson']['hotline']; // the pack's hotline; falls back to the first lesson's
   points?: number; // the day's game points for the result card; DayScreen passes points={juice.score}
+  country?: string; // the pack, for the currency code on every amount (currency.ts)
 }
 
 // Counts finished days and the streak on this device (shell/progress.ts).
@@ -89,7 +90,7 @@ function useCountUp(to: number, delay: number): number {
 }
 
 // The two rates and the wallet, counting up once the last row has landed.
-function RatesNote({ score, rows }: { score: DayScore; rows: number }) {
+function RatesNote({ score, rows, money }: { score: DayScore; rows: number; money: (n: number) => string }) {
   const delay = rows * ROW_STAGGER_MS + 360;
   const caught = useCountUp(score.scamsCaught.handled, delay);
   const trusted = useCountUp(score.realTrusted.handled, delay);
@@ -102,7 +103,7 @@ function RatesNote({ score, rows }: { score: DayScore; rows: number }) {
   );
 }
 
-function Ledger({ results, senders, score }: { results: SlotResult[]; senders: Record<string, string>; score: DayScore }) {
+function Ledger({ results, senders, score, money }: { results: SlotResult[]; senders: Record<string, string>; score: DayScore; money: (n: number) => string }) {
   const ledger = ledgerFrom(results, senders, { wallet: score.walletStart, people: score.peopleStart, money });
   if (ledger.rows.length === 0) return null;
   return (
@@ -186,7 +187,8 @@ function InstallNudge() {
 // the hotline once, the tell to watch, the result card sliding up last, and the install nudge.
 // Sign-in is cut (AGENTS.md: no Firebase Authentication), so nothing stands in for it; `age`
 // stays in the props for the day the under-18 screen differs.
-export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline, points }: Props) {
+export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline, points, country }: Props) {
+  const money = (amount: number): string => moneyIn(amount, country ?? null);
   const [dayNumber] = useState(() => countDay(dayId));
   const hotline = packHotline ?? results[0]?.lesson.hotline;
   const play = () => {
@@ -197,8 +199,8 @@ export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders =
     <section className="page-full end anim-sheet">
       <div className="page-body scroll">
         <NavBar title="Day over" />
-        <Ledger results={results} senders={senders} score={score} />
-        <RatesNote score={score} rows={results.length} />
+        <Ledger results={results} senders={senders} score={score} money={money} />
+        <RatesNote score={score} rows={results.length} money={money} />
         {hotline && <HotlineGroup hotline={hotline} />}
         <MostMissed score={score} tells={tells} boss={<BossRow dayId={dayId} results={results} rows={results.length} />} />
         <div className="result-card-slot" style={{ '--n': results.length } as CSSProperties}>

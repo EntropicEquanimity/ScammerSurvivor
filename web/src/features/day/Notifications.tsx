@@ -9,7 +9,7 @@ import { ago, latest } from './ago.ts';
 import { useArrival } from './useArrival.ts';
 
 interface Props {
-  cards: PublicCard[]; // the slots still to handle, in day order
+  cards: PublicCard[]; // the messages that have arrived and are not handled yet (useDay's arrived)
   wallet: number;
   people: number;
   onOpen: (slotId: string) => void;
@@ -43,14 +43,15 @@ function NotifCard({ card, clock, onOpen }: CardProps) {
 }
 
 // The lock screen of the day: the same anatomy as the real one. The date, the clock, the stakes as
-// lock widgets, the stack low on the screen, newest first. The clock is the latest arrival, so no
-// notification is ever later than it. The newest drops in as a banner under the clock first, then
-// settles at the top of the stack. The heading ("N new messages") is for assistive technology; the
-// practice line lives in the visually hidden DOM label PhoneShell renders (rule 1), never on a card.
+// lock widgets, then the stack low on the screen. The day runs forward (Skeptic round 4): only what
+// has arrived is here, which is the next message in slot order (useDay's arrived), so the 08:10
+// message comes first and the clock only moves on. The newest drops in as a banner under the widgets
+// first, then settles at the top of the stack. The heading ("N new messages") is for assistive
+// technology; the practice line lives in the visually hidden DOM label PhoneShell renders (rule 1).
 // The status bar's time is DayScreen's (useDayClock) and hides on the lock (first-open.css).
 export function Notifications({ cards, wallet, people, onOpen }: Props) {
   const live = useArrival(cards.length > 0);
-  const shown = [...cards].reverse();
+  const shown = [...cards].sort((a, b) => b.arrivesAt.localeCompare(a.arrivesAt)); // newest on top, as iOS stacks
   const [next, ...rest] = shown;
   const stack = live ? rest : shown;
   const clock = latest(cards.map((card) => card.arrivesAt));
@@ -60,6 +61,8 @@ export function Notifications({ cards, wallet, people, onOpen }: Props) {
       <ScreenTitle className="visually-hidden">{title}</ScreenTitle>
       <p className="day-lock-date">{dateFormat.format(new Date())}</p>
       <p className="day-lock-clock" aria-hidden="true">{clock}</p>
+      <StakesBar wallet={wallet} people={people} />
+      {/* Under the widgets, so the arriving banner never covers the wallet (Ruler r8). */}
       <div className="notif-slot">
         {live && next && (
           <div className="notif-banner anim-drop">
@@ -67,7 +70,6 @@ export function Notifications({ cards, wallet, people, onOpen }: Props) {
           </div>
         )}
       </div>
-      <StakesBar wallet={wallet} people={people} />
       <ul className="notif-list scroll">
         {stack.map((card, index) => (
           <li key={card.slotId} className={index === 0 && !live ? 'anim-drop' : undefined}>

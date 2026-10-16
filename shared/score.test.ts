@@ -179,3 +179,22 @@ test('a page card met with another button scores as today; a card without a page
   assert.equal(plain.actionCorrect, false);
   assert.ok(!('leaked' in plain) && !('pageCost' in plain) && !('pageLeft' in plain));
 });
+
+test('a money action on a scam costs the stake even when the note did not list it as unsafe', () => {
+  const key: SlotKey = { ...family, unsafeReplies: ['keep_secret'] };
+  for (const action of ['pay', 'send_money', 'share_code', 'read_code'] as Action[]) {
+    const score = scoreSlot(key, action, []);
+    assert.equal(score.walletDelta, -500, action);
+    assert.equal(score.actionCorrect, false, action);
+  }
+  assert.equal(scoreSlot(key, 'keep_secret', []).walletDelta, 0, 'a slip that moves no money costs nothing yet');
+  assert.equal(scoreSlot(familyTwin, 'pay', []).walletDelta, 0, 'paying a real message costs nothing');
+});
+
+test('calling the known number is safe on a scam and cautious on a real message', () => {
+  const onScam = scoreSlot(family, 'verify_known_number', []);
+  assert.deepEqual([onScam.actionCorrect, onScam.cautious], [true, undefined]);
+  const onReal = scoreSlot(familyTwin, 'verify_known_number', []);
+  assert.deepEqual([onReal.actionCorrect, onReal.cautious, onReal.falseAlarm], [true, true, false]);
+  assert.equal(scoreSlot(familyTwin, 'reply', []).cautious, undefined);
+});

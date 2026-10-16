@@ -6,6 +6,7 @@ import { BRANDS, INSTITUTIONS } from '../../shared/brands.ts';
 import { PEOPLE_ROLES } from '../../shared/types.ts';
 import { cluesReasons } from '../../shared/clues.ts';
 import type { Clue, ClueReason } from '../../shared/clues.ts';
+import { asks } from '../offered.ts';
 
 export type GuardReason =
   | 'tells_missing_on_ask'
@@ -16,8 +17,11 @@ export type GuardReason =
   | 'twin_has_tells'
   | 'twin_no_acceptable'
   | 'twin_disclaims'
+  | 'twin_asks_code'
   | 'reply_not_allowed'
   | 'link_not_example'
+  | 'layout_id'
+  | 'scaffold_word'
   | 'brand_name'
   | 'name_not_allowed'
   | 'empty_ask'
@@ -38,8 +42,11 @@ export const GUARD_REASONS: readonly GuardReason[] = [
   'twin_has_tells',
   'twin_no_acceptable',
   'twin_disclaims',
+  'twin_asks_code',
   'reply_not_allowed',
   'link_not_example',
+  'layout_id',
+  'scaffold_word',
   'brand_name',
   'name_not_allowed',
   'empty_ask',
@@ -121,6 +128,15 @@ const NAME_STOPLIST = new Set([
 // Money and asking words only, so "no need to reply" or "no rush" stays an ordinary twin.
 // ponytail: a short phrase list, not meaning; a new disclaimer wording slips through until it is added.
 const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay)\b/i;
+
+// A real twin never asks the player to share, read or enter a code or a password (Skeptic round 4):
+// that is the habit every scam in the game is built on. "never share your code" does not count.
+const TWIN_CODE = /\b(code|otp|one-time|passcode|password|pin)\b/g;
+const CODE_REPLIES: readonly string[] = ['share_code', 'read_code'];
+// A look id (green-chat, sms...) written into the copy, as the prompt's app list once leaked it.
+// Production words from the pattern notes ("in the player's name"): the card speaks to you.
+const SCAFFOLD = /\b(?:the player|player's)\b/i;
+export const LAYOUT_ID = /\b(?:green|blue|sticker|cloud|purple)-chat\b/i;
 
 const MASK_SHAPE = /^\+\d{1,3}( X+)+ \d{4}$/;
 const DIGIT_RUN = /\d{5,}/;
@@ -213,6 +229,8 @@ const checkTwinAndReplies = (draft: Draft, allowedReplies: readonly string[]): G
   if (tellsOf(parts(twin.parts)).length > 0) out.push('twin_has_tells');
   if (acceptable.length === 0) out.push('twin_no_acceptable');
   if (parts(twin.parts).some((p) => DISCLAIMER.test(str(p.text)))) out.push('twin_disclaims');
+  const asksCode = parts(twin.parts).some((p) => asks(str(p.text), TWIN_CODE));
+  if (asksCode || acceptable.some((r) => CODE_REPLIES.includes(r))) out.push('twin_asks_code');
   if (!replies.every((r) => allowedReplies.includes(r))) out.push('reply_not_allowed');
   return out;
 };
@@ -222,6 +240,8 @@ const checkText = (draft: Draft, allowedNames: readonly string[]): GuardReason[]
   const allowed = new Set(allowedNames.map((n) => n.toLowerCase()));
   const out: GuardReason[] = [];
   if (texts.some(hasOffExampleLink)) out.push('link_not_example');
+  if (texts.some((t) => LAYOUT_ID.test(t))) out.push('layout_id');
+  if (texts.some((t) => SCAFFOLD.test(t))) out.push('scaffold_word');
   if (texts.some(hasBrand)) out.push('brand_name');
   if (texts.some((t) => strangeNames(t, allowed).length > 0)) out.push('name_not_allowed');
   return out;
@@ -273,8 +293,11 @@ const REASON_TEXT: Record<GuardReason, string> = {
   twin_has_tells: 'Real twin parts must carry no tellIds; the twin is an honest message.',
   twin_no_acceptable: 'The real twin needs at least one acceptable reply.',
   twin_disclaims: 'The real twin must not mention what it does not ask for (no "no fee", "no payment", "we never ask"); end it when its business ends.',
+  twin_asks_code: 'The real twin must never ask the player to share, read or enter a code, a one-time code, a PIN or a password, and its acceptable list must not hold share_code or read_code; a real sender says to open their own app instead.',
   reply_not_allowed: 'Every reply id in safeReplies, unsafeReplies and acceptable must come from the allowed list.',
   link_not_example: 'Every link, with or without http and www, must be on a host ending in .example, like pay.example/path.',
+  layout_id: 'Never write a look id such as green-chat in the copy; call the app by its name or use "[chat app name]".',
+  scaffold_word: 'Never write "the player" or the possessive of player; speak to the reader as "you" and "your".',
   brand_name: 'No real company, app or institution name; use the made-up names or a placeholder like [institution].',
   name_not_allowed: 'Only first names from the allowed list may follow a greeting, an introduction or a title; drop any other name or swap in an allowed one.',
   empty_ask: 'The ask must have at least one part.',

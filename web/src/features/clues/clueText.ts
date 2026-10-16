@@ -1,5 +1,6 @@
 // The words and numbers the clue faces draw, kept pure so they can be tested without a browser.
 // Nothing here makes a digit run longer than four: the timer reads in whole minutes, a voice note is m:ss.
+import { moneyComesIn as comesIn } from '../../../../shared/money.ts';
 
 const HOST = /\b([a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:example|invalid))\b/i;
 
@@ -14,6 +15,11 @@ export function minutesLeft(msLeft: number): string {
 export function hostOf(detail: string): string | null {
   return HOST.exec(detail)?.[1]?.toLowerCase() ?? null;
 }
+
+// Money that comes in (a refund, a credit, a payout) gets no Pay pill: nobody pays to receive (Ruler r8).
+const INCOMING = /\b(refund\w*|credit(?:ed)?|received|incoming|cashback|payout|paid to you|sent to you|to your account)\b/i;
+export const moneyComesIn = (title: string, detail: string): boolean =>
+  INCOMING.test(`${title} ${detail}`) || comesIn(`${title}. ${detail}`);
 
 // A small stable hash, so the same title always draws the same waveform and length.
 const seedOf = (text: string): number => [...text].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);

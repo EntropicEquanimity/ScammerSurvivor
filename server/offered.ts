@@ -1,5 +1,8 @@
 import { STANDARD_ACTIONS } from '../shared/types.ts';
 import type { Action } from '../shared/types.ts';
+import { asks, moneyComesIn } from '../shared/money.ts';
+
+export { asks } from '../shared/money.ts';
 
 // A message's own buttons come from its own words (lesson 20): money buttons only when money is
 // asked for, Open link only with a link, Install only with an app to install, the code buttons
@@ -17,24 +20,14 @@ const CUES: ReadonlyArray<[Action, RegExp]> = [
   ['call_back', /\b(call (me |us )?back|call (this|our) number|ring (me |us )?back)\b/g],
   ['keep_secret', /\b(secret|confidential|quietly|between us|keep (this|it) (quiet|private|to yourself)|tell no one|no one else|nobody else|(don't|do not|not to) (tell|call|ring))/g],
 ];
-const NEGATED = /\b(no|not|never|without|free of|nothing)\b[^,.;:!?]{0,40}$/;
 const MAX_EXTRAS = 3;
 
 // The iOS Ruler (Oct 16): a purchase alert or an incoming split showed Pay. Money that already
 // moved or is coming in gets no money button, unless the same message also asks the player to pay.
 // ponytail: word cues again; a report phrased without these words still offers its button.
 const MONEY: readonly Action[] = ['pay', 'send_money'];
-const REPORTS = /\b(received|credited|refunded|deducted|debited|charged|spent|(sent|paid|transferred) you|(has|have|was|were) (just )?(been )?(paid|sent|transferred|approved))\b/g;
-const ASKS_MONEY = /\b(please (pay|send|transfer|settle)|pay (now|today|it|this|the|your|before|within|by|me|us)|send (me|us|it|the)|can you (pay|send|transfer|lend|cover)|need (you )?to (pay|send|transfer)|transfer (to|the|it|now))\b/g;
 
 const unique = <T>(items: readonly T[]): T[] => [...new Set(items)];
-
-export const asks = (text: string, cue: RegExp): boolean => {
-  const lower = text.toLowerCase();
-  return [...lower.matchAll(cue)].some((match) => !NEGATED.test(lower.slice(0, match.index)));
-};
-
-const reportsOnly = (text: string): boolean => asks(text, REPORTS) && !asks(text, ASKS_MONEY);
 
 // One money button at most: the first in rank order (the card's own unsafe replies come first).
 const oneMoney = (ranked: Action[]): Action[] => {
@@ -45,7 +38,7 @@ const oneMoney = (ranked: Action[]): Action[] => {
 // STANDARD_ACTIONS plus the extras the shown parts ask for, the card's own unsafe replies first.
 export const offeredFor = (parts: readonly { text: string }[], preferred: readonly Action[] = []): Action[] => {
   const text = parts.map((part) => part.text).join('. '); // a cue never reads across two parts
-  const report = reportsOnly(text);
+  const report = moneyComesIn(text);
   const asked = CUES.filter(([action, cue]) => !(report && MONEY.includes(action)) && asks(text, cue)).map(([action]) => action);
   const ranked = oneMoney(unique([...preferred.filter((action) => asked.includes(action)), ...asked]));
   return unique([...STANDARD_ACTIONS, ...ranked.slice(0, MAX_EXTRAS)]);

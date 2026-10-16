@@ -242,7 +242,9 @@ test('an empty cache deals the fixtures, and a quick or younger day never calls 
   const full = await beginDay({ country: 'SG', people: PEOPLE }, { cards: noCache, note: approvedNote, write: neverCalled });
   assert.equal(full.payload.cards.length, 4);
   const state = readDay(full.payload.dayId);
-  assert.ok(state && state.slots.every((slot) => resolveCountry('SG').cards.includes(slot.card)));
+  // The fixtures, by id: dealing shows their X-masked numbers in the local format, so the objects are new.
+  const ids = resolveCountry('SG').cards.map((card) => card.id);
+  assert.ok(state && state.slots.every((slot) => ids.includes(slot.card.id)));
   for (const query of [{ country: 'SG', quick: '1', people: PEOPLE }, { country: 'SG', age: 'younger', people: PEOPLE }]) {
     const { payload, settled } = await beginDay(query, { cards: noCache, note: approvedNote, write: neverCalled });
     await settled;
@@ -345,7 +347,7 @@ test('the trace route lists the Coach next to the Director, with model, ms and o
   assert.equal(recordAct(payload.dayId, { slotId: slot.slotId, action: 'ignore' }).status, 200);
   assert.equal(scoreTap(payload.dayId, { slotId: slot.slotId, tappedPartIds: [] }).status, 200);
   const stream = async function* () {
-    yield 'A short first line.';
+    yield JSON.stringify({ tells: [], real: ['It came from the number you already have saved for them.'] });
   };
   const reply = lessonFor(payload.dayId, { slotId: slot.slotId }, stream);
   assert.equal(reply.status, 200);

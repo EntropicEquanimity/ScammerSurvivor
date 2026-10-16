@@ -2,6 +2,8 @@
 // set. Each clue hangs on one part of the card, so tapping it marks that part and scoring stays per
 // part. Real twins carry clues too, so a clue on screen never gives the answer away. The browser
 // draws each kind from its own component; the model never writes markup.
+import { moneyComesIn } from './money.ts';
+
 export const CLUE_KINDS = ['link_preview', 'payment_request', 'countdown', 'badge', 'voice_note', 'parcel_status', 'code_box'] as const;
 export type ClueKind = (typeof CLUE_KINDS)[number];
 
@@ -38,6 +40,8 @@ export function clueReason(clue: Partial<Clue>, parts: readonly { id: string; te
     if (!host || !text.includes(host)) return 'clue_grounding';
   }
   if (clue.kind === 'payment_request' && (typeof clue.amount !== 'number' || !text.includes(String(clue.amount)))) return 'clue_grounding';
+  // A payment request needs a part that asks for money: a friend's share coming in is not one (Angel, Oct 16).
+  if (clue.kind === 'payment_request' && moneyComesIn(part.text)) return 'clue_grounding';
   if (clue.kind === 'countdown' && (typeof clue.minutes !== 'number' || clue.minutes < 1 || clue.minutes > 60)) return 'clue_grounding';
   if (clue.kind === 'code_box' && !/\bcode\b/.test(text)) return 'clue_grounding';
   return null;

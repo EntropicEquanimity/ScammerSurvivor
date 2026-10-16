@@ -68,3 +68,11 @@ test('every page kind with rows has a send label', () => {
     assert.ok(sendLabel(kind).length > 0 && sendLabel(kind).length <= 16, kind);
   }
 });
+
+test('a site names itself from its host, a country code tail in capitals', async () => {
+  const { siteName } = await import('./fill.ts');
+  assert.equal(siteName('harbour-secure.example'), 'Harbour Secure');
+  assert.equal(siteName('northgate-parcels-au.example'), 'Northgate Parcels AU');
+  assert.equal(siteName('my-bank.example'), 'My Bank');
+  assert.equal(siteName('harbour-sign-in.example'), 'Harbour Sign In', 'in stays a word: sign in, log in');
+});

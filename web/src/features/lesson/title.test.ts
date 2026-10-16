@@ -109,3 +109,8 @@ test('the Coach notes parse only in their shape', () => {
   assert.equal(parseNotes('You caught it.'), null);
   assert.equal(parseNotes('{"tells":1}'), null);
 });
+
+test('a message questioned first adds the line to the outcome', () => {
+  assert.equal(outcomeLine(base({ action: 'block_report', questioned: true })).text, 'You blocked and reported it. You asked questions first.');
+  assert.equal(outcomeLine(base({ action: 'block_report' })).text, 'You blocked and reported it.');
+});

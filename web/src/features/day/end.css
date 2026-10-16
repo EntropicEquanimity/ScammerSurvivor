@@ -162,3 +162,9 @@
   color: var(--notice);
   font-weight: 600;
 }
+
+/* The end page scrolls long ledger text under its collapsed bar: at the shared 0.9 glass the rows
+   ghosted through behind "Day over" (Ruler r8). The grouped surface, nearly opaque, as iOS does here. */
+.end .nav-collapsed {
+  background: rgb(242 242 247 / 0.97);
+}

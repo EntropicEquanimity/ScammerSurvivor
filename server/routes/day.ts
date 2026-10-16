@@ -267,12 +267,15 @@ function parseTaps(slot: StoredSlot, value: unknown): string[] | null {
   return [...(value as string[])];
 }
 
-const runningTotals = (state: DayState): { wallet: number; people: number } =>
-  state.slots.reduce(
-    (totals, slot) =>
-      slot.result ? { wallet: slot.result.walletAfter, people: slot.result.peopleAfter } : totals,
-    { wallet: state.walletStart, people: state.peopleStart },
-  );
+// The money actually gone, whatever order the slots were played in: the start, less what each scored
+// slot really lost, plus what its recovery brought back. People lose one per real message turned away.
+// The tap, the recovery and the finish all read this one total (Skeptic round 4).
+const runningTotals = (state: DayState): { wallet: number; people: number } => {
+  const scored = state.slots.filter((slot) => slot.result);
+  const net = scored.reduce((sum, slot) => sum + scoredFields(slot).lost - (slot.result?.recovered ?? 0), 0);
+  const turnedAway = scored.filter((slot) => slot.result?.falseAlarm).length;
+  return { wallet: Math.max(0, state.walletStart - net), people: Math.max(0, state.peopleStart - turnedAway) };
+};
 
 // What scoring adds to a stored slot: when it was scored and what the wallet really lost
 // (less than the stake when the wallet hit zero). Recovery reads both.
@@ -283,17 +286,11 @@ const scoredFields = (slot: StoredSlot): { scoredAt: number; lost: number } => {
   return { scoredAt: extra.scoredAt ?? 0, lost: extra.lost ?? 0 };
 };
 
-// Only a reply that moves money costs the stake: paying, sending, or handing over the code that
-// lets a transfer through. Keeping a secret or opening a link is still a slip, but nothing has
-// left the wallet yet, so no transfer sheet opens.
-const MONEY_MOVES: readonly Action[] = ['pay', 'send_money', 'share_code', 'read_code'];
-
 // On a page card open_link is neutral and the page decides: a card plus a code sent there moves money.
-const scoreOf = (slot: StoredSlot, action: Action, taps: string[]): SlotScore => {
-  const score = scoreSlot(slot.key, action, taps, givenOf(slot));
-  const paged = Boolean(slot.key.page) && action === 'open_link';
-  return MONEY_MOVES.includes(action) || paged ? score : { ...score, walletDelta: 0 };
-};
+const scoreOf = (slot: StoredSlot, action: Action, taps: string[]): SlotScore => scoreSlot(slot.key, action, taps, givenOf(slot));
+
+// The player sent at least one reply chip before the final action (routes/chat.ts keeps the turns on the slot).
+const questionedOn = (slot: StoredSlot): boolean => ((slot as StoredSlot & { chat?: unknown[] }).chat?.length ?? 0) > 0;
 
 // `now` is injectable so the recovery window can be tested; the route passes nothing.
 export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<SlotResult> {
@@ -313,10 +310,12 @@ export function scoreTap(dayId: string, body: unknown, now = Date.now()): Reply<
   const result: SlotResult = {
     slotId: slot.slotId,
     ...rest,
+    action: slot.action,
     walletAfter,
     peopleAfter: Math.max(0, before.people + peopleDelta),
     followUp: score.falseAlarm || pageLeft ? followUpFor(slot.card.realTwin.sender) : null,
-    lesson: withPageLesson(slot, lessonFor(slot.card, state.hotline)),
+    lesson: withPageLesson(slot, lessonFor(slot.card, state.hotline, slot.isTwin)),
+    ...(questionedOn(slot) ? { questioned: true } : {}),
   };
   const next: ScoredSlot = { ...slot, taps, result, scoredAt: now, lost: before.wallet - walletAfter };
   saveDay(withSlot(state, next));
@@ -334,9 +333,6 @@ const recoverable = (slot: StoredSlot): string | null => {
 };
 
 // One try per slip. Too late is not an error: the sheet shows "Too late" and the slot is closed.
-// ponytail: later slots read the wallet from this slot's walletAfter in slot order, so a recovery on
-// a slot played out of order is not seen by a slot scored before it, nor by finishDay, which reads the
-// same running total. Play order is the upgrade; the sheet holds the player today, so it cannot happen.
 export function recoverSlot(dayId: string, body: unknown, now = Date.now()): Reply<RecoverResult> {
   const state = readDay(dayId);
   if (!state) return fail(404, 'unknown_day');
@@ -350,7 +346,7 @@ export function recoverSlot(dayId: string, body: unknown, now = Date.now()): Rep
   const { scoredAt, lost } = scoredFields(slot);
   const secondsSince = (now - scoredAt) / 1000;
   const recovered = recoveryFor({ stakeLost: lost, secondsSince, action });
-  const walletAfter = slot.result.walletAfter + recovered;
+  const walletAfter = runningTotals(state).wallet + recovered;
   const result: SlotResult = { ...slot.result, walletAfter, recovered };
   saveDay(withSlot(state, { ...slot, result }));
   return ok({ slotId: slot.slotId, recovered, walletAfter, windowSeconds: RECOVERY_WINDOW_SECONDS, tooLate: secondsSince > RECOVERY_WINDOW_SECONDS });

@@ -251,6 +251,9 @@ export function useDay(country: string, age: AgeGroup, quick: boolean, options: 
     busy: state.busy,
     failed: state.failed,
     remaining,
+    // What has arrived on the lock: the next message in slot order only, so the day runs forward and
+    // the page scam is met before the later scam its leak can rewrite (Skeptic round 4).
+    arrived: remaining.slice(0, 1),
     wallet: last?.walletAfter ?? day?.wallet ?? 0,
     people: last?.peopleAfter ?? day?.people ?? 0,
     lastResult: last,

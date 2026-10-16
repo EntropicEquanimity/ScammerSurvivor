@@ -9,6 +9,7 @@ import { generateJson, MODELS } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
 import type { Beat } from '../beats.ts';
 import { BRANDS } from '../../shared/brands.ts';
+import { localNumber } from '../../shared/mask.ts';
 import { trickCategory } from '../../shared/taxonomy.ts';
 import type { Action, CallTurnResult, Category, TraceEvent, TrickId } from '../../shared/types.ts';
 
@@ -68,19 +69,13 @@ const CALLER_BY_TRICK: Partial<Record<TrickId, CallerIdentity>> = {
 export const callerFor = (trickId: TrickId): CallerIdentity => ({ ...(CALLER_BY_TRICK[trickId] ?? CALLER_FOR[trickCategory(trickId)]) });
 
 // What the phone shows for the call, which the caller can fake: the name they claim, a local
-// masked number, or Unknown. Invented local formats per pack, dots for hidden digits, never more
-// than four digits and never a plus prefix (docs/agent-lessons.md row 23).
-export const CALLER_NUMBERS: Record<string, string> = {
-  AU: '04•• ••• ••17',
-  HK: '9••• ••36',
-  ID: '08••-••••-••52',
-  IN: '98••• •••21',
-  JP: '090-••••-•••3',
-  MY: '01•-••• ••84',
-  PH: '09•• ••• ••63',
-  SG: '8••• ••41',
-};
-const FALLBACK_NUMBER = '••• ••• ••20';
+// number, or Unknown. The number: a plausible invented local mobile number in the pack's own format, never a
+// mask of X or dots (lesson 23, Ruler r8). The last four are fixed per pack, the rest invented (shared/mask.ts).
+const CALLER_LAST_FOUR: Record<string, string> = { AU: '4817', HK: '2936', ID: '7152', IN: '6021', JP: '4803', MY: '5184', PH: '3963', SG: '7741' };
+export const CALLER_NUMBERS: Record<string, string> = Object.fromEntries(
+  Object.entries(CALLER_LAST_FOUR).map(([code, last]) => [code, localNumber(`+0 XXXX ${last}`, code)]),
+);
+const FALLBACK_NUMBER = 'No caller ID';
 export interface CallerId { shown: string; number: string; kind: 'name' | 'number' | 'unknown' }
 
 // A small stable hash of the day id, so a retry shows the same ID; half the days show the name.

@@ -23,7 +23,7 @@ const clean = (): Draft =>
     sender: { displayName: 'Courier', maskedNumber: '+65 XXXX 1234' },
     safeReplies: ['ignore', 'block_report', 'verify_known_number'],
     unsafeReplies: ['pay', 'open_link'],
-    usualEnding: 'The player [usual ending] at http://track.example/parcel.',
+    usualEnding: 'You [usual ending] at http://track.example/parcel.',
     plantedTells: ['authority', 'urgency'],
     realTwin: {
       sender: { displayName: 'Courier', maskedNumber: '+65 XXXX 5678' },
@@ -194,4 +194,31 @@ test('a payment_request amount is grounded by the figure written with a thousand
   assert.deepEqual(guardDraft(written, OPTIONS).reasons, []);
   const run = { ...written, ask: [part('a1', '[ask line] JPY 30000.', ['authority']), draft.ask?.[1] ?? {}] };
   assert.deepEqual(guardDraft(run, OPTIONS).reasons, ['digit_run']);
+});
+
+test('twin_asks_code: a real twin never asks for a code or a password, nor accepts handing one over', () => {
+  const base = clean();
+  const asking = { ...base.realTwin, parts: [part('r1', 'Hi Rosa, [real twin line] using your one-time code.')] };
+  expectOnly({ ...base, realTwin: asking }, 'twin_asks_code');
+  const password = { ...base.realTwin, parts: [part('r1', 'Hi Rosa, [real twin line], enter your password.')] };
+  expectOnly({ ...base, realTwin: password }, 'twin_asks_code');
+  const accepts = { ...base.realTwin, acceptable: ['reply', 'share_code'] };
+  const result = guardDraft({ ...base, realTwin: accepts }, { ...OPTIONS, allowedReplies: [...OPTIONS.allowedReplies, 'share_code'] });
+  assert.deepEqual(result.reasons, ['twin_asks_code']);
+  assert.match(reasonText('twin_asks_code'), /code/);
+});
+
+test('layout_id: a look id such as green-chat never sits in the copy', () => {
+  expectOnly({ ...clean(), setup: [part('s1', 'Hi Mom, this is Rosa. [setup line] on green-chat.')] }, 'layout_id');
+});
+
+test('clue_grounding: a payment request on a twin whose money comes in', () => {
+  const base = clean();
+  const twin = { ...base.realTwin, parts: [part('r1', 'Hi Rosa, my share was 2000 for dinner, transferring it over now.')], clues: [{ kind: 'payment_request' as const, partId: 'r1', title: 'Dinner split', detail: 'From Rosa', amount: 2000 }] };
+  expectOnly({ ...base, realTwin: twin }, 'clue_grounding');
+});
+
+test('scaffold_word: production words about the player never reach the copy', () => {
+  expectOnly({ ...clean(), usualEnding: 'Every contact gets the same message in the player\'s name.' }, 'scaffold_word');
+  expectOnly({ ...clean(), usualEnding: 'The scam asks the player for more.' }, 'scaffold_word');
 });

@@ -59,3 +59,29 @@ test('each weight point sent on a fake page costs points; a page with nothing se
   assert.equal(pointsFor({ isScam: true, actionCorrect: true, caught: [], falseTaps: [], pageCost: 0 }).delta, POINTS.scamHandled);
   assert.equal(pointsFor({ isScam: true, actionCorrect: false, caught: ['urgency'], falseTaps: [], pageCost: 3 }).delta, 0);
 });
+
+test('a real message checked by a call scores less than trusting it and never gets the speed bonus', () => {
+  const checked = { isScam: false, actionCorrect: true, caught: [], falseTaps: [], cautious: true };
+  assert.deepEqual(pointsFor(checked, 500), { delta: POINTS.realChecked, good: true });
+  assert.ok(POINTS.realChecked < POINTS.realTrusted);
+  assert.ok(pointsFor(checked, 500).delta < pointsFor({ ...checked, cautious: undefined }, 19_000).delta, 'a slow trust still beats a fast check');
+});
+
+test('no dominant strategy: Call to check on everything scores below trusting the real and catching the scams', () => {
+  const scamSafe = { isScam: true, actionCorrect: true, caught: [], falseTaps: [] };
+  const realChecked = { isScam: false, actionCorrect: true, caught: [], falseTaps: [], cautious: true };
+  const realTrusted = { isScam: false, actionCorrect: true, caught: [], falseTaps: [] };
+  const checkAll = 2 * pointsFor(scamSafe, 1_000).delta + 2 * pointsFor(realChecked, 1_000).delta;
+  const best = 2 * pointsFor(scamSafe, 1_000).delta + 2 * pointsFor(realTrusted, 1_000).delta;
+  assert.ok(best > checkAll);
+});
+
+test('asking questions first earns a small bonus on a scam, and on a real message only before trusting it', () => {
+  const base = { caught: [], falseTaps: [] };
+  const scamAsked = pointsFor({ ...base, isScam: true, actionCorrect: true, questioned: true, action: 'block_report' });
+  assert.equal(scamAsked.delta, POINTS.scamHandled + POINTS.questioned);
+  const realReply = pointsFor({ ...base, isScam: false, actionCorrect: true, questioned: true, action: 'reply' });
+  assert.equal(realReply.delta, POINTS.realTrusted + POINTS.questioned);
+  const realIgnored = pointsFor({ ...base, isScam: false, actionCorrect: false, falseAlarm: true, questioned: true, action: 'ignore' } as never);
+  assert.equal(realIgnored.delta, 0, 'no bonus for questioning and then turning a real one away');
+});

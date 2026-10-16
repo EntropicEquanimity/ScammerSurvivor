@@ -21,6 +21,7 @@ import { clockMs } from '../juice/speedClock.ts';
 import { EndOfDay } from './EndOfDay.tsx';
 import { Notifications } from './Notifications.tsx';
 import { appLookFor } from './appNames.ts';
+import { moneyIn } from './currency.ts';
 import { useCallGate, useDay, useDayClock } from './useDay.ts';
 import type { Phase } from './useDay.ts';
 import '../day.css';
@@ -123,13 +124,22 @@ const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'lesson'
 type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
 
+// The amount the last slot took, formatted ("SGD 500"), for the lesson's line; nothing when it took nothing.
+function lostText({ day, results }: Day): string | undefined {
+  const last = results.at(-1);
+  if (!day || !last) return undefined;
+  const before = results.at(-2)?.walletAfter ?? day.wallet;
+  const lost = before - (last.walletAfter - (last.recovered ?? 0));
+  return lost > 0 ? moneyIn(lost, day.country) : undefined;
+}
+
 // The screens that belong to one slot. The last result exists only once that slot is scored.
 function slotScreen(d: Day, step: Step) {
   const { phase, day, lastResult } = d;
   if (!day || !('slotId' in phase)) return null;
   const card = day.cards.find((candidate) => candidate.slotId === phase.slotId);
-  if (phase.kind === 'lesson' && lastResult) return <Lesson dayId={day.dayId} result={lastResult} {...step} />;
-  if (phase.kind === 'note' && card && lastResult) return <RealNote card={card} result={lastResult} {...step} />;
+  if (phase.kind === 'lesson' && lastResult) return <Lesson dayId={day.dayId} result={lastResult} lost={lostText(d)} {...step} />;
+  if (phase.kind === 'note' && card && lastResult) return <RealNote dayId={day.dayId} card={card} result={lastResult} {...step} />;
   if (phase.kind === 'recovery' && Recovery && card) {
     return (
       <Suspense fallback={<Notice title="One moment" line="Checking what can still be done." />}>
@@ -223,11 +233,12 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
           senders={senders}
           dayId={d.day?.dayId}
           hotline={d.day?.pack.hotline}
+          country={d.day?.country}
           onPlayTomorrow={onDone}
         />
       );
     }
-    return slotScreen({ ...d, act }, step) ?? <Notifications cards={d.remaining} wallet={d.wallet} people={d.people} onOpen={d.open} />;
+    return slotScreen({ ...d, act }, step) ?? <Notifications cards={d.arrived} wallet={d.wallet} people={d.people} onOpen={d.open} />;
   };
 
   return (

@@ -28,7 +28,17 @@ export interface SlotScore {
   leaked?: FieldId[]; // fields a scammer can use, sent on a fake page
   pageCost?: number; // the sent fields' weight, taken off the points
   pageLeft?: boolean; // a real page left without what it needs: the sender follows up
+  cautious?: boolean; // a real message checked by calling the known number: trusted, but it did not need it
 }
+
+// Only a reply that moves money costs the stake: paying, sending, or handing over the code that
+// lets a transfer through. On a scam these always cost it, whatever the note's unsafeReplies say;
+// keeping a secret or opening a link is still a slip, but nothing has left the wallet yet.
+export const MONEY_MOVES: readonly Action[] = ['pay', 'send_money', 'share_code', 'read_code'];
+
+// Calling the number you already know is safe on every scam. On a real message it is acceptable but
+// cautious: fewer points and no speed bonus, so checking everything never beats trusting what is real.
+const VERIFY: Action = 'verify_known_number';
 
 // On a real message these two actions mean the player did not trust it.
 const DISTRUST: readonly Action[] = ['block_report', 'ignore'];
@@ -49,9 +59,10 @@ export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[],
   const { tells, falseTaps } = tellsOfTaps(key, taps);
   if (key.page && action === 'open_link') return scorePage(key, key.page, tells, falseTaps, given);
   const falseAlarm = key.isTwin && DISTRUST.includes(action);
+  const moves = MONEY_MOVES.includes(action);
   const actionCorrect = key.isTwin
     ? key.acceptable.includes(action) && !falseAlarm
-    : key.safeReplies.includes(action);
+    : key.safeReplies.includes(action) && !moves;
   const caught = key.plantedTells.filter((id) => tells.includes(id));
   return {
     isScam: !key.isTwin,
@@ -60,8 +71,9 @@ export function scoreSlot(key: SlotKey, action: Action, tappedPartIds: string[],
     caught,
     missed: key.plantedTells.filter((id) => !caught.includes(id)),
     falseTaps,
-    walletDelta: !key.isTwin && key.unsafeReplies.includes(action) ? -key.stake : 0,
+    walletDelta: !key.isTwin && moves ? -key.stake : 0,
     peopleDelta: falseAlarm ? -1 : 0,
+    ...(key.isTwin && action === VERIFY && actionCorrect ? { cautious: true } : {}),
   };
 }
 

@@ -298,6 +298,7 @@ export interface SlotResult {
   pageCost?: number; // page cards only: the sent fields' weight, taken off the points
   cautious?: boolean; // a real message met with Call to check: trusted, but it did not need the call
   action?: Action; // the action scored, so the lesson can say what it meant; routes/day.ts scoreTap sets it
+  questioned?: boolean; // the player sent at least one reply chip before the final action
   followUp?: { sender: string; text: string } | null; // the wronged person's later message, deterministic, no model
   lesson: {
     trickId?: TrickId; // names the scam in the lesson title; deal.ts lessonFor sets it

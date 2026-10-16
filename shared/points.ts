@@ -4,8 +4,10 @@ import type { SlotResult } from './types.ts';
 export const POINTS = {
   scamHandled: 100, // a safe action on a scam
   realTrusted: 50, // a fitting reply to a real message
+  realChecked: 20, // a real message checked by calling the known number: trusted, but it did not need it, no speed bonus
   tellCaught: 25, // each tell tapped correctly
   falseTap: -10, // each part tapped that carried no tell
+  questioned: 15, // asked questions in the chat before the final action: on a scam, or before trusting a real one
   fieldSent: -25, // each weight point sent on a fake page (shared/page.ts FIELD_WEIGHT)
 } as const;
 
@@ -39,14 +41,20 @@ const speedTag = (ms: number): SpeedTag | undefined => {
   return ms <= SPEED.fastMs ? 'fast' : undefined;
 };
 
-type Scored = Pick<SlotResult, 'isScam' | 'actionCorrect' | 'caught' | 'falseTaps' | 'pageCost'>;
+type Scored = Pick<SlotResult, 'isScam' | 'actionCorrect' | 'caught' | 'falseTaps' | 'pageCost' | 'cautious' | 'questioned' | 'action'>;
+
+// The final actions that go along with a message: questioning before one of these on a real message earns the bonus.
+const TRUSTING: readonly SlotResult['action'][] = ['reply', 'pay', 'send_money', 'open_link'];
+const questionBonus = (r: Scored): number =>
+  r.questioned && (r.isScam || TRUSTING.includes(r.action)) ? POINTS.questioned : 0;
 
 // decisionMs is how long the player took to act; without it the decision scores its base.
 export function pointsFor(result: Scored, decisionMs?: number): PointsResult {
-  const base = result.actionCorrect ? (result.isScam ? POINTS.scamHandled : POINTS.realTrusted) : 0;
-  const timed = result.actionCorrect && decisionMs !== undefined;
+  const real = result.cautious ? POINTS.realChecked : POINTS.realTrusted;
+  const base = result.actionCorrect ? (result.isScam ? POINTS.scamHandled : real) : 0;
+  const timed = result.actionCorrect && !result.cautious && decisionMs !== undefined;
   const decision = timed ? Math.round(base * speedFactor(decisionMs)) : base;
-  const tells = result.caught.length * POINTS.tellCaught + result.falseTaps.length * POINTS.falseTap + (result.pageCost ?? 0) * POINTS.fieldSent;
+  const tells = questionBonus(result) + result.caught.length * POINTS.tellCaught + result.falseTaps.length * POINTS.falseTap + (result.pageCost ?? 0) * POINTS.fieldSent;
   const speed = timed ? speedTag(decisionMs) : undefined;
   return { delta: Math.max(0, decision + tells), good: result.actionCorrect, ...(speed && { speed }) };
 }

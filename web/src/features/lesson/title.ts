@@ -57,6 +57,11 @@ function verdictLine(result: SlotResult): string {
 // The one small line under the title. `lost` is the amount already formatted, when the caller has it;
 // the lesson alone does not know the wallet before this message.
 export function outcomeLine(result: SlotResult, lost?: string): { text: string; tone: OutcomeTone } {
+  const line = actionOutcome(result, lost);
+  return result.questioned ? { ...line, text: `${line.text} You asked questions first.` } : line;
+}
+
+function actionOutcome(result: SlotResult, lost?: string): { text: string; tone: OutcomeTone } {
   const tone: OutcomeTone = result.actionCorrect ? 'good' : 'slip';
   const sent = (result.leaked ?? []).length > 0;
   const action: Action | undefined = result.action === 'open_link' && sent ? 'pay' : result.action;

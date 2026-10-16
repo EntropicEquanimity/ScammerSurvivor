@@ -18,6 +18,7 @@ import { PAGE_SYSTEM, draftTexts, leakLine, pageLines, realHostFor, toPage, with
 // The page host follows the trick's taxonomy category, the same one deal.ts fills [institution] from.
 import { TELL_IDS, TRICKS, trickCategory } from '../../shared/taxonomy.ts';
 import { ACTIONS } from '../../shared/types.ts';
+import { APP_NAME } from '../fill.ts';
 import { CLUE_KINDS } from '../../shared/clues.ts';
 import type { Clue } from '../../shared/clues.ts';
 import type { Action, Card, Category, CountryPack, Layout, MessagePart, PatternNote, People, TellId, TraceEvent, TrickId } from '../../shared/types.ts';
@@ -31,7 +32,8 @@ Rules:
 - Write the scam as message parts. Attach to each part the tell ids it carries, from the enum only. plantedTells lists exactly the tells used on the parts.
 - Every tell listed in the pattern note must be tagged in the tellIds of at least one part in "ask" (not only in "setup"). The tag is what counts; the words never need to name the tell. Let structure carry a tell: a payee the player has never paid (payment_substitution), a familiar account asking for something unusual or a changed number (synthetic_identity), a quiet "just between us" (isolation), the code just sent to you (credential_theft). Urgency can be soft: "today", "by tonight", "before the courier leaves". One pressure per part; never stack every tell into one line.
 - Register: scam parts are short (about 15 words or fewer), template-shaped and lightly unpolished (a stiff phrase, odd capitals, a missing comma). No literary words. An institution scam reads like an automated alert. A romance builds over small friendly messages, never a declaration in the first one.
-- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list. It sounds like that sender: a courier update is terse, a bank alert is one line, Mom is warm and casual. It never mentions what it does not ask for (no "no fee", "no payment needed", "we never ask", "never charge"). It ends when its business ends.
+- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list. It sounds like that sender: a courier update is terse, a bank alert is one line, Mom is warm and casual. It never mentions what it does not ask for (no "no fee", "no payment needed", "we never ask", "never charge"). It ends when its business ends. It never asks the player to share, read or enter a code, a one-time code, a PIN or a password, and its acceptable list never holds share_code or read_code: a real sender says to open their own app.
+- Every text speaks to the reader as "you" and "your". The pattern note says "the player"; never copy that word into a card.
 - Give safe replies and unsafe replies from the reply enum only.
 - usualEnding: one sentence on what happens if the player complies.
 - Institutions and app names: use "[institution]" and "[chat app name]" placeholders, never a real brand. That covers payment services and transfer systems too: say "a new account", "[bank]" or "[wallet]", never a real one.
@@ -162,7 +164,8 @@ export function userMessage(note: PatternNote, pack: CountryPack, level: number,
   const leak = leakLine(leaked);
   return [
     `Pattern note (JSON): ${JSON.stringify(note)}`,
-    `Country pack: ${pack.code}, currency ${pack.currency}, apps ${pack.layouts.join(', ')}, this card arrives on ${note.app}.`,
+    // App names, never look ids: a look id in the prompt came back in the copy ("talk here on green-chat").
+    `Country pack: ${pack.code}, currency ${pack.currency}, apps ${[...new Set(pack.layouts.map((look) => APP_NAME[look]))].join(', ')}, this card arrives in ${APP_NAME[note.app]}.`,
     `Stake: ${pack.currency} ${stakeFor(pack.walletStart).toLocaleString('en-US')}. This is the main amount the scam asks for.`,
     `Level: ${level}.`,
     `Allowed first names: ${allowedNames.join(', ')}.`,

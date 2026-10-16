@@ -1,15 +1,16 @@
-import { BRANDS, INSTITUTIONS, isInstitutionId } from '../shared/brands.ts';
 import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
-import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
+import type { Action, Card, CountryPack, DayPayload, DayScore, PublicCard, SlotResult, TrickId } from '../shared/types.ts';
 import type { Clue } from '../shared/clues.ts';
 import { offeredFor } from './offered.ts';
+import { moneyComesIn } from '../shared/money.ts';
 import { NEEDS, pageTells, publicPage } from '../shared/page.ts';
 import { isPageScam, placePage } from './arc.ts';
-import { PROFILE_TOKENS } from '../shared/profile.ts';
+import { fillCard, fitLayout } from './fill.ts';
 
 export { asks, offeredFor } from './offered.ts';
 export { isPageScam, placePage } from './arc.ts';
+export { INVENTED_INSTITUTION, fillCard, fillText, fitLayout, undouble } from './fill.ts';
 
 export const PEOPLE_START = 3;
 // The protected first scam on first play, rotated by the day seed so every new player does not meet
@@ -20,134 +21,6 @@ export const PEOPLE_START = 3;
 export const FIRST_TRICKS: readonly TrickId[] = ['family_trouble', 'paid_task', 'code_or_account'];
 const CLOCK = ['08:10', '10:40', '13:20', '17:05'];
 
-// The Director writes bracketed tokens such as "[institution]", "[chat app name]", "[wallet]" or
-// "[bank]" (rule 2: never a real brand). They are filled here, at deal time, so no bracketed
-// placeholder reaches a screen. The institution is the sender's INSTITUTIONS label when the card
-// names one; a Director card has none, so the trick's category picks an invented, pack-neutral name.
-export const INVENTED_INSTITUTION: Record<Category, string> = {
-  A: 'Kestrel Hiring',
-  B: 'Cedar Trading Circle',
-  C: 'Harbourline',
-  D: 'Northgate Parcel',
-  E: 'Harbourline',
-  F: 'Civic Notice Desk',
-  G: 'Harbourline',
-  H: 'Meridian Prize Desk',
-  I: 'Harbourline',
-  J: 'Harbourline',
-};
-const INVENTED_BANK = 'Harbourline';
-const NEUTRAL_NAME = 'Mira';
-
-// The app the card arrives in, by layout: the brand that owns the look.
-const APP_NAME: Record<Layout, string> = {
-  'green-chat': BRANDS.quillo.name,
-  'blue-chat': BRANDS.quillo.name,
-  'sticker-chat': BRANDS.quillo.name,
-  'cloud-chat': BRANDS.quillo.name,
-  'purple-chat': BRANDS.quillo.name,
-  sms: 'Messages',
-  email: BRANDS.fieldpost.name,
-  wallet: BRANDS.fold.name,
-  call: BRANDS.relay.name,
-};
-
-const CHAT_LOOKS: readonly Layout[] = ['green-chat', 'blue-chat', 'sticker-chat', 'cloud-chat', 'purple-chat'];
-
-// The card in a look the pack lists: an unlisted chat look takes the pack's first chat look, a
-// wallet card the pack's wallet or else text messages; sms, email and call stay as they are.
-export function fitLayout(card: Card, layouts: readonly Layout[]): Card {
-  if (layouts.includes(card.layout)) return card;
-  const chat = layouts.find((layout) => CHAT_LOOKS.includes(layout));
-  // Every phone has texts: SMS is never refitted, and any app the pack does not list falls back to it.
-  if (card.layout === 'sms') return card;
-  const fitted = CHAT_LOOKS.includes(card.layout) ? (chat ?? 'sms') : 'sms';
-  return { ...card, layout: fitted };
-}
-
-const institutionFor = (card: Card): string =>
-  isInstitutionId(card.sender.institutionId) ? INSTITUTIONS[card.sender.institutionId] : INVENTED_INSTITUTION[trickCategory(card.trickId)];
-
-// Innermost brackets only; an outer description is looked at again once its inner tokens are filled.
-const TOKEN = /\[([^[\]]{1,80})\]/g;
-const MAX_PASSES = 4;
-const ARTICLE = /^(a|an|the)\s/i;
-
-function tokenFills(card: Card): Record<string, string> {
-  const app = APP_NAME[card.layout];
-  const wallet = BRANDS.fold.name;
-  return {
-    institution: institutionFor(card),
-    'chat app name': app,
-    'chat app': app,
-    'app name': app,
-    app,
-    wallet,
-    'wallet app': wallet,
-    'wallet name': wallet,
-    'e-wallet': wallet,
-    bank: INVENTED_BANK,
-    'bank name': INVENTED_BANK,
-    name: NEUTRAL_NAME,
-    'first name': NEUTRAL_NAME,
-    ...PROFILE_TOKENS, // a rewrite after a leak: the pretend profile's own details
-  };
-}
-
-const known = (inner: string, fills: Record<string, string>): string | undefined => fills[inner.trim().toLowerCase()];
-
-// Inside a sentence an unknown token gets a neutral fill: its own words, behind an article.
-const neutral = (inner: string): string => (ARTICLE.test(inner.trim()) ? inner.trim() : `the ${inner.trim()}`);
-
-// A text that is one bracketed description (rule 6, every fixture scam part) stays as written
-// unless it is a known token; every token inside it, and every bracket in a sentence, is filled.
-export function fillText(text: string, fills: Record<string, string>): string {
-  let current = text;
-  for (let pass = 0; pass < MAX_PASSES; pass += 1) {
-    const whole = current.trim();
-    const next = current.replace(TOKEN, (match: string, inner: string) =>
-      known(inner, fills) ?? (match === whole ? match : neutral(inner)),
-    );
-    if (next === current) return current;
-    current = next;
-  }
-  return current;
-}
-
-const mapStrings = (value: unknown, fill: (text: string) => string): unknown => {
-  if (typeof value === 'string') return fill(value);
-  if (Array.isArray(value)) return value.map((item) => mapStrings(item, fill));
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, mapStrings(item, fill)]));
-  }
-  return value;
-};
-
-// The model often writes "[institution] Information Desk" around a name that already ends in Desk,
-// which fills to "Civic Notice Desk Information Desk". When the filled name is followed by words that
-// end in its own last word, those words are dropped: one Desk, one Parcel. Other suffixes stay
-// ("Northgate Parcel Delivery Desk").
-const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-export function undouble(text: string, institution: string): string {
-  const last = institution.split(' ').at(-1);
-  if (!last || !text.includes(institution)) return text;
-  const doubled = new RegExp(`${escapeRe(institution)}(?:\\s+[A-Z][\\w-]*){0,3}?\\s+${escapeRe(last)}\\b`, 'g');
-  const once = text.replace(doubled, institution);
-  // A generic last word ("Desk") followed by the model's own title-case suffix ("Investigation Unit",
-  // "Headquarters", "Rewards") is dropped, so the suffix names the office once.
-  if (!GENERIC_LAST.includes(last)) return once;
-  const core = institution.slice(0, -(last.length + 1));
-  return once.replace(new RegExp(`${escapeRe(institution)}(?=\\s+[A-Z][a-z])`, 'g'), core);
-}
-const GENERIC_LAST = ['Desk'];
-
-// A card with every placeholder filled, in every text field. A card with nothing to fill (every
-// fixture) is returned as is, so a day dealt from the fixtures still holds the fixture objects.
-export function fillCard(card: Card): Card {
-  const fills = tokenFills(card);
-  const filled = mapStrings(card, (text) => undouble(fillText(text, fills), fills.institution)) as Card;
-  return JSON.stringify(filled) === JSON.stringify(card) ? card : filled;
-}
 
 export interface DealtSlot {
   slotId: string;
@@ -195,6 +68,11 @@ const drawHint = (isTwin: boolean, random: () => number): PublicCard['bannerHint
 // The shown side's clues, field by field, so nothing but the Clue shape reaches the browser. The twin
 // is shown as its own parts sliced in two, ids unchanged (r1, r2...), so its clues need no remap.
 // An old cached card has no clues: no key at all.
+// A cached card may hold a payment request on money coming in ("transferring it over now"), from
+// before the Guard checked it: that clue is dropped, so no Pay pill shows on a friend's share.
+const groundedClues = (clues: readonly Clue[] | undefined, parts: readonly { id: string; text: string }[]): Clue[] | undefined =>
+  clues?.filter((clue) => clue.kind !== 'payment_request' || !moneyComesIn(parts.find((part) => part.id === clue.partId)?.text ?? ''));
+
 const publicClues = (clues: readonly Clue[] | undefined): { clues?: Clue[] } =>
   clues && clues.length > 0
     ? {
@@ -216,6 +94,11 @@ const withPage = <T extends object>(card: Card, isTwin: boolean, pick: (page: No
   return page ? pick(page) : {};
 };
 
+// A real twin never has a code handed over (the Guard's twin_asks_code): a cached twin written before
+// that rule still asks, so its code buttons are dropped and handing a code over is never acceptable.
+const CODE_ACTIONS: readonly Action[] = ['share_code', 'read_code'];
+const withoutCodes = (actions: Action[], isTwin: boolean): Action[] => (isTwin ? actions.filter((action) => !CODE_ACTIONS.includes(action)) : actions);
+
 function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string, bannerHint: PublicCard['bannerHint']): PublicCard {
   const cut = card.setup.length;
   const setup = isTwin ? card.realTwin.parts.slice(0, cut) : card.setup;
@@ -226,11 +109,11 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     sender: { ...(isTwin ? card.realTwin.sender : card.sender) },
     setup: strip(setup),
     ask: strip(ask),
-    offered: offeredFor([...setup, ...ask], card.unsafeReplies),
+    offered: withoutCodes(offeredFor([...setup, ...ask], card.unsafeReplies), isTwin),
     stake: card.stake,
     arrivesAt,
     bannerHint,
-    ...publicClues(isTwin ? card.realTwin.clues : card.clues),
+    ...publicClues(groundedClues(isTwin ? card.realTwin.clues : card.clues, [...setup, ...ask])),
     ...withPage(card, isTwin, (page) => ({ page: publicPage(page) })),
   };
 }
@@ -245,7 +128,7 @@ const toKey = (card: Card, isTwin: boolean): SlotKey => ({
   plantedTells: isTwin ? [] : card.plantedTells,
   safeReplies: unique([...card.safeReplies, VERIFY]),
   unsafeReplies: card.unsafeReplies.filter((action) => action !== VERIFY),
-  acceptable: unique([...card.realTwin.acceptable, VERIFY]),
+  acceptable: withoutCodes(unique([...card.realTwin.acceptable, VERIFY]), true),
   stake: card.stake,
   ...withPage(card, isTwin, (page) => ({ page: { kind: page.kind, needs: [...NEEDS[page.kind]], tells: pageTells(page) } })),
 });
@@ -373,11 +256,15 @@ export function followUpFor(sender: Card['sender']): NonNullable<SlotResult['fol
   return { sender: sender.displayName, text: `${sender.displayName}: ${line}` };
 }
 
-export function lessonFor(raw: Card, hotline: CountryPack['hotline']): SlotResult['lesson'] {
+// On a real message the scam's "never asks" line reads off-topic: the lesson's next-time line is the real side's.
+const REAL_NEXT_TIME = 'Keep checking the same way: the number you know, the official app.';
+
+export function lessonFor(raw: Card, hotline: CountryPack['hotline'], isTwin = false): SlotResult['lesson'] {
   const card = fillCard(raw);
   return {
+    trickId: card.trickId,
     tells: card.plantedTells.map((id) => ({ id, ...TELLS[id] })),
-    neverAsks: card.neverAsks,
+    neverAsks: isTwin ? REAL_NEXT_TIME : card.neverAsks,
     usualEnding: card.usualEnding,
     scam: { sender: { ...card.sender }, parts: [...card.setup, ...card.ask].map((part) => ({ ...part })) },
     real: { sender: { ...card.realTwin.sender }, parts: strip(card.realTwin.parts) },

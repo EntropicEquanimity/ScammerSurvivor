@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { ledgerFrom } from './ledger.ts';
 import { scoreDay } from '../../../../shared/score.ts';
 import type { SlotScore } from '../../../../shared/score.ts';
-import type { SlotResult } from '../../../../shared/types.ts';
+import type { Action, SlotResult } from '../../../../shared/types.ts';
 
 // Results hold ids, flags and numbers only. No message text lives in tests.
 const sender = (displayName: string) => ({ displayName, maskedNumber: '[masked]' });
@@ -45,7 +45,7 @@ test('four rows, one verdict each, totals match the day score tallies', () => {
   const ledger = ledgerFrom(results, SENDERS, START);
   assert.deepEqual(
     ledger.rows.map((row) => row.line),
-    ['Mom: trusted', 'Bank: caught', 'Boss: real, they did not hear back', 'Courier: fell for it, P500 gone'],
+    ['Mom: real, you answered', 'Bank: caught', 'Boss: real, they did not hear back', 'Courier: fell for it, P500 gone'],
   );
   assert.deepEqual(ledger.rows.map((row) => row.verdict), ['trusted', 'caught', 'blocked', 'fell']);
   assert.deepEqual(ledger.rows.map((row) => row.walletDelta), [0, 0, 0, -500]);
@@ -115,4 +115,28 @@ test('the default formatter is plain String and the inputs are not mutated', () 
   const ledger = ledgerFrom(results, SENDERS, { wallet: 2000, people: 3 });
   assert.equal(ledger.rows[0].line, 'Courier: fell for it, 500 gone');
   assert.equal(JSON.stringify(results), before);
+});
+
+test('every action on a real message and a scam names what it meant', () => {
+  const real = (action: Action, over: Partial<SlotResult> = {}) => slot('s1', { action, ...over });
+  const scam = (action: Action, over: Partial<SlotResult> = {}) => slot('s2', { isScam: true, action, ...over });
+  const cases: [SlotResult, string][] = [
+    [real('reply'), 'real, you answered'],
+    [real('verify_known_number', { cautious: true }), 'real, you checked'],
+    [real('ignore', { actionCorrect: false, falseAlarm: true, peopleAfter: 2 }), 'real, they did not hear back'],
+    [real('block_report', { actionCorrect: false, falseAlarm: true, peopleAfter: 2 }), 'real, you blocked them'],
+    [real('pay', { actionCorrect: false }), 'real, but that reply was not the safe one'],
+    [scam('block_report'), 'blocked'],
+    [scam('ignore'), 'ignored'],
+    [scam('verify_known_number'), 'caught'],
+    [scam('pay', { actionCorrect: false, walletAfter: 1500 }), 'fell for it, SGD 500 gone'],
+    [scam('reply', { actionCorrect: false }), 'fell for it, nothing lost yet'],
+  ];
+  const sgd = { ...START, money: (n: number) => `SGD ${n.toLocaleString('en')}` };
+  for (const [result, line] of cases) assert.equal(ledgerFrom([result], {}, sgd).rows[0].detail, line, `${result.isScam ? 'scam' : 'real'} ${result.action}`);
+});
+
+test('a message questioned first says so', () => {
+  const [row] = ledgerFrom([slot('s2', { isScam: true, action: 'block_report', questioned: true })], SENDERS, START).rows;
+  assert.equal(row.detail, 'blocked, asked questions first');
 });

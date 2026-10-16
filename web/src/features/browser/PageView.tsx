@@ -4,21 +4,14 @@ import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { PartView } from '../layouts/MessageView.tsx';
 import type { TapMode } from '../layouts/MessageView.tsx';
-import { ROW_LABEL, rowValue, sendLabel } from './fill.ts';
+import { ROW_LABEL, rowValue, sendLabel, siteName } from './fill.ts';
+
+export { siteName } from './fill.ts';
 import type { FormState } from './fill.ts';
 
 // The practice page as a plain web page inside the in-app browser: the site's own header, its title
 // and lines, a static countdown line when it has one, then its form. Rows are buttons, never inputs:
 // tapping one raises the autofill bar for it (Autofill.tsx). The page's own button sends what is filled.
-
-// "harbour-secure.example" reads as "Harbour Secure", the way a site names itself in its header.
-export const siteName = (host: string): string =>
-  host
-    .replace(/\.example$/, '')
-    .split(/[-.]/)
-    .filter(Boolean)
-    .map((word) => word[0].toUpperCase() + word.slice(1))
-    .join(' ');
 
 // An invented ID card drawn in CSS: a face shape and three grey bars. No real document's layout.
 export const IdThumb = () => (

@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 import type { Clue, ClueKind } from '../../../../shared/clues.ts';
 import { initialCountry } from '../../shell/country.ts';
 import { moneyIn } from '../day/currency.ts';
-import { hostOf, minutesLeft, voiceLength, waveBars } from './clueText.ts';
+import { hostOf, minutesLeft, moneyComesIn, voiceLength, waveBars } from './clueText.ts';
 import { Glyph } from './glyphs.tsx';
 
 // Amounts in the player's pack currency ("SGD 1,500").
@@ -32,14 +32,19 @@ function LinkPreview({ clue }: FaceProps) {
 }
 
 // A wallet request: the amount large, who asks under it, a Pay pill that looks real and does nothing.
+// Money coming in (a refund, a friend's share) reads "Incoming SGD 500" and has no pill: nobody pays to receive.
 function PaymentRequest({ clue }: FaceProps) {
+  const amount = typeof clue.amount === 'number' ? money(clue.amount) : '';
+  const incoming = moneyComesIn(clue.title, clue.detail);
   return (
     <span className="clue-face clue-front clue-pay">
-      <span className="clue-amount">{typeof clue.amount === 'number' ? money(clue.amount) : ''}</span>
+      <span className="clue-amount">{incoming && amount ? `Incoming ${amount}` : amount}</span>
       <span className="clue-title">{clue.title}</span>
-      <span className="clue-pay-pill" aria-hidden="true">
-        Pay
-      </span>
+      {!incoming && (
+        <span className="clue-pay-pill" aria-hidden="true">
+          Pay
+        </span>
+      )}
     </span>
   );
 }
