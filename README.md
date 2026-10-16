@@ -98,13 +98,13 @@ Gates: `npm test`, `npm run check` (the policy grep), `npm run build`.
 - `docs/kill-test.md` and `docs/kill-test-b-2026-10-16.md`: the model tests and the play of Google's own game
 - `docs/compliance.md`: every policy rule with its source
 - `docs/hotlines.md`: what the official pages say for each country
-- `docs/deck-draft.md`, `docs/video-script.md`, `docs/social-post.md`: the submission words
+- `docs/deck-draft.md`, `docs/video-script.md`: the submission words
 - `docs/google-setup.md`: every Google product, step by step
 - `server/agents/README.md`, `server/guard/README.md`, `scripts/README.md`, `content/README.md`
 
 ## Team
 
-Four people, by role: Builder (code, deploy, kill tests), Deck lead (deck, video, Social Choice post), Content lead (pattern notes and the card review), Playtest lead (the playtest sheet and its numbers).
+Four people, by role: Builder (code, deploy, kill tests), Deck lead (deck and video), Content lead (pattern notes and the card review), Playtest lead (the playtest sheet and its numbers).
 
 ## Licence
 
