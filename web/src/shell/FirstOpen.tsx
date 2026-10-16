@@ -129,7 +129,7 @@ function LockButtons({ onCountry, onUnlock }: {
   };
   return (
     <div className="lock-buttons">
-      <button type="button" className="lock-btn pressable" aria-label="Country" onClick={onCountry}><Glyph name="globe" size={22} /></button>
+      <button type="button" className="lock-btn pressable" aria-label="Country" onClick={onCountry}><Glyph name="globe" size={24} /></button>
       <button type="button" className="lock-swipe pressable" onClick={onUnlock}>Swipe up to open</button>
       <button type="button" className="lock-btn pressable" aria-label="Privacy" onClick={privacy}><Icon name="privacy" /></button>
     </div>
@@ -152,10 +152,10 @@ function useSwipeUp(onSwipe: () => void) {
 }
 
 // The lock screen's one notification in the phone's anatomy: the squircle and the app name, the time at
-// the title line's right, a two-line body. The full notice lives in the alert above it.
+// the title line's right, a two-line body, at the mock's size (first-open.css). The full notice lives in the alert above it.
 const LockNotification = () => (
   <div className="lock-notif" role="note">
-    <img className="lock-notif-art" src="/art/practice.png" alt="" width={38} height={38} />
+    <img className="lock-notif-art" src="/art/practice.png" alt="" width={40} height={40} />
     <span className="lock-notif-body">
       <span className="lock-notif-title">Scammer Survivor<span className="lock-notif-time">now</span></span>
       <span className="lock-notif-text">Your day is ready. Nothing here is real.</span>

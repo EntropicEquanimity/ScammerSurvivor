@@ -48,8 +48,9 @@ function useCount(from: number, to: number): number {
 }
 
 // Two lock screen widgets: the wallet with its currency, and the people who count on the player (the
-// people widget is how a player learns that blocking a real person costs something). The value font
-// shrinks with the widget's width by the number's length (day.css), so a long wallet keeps one line.
+// people widget is how a player learns that blocking a real person costs something). The icon sits at
+// left, the label over the value; the currency rides on the label so the number can be big. The value
+// font shrinks with its column's width by the number's length (lock-widgets.css), so a long wallet keeps one line.
 export function StakesBar({ wallet, people }: Props) {
   const [from] = useState(() => lastShown ?? { wallet, people });
   useEffect(() => {
@@ -61,13 +62,19 @@ export function StakesBar({ wallet, people }: Props) {
   const currency = currencyFor(initialCountry());
   return (
     <div className="lock-widgets">
-      <div className="lock-widget" style={{ ['--len' as string]: amount.length + currency.length * 0.55 + 0.3 }}>
-        <span className="lock-widget-label"><Icon name="wallet" />Wallet</span>
-        <span className="lock-widget-value"><small>{currency}</small> {amount}</span>
+      <div className="lock-widget">
+        <Icon name="wallet" />
+        <span className="lock-widget-text" style={{ ['--len' as string]: amount.length }}>
+          <span className="lock-widget-label">Wallet <small>{currency}</small></span>
+          <span className="lock-widget-value">{amount}</span>
+        </span>
       </div>
-      <div className="lock-widget" style={{ ['--len' as string]: String(shownPeople).length }}>
-        <span className="lock-widget-label"><Glyph name="people" size={18} />People</span>
-        <span className="lock-widget-value">{shownPeople}</span>
+      <div className="lock-widget">
+        <Glyph name="people" size={30} />
+        <span className="lock-widget-text" style={{ ['--len' as string]: String(shownPeople).length }}>
+          <span className="lock-widget-label">People</span>
+          <span className="lock-widget-value">{shownPeople}</span>
+        </span>
       </div>
     </div>
   );

@@ -65,17 +65,18 @@
   visibility: hidden;
 }
 
-/* The lock notification in the phone's anatomy: a 38px squircle, the title line with the time at its
-   right, a two-line body. No edge, only the drop shadow. Not a button: tapping it does nothing. */
+/* The lock notification in the phone's anatomy: a 40px squircle, the title line with the time at its
+   right, a two-line body, at the mock's size (364 x 75 at 393). No edge, only the drop shadow. Not a
+   button: tapping it does nothing. */
 .lock .lock-notif {
   display: flex;
   flex: none;
-  gap: 0.625rem;
+  gap: 0.75rem;
   align-items: center;
-  margin: 0 0 1rem;
-  padding: 0.75rem;
+  margin: 0 -0.125rem 1.75rem;
+  padding: 1rem;
+  border-radius: 24px;
   border: 0;
-  border-radius: var(--radius);
   background: var(--glass);
   -webkit-backdrop-filter: blur(var(--glass-bar-blur)) saturate(1.2);
   backdrop-filter: blur(var(--glass-bar-blur)) saturate(1.2);
@@ -92,8 +93,8 @@
 .lock .lock-notif-art {
   display: block;
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--icon-radius);
   object-fit: cover;
 }
@@ -111,18 +112,18 @@
   gap: 0.5rem;
   align-items: baseline;
   justify-content: space-between;
-  font-size: var(--t17);
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: var(--track-17);
-  line-height: 1.3;
+  letter-spacing: var(--track-18);
+  line-height: 1.25;
 }
 
 .lock .lock-notif-time {
   flex: none;
   color: var(--ink-2);
-  font-size: var(--t13);
+  font-size: var(--t15);
   font-weight: 400;
-  letter-spacing: var(--track-13);
+  letter-spacing: var(--track-15);
 }
 
 .lock .lock-notif-text {
@@ -131,8 +132,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  font-size: var(--t16);
+  font-size: var(--t18);
+  letter-spacing: var(--track-18);
   line-height: 1.3;
+  text-wrap: balance; /* two even lines, never a one-word orphan */
 }
 
 /* The alert body: the practice line, the full notice and the age line, with air between them. */
@@ -142,23 +145,24 @@
   gap: 0.5rem;
 }
 
-/* One row: two 50px discs like the camera and flashlight, the swipe capsule centred between them.
-   It sits the one floating-capsule inset above the indicator (day.css --page-end-bottom, minus the
-   indicator band the screen already pads by). */
+/* One row: two 56px discs like the camera and flashlight, the swipe capsule low between them (the
+   discs ride 12px up, as the mock sits its hint under their centres). The row sits the one
+   floating-capsule inset above the indicator (--page-end-bottom minus the band the screen pads by). */
 .lock .lock-buttons {
   display: grid;
   flex: none;
-  grid-template-columns: 50px 1fr 50px;
-  align-items: center;
-  padding: 0 1.875rem;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: end;
+  padding: 0 1.75rem;
   margin-bottom: calc(var(--page-end-bottom) - var(--indicator-h));
 }
 
 .lock .lock-btn {
   display: grid;
   place-items: center;
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.75rem;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -171,8 +175,8 @@
 }
 
 .lock .lock-btn .icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   stroke-width: 2;
 }
 

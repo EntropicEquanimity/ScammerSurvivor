@@ -30,7 +30,7 @@ function NotifCard({ card, clock, onOpen }: CardProps) {
   };
   return (
     <button type="button" className="glass notif pressable" onClick={open}>
-      <AppIcon layout={card.layout} size={38} />
+      <AppIcon layout={card.layout} size={40} />
       <span className="notif-body">
         <span className="notif-head">
           <span className="notif-sender">{card.sender.displayName}</span>

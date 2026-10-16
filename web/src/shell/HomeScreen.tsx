@@ -6,6 +6,7 @@ import type { PackSummary } from '../api.ts';
 import { ScreenTitle } from './PhoneShell.tsx';
 import { countryName } from './country.ts';
 import { Glyph } from './glyphs.tsx';
+import { Icon } from './Icon.tsx';
 import { haptic, rememberTap } from './feel.ts';
 import { liveStreak, readProgress } from './progress.ts';
 
@@ -86,8 +87,8 @@ interface WidgetProps {
 // and fainter (home.css). Made-up apps and generic lines only; nothing here is a card from the day.
 const TEASERS: readonly { id: ArtId; title: string; line: string; when: string }[] = [
   { id: 'sms', title: 'Unknown', line: 'Quick question', when: 'now' },
-  { id: 'quillo', title: 'Quillo', line: 'Check your account', when: '5m ago' },
-  { id: 'fieldpost', title: 'Fieldpost', line: 'New job for you', when: '12m ago' },
+  { id: 'quillo', title: 'Quillo', line: 'Your account', when: '2m ago' },
+  { id: 'fieldpost', title: 'Fieldpost', line: 'New job', when: '5m ago' },
 ];
 
 function Teaser() {
@@ -108,38 +109,50 @@ function Teaser() {
 
 function Flame() {
   return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
       <path d="M8 1c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-5 0-7z" fill="currentColor" />
     </svg>
   );
 }
 
-// The one way to start, the iOS large widget: the day, the streak and the country on top, messages
-// already arriving, Play and Quick day, then Your people. Every control is a capsule with a 48px target.
-function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
+function PlayMark() {
+  return (
+    <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" focusable="false">
+      <path d="M4 2.2v11.6a.8.8 0 0 0 1.2.7l9.4-5.8a.8.8 0 0 0 0-1.4L5.2 1.5A.8.8 0 0 0 4 2.2z" fill="currentColor" />
+    </svg>
+  );
+}
+
+// The right column: the day big, the streak under it (its line keeps its height on a fresh profile so
+// Play never jumps), the glossy Play capsule and Quick day under it.
+function DaySide({ onPlay, playRef }: Pick<WidgetProps, 'onPlay' | 'playRef'>) {
   const progress = readProgress();
   const streak = liveStreak(progress, new Date());
+  return (
+    <div className="widget-side">
+      <p className="widget-day-n">
+        <span>Day {progress.n + 1}</span>
+        <span className="widget-streak">{streak > 0 && <><Flame />Streak {streak}</>}</span>
+      </p>
+      <button ref={playRef} type="button" className="widget-play-btn pressable" onClick={(event) => onPlay(event, false)}><PlayMark />Play</button>
+      <button type="button" className="widget-capsule widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
+    </div>
+  );
+}
+
+// The one way to start, the iOS large widget: messages already arriving at left, the day, Play and
+// Quick day at right, then Your people and the country as two capsules. Every control has a 48px target.
+function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
   return (
     <div className="widgets widgets-one">
       <div className="widget-cell anim-pop" style={stagger(0)}>
         <div className="widget widget-day">
           <ScreenTitle className="visually-hidden">Your practice day</ScreenTitle>
-          <div className="widget-day-head">
-            <span className="widget-day-n">
-              Day {progress.n + 1}
-              {streak > 0 && <span className="widget-streak" aria-label={`Streak ${streak} days`}><Flame />{streak}</span>}
-            </span>
-            <button type="button" className="widget-capsule widget-country pressable" aria-label={`Country, ${name}`} onClick={onChange}>
-              <Glyph name="globe" size={16} />{name}
-            </button>
-          </div>
           <Teaser />
-          <div className="widget-actions">
-            <button ref={playRef} type="button" className="widget-play-btn pressable" onClick={(event) => onPlay(event, false)}>Play</button>
-            <button type="button" className="widget-capsule widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
-          </div>
+          <DaySide onPlay={onPlay} playRef={playRef} />
           <div className="widget-foot">
-            <button type="button" className="widget-capsule pressable" onClick={onPeople}><Glyph name="people" size={16} />Your people</button>
+            <button type="button" className="widget-capsule widget-link pressable" onClick={onPeople}><Glyph name="people" size={20} />Your people<Icon name="chevron" className="widget-chevron" /></button>
+            <button type="button" className="widget-capsule widget-link pressable" aria-label={`Country, ${name}`} onClick={onChange}><Glyph name="globe" size={20} />{name}<Icon name="chevron" className="widget-chevron" /></button>
           </div>
         </div>
         <span className="widget-label">Scammer Survivor</span>
