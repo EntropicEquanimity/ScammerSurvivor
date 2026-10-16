@@ -13,6 +13,9 @@ export interface LedgerRow {
   verdict: Verdict;
   detail: string; // "caught", "fell for it, 500 gone"
   line: string; // "Courier: fell for it, 500 gone"
+  kind: 'Scam' | 'Real'; // the tag on the row's right
+  right: boolean; // the tag's tick: the player's call when asked, else the action
+  sentence: string; // one plain sentence under the sender: "You ignored it, so they never heard back."
   walletDelta: number;
   peopleDelta: number;
 }
@@ -68,6 +71,32 @@ function detailOf(r: SlotResult, verdict: Verdict, lost: number, money: (n: numb
   return `fell for it, ${money(lost)} gone${back}`;
 }
 
+// The row's plain sentence (Angel, Oct 16: "please phrase better"): what you did and what it meant.
+const REAL_SENTENCE: Partial<Record<Action, string>> = {
+  ignore: 'You ignored it, so they never heard back.',
+  block_report: 'You blocked them, but they were real.',
+  verify_known_number: 'You called to check. It was real.',
+  reply: 'You replied. That was fine.',
+  open_link: 'You opened it. It was safe.',
+  pay: 'You paid. It was really them.',
+  send_money: 'You sent it. It was really them.',
+};
+const SCAM_SENTENCE: Partial<Record<Action, string>> = {
+  ignore: 'You ignored it. Safe.',
+  block_report: 'You blocked and reported it.',
+  verify_known_number: 'You called to check and caught it.',
+};
+
+function sentenceOf(r: SlotResult, verdict: Verdict, lost: number, money: (n: number) => string): string {
+  const action = r.action;
+  if (verdict === 'risky') return 'It was real, but that was not the safest move.';
+  if (!r.isScam) return (action && REAL_SENTENCE[action]) ?? (verdict === 'blocked' ? 'You turned them away. They were real.' : 'You replied. That was fine.');
+  if (verdict === 'caught') return (action && SCAM_SENTENCE[action]) ?? 'You did not fall for it.';
+  if (lost <= 0) return 'You went along with it. No money lost yet.';
+  const recovered = r.recovered ?? 0;
+  return `You went along with it. ${money(lost)} gone${recovered > 0 ? `, ${money(recovered)} back` : ''}.`;
+}
+
 // The player's answer to "Scam or real?", when they gave one.
 const saidOf = (r: SlotResult): string => (r.verdict ? `, you said ${r.verdict}${r.verdictCorrect ? '' : ' (wrong)'}` : '');
 
@@ -89,6 +118,9 @@ export function ledgerFrom(results: SlotResult[], senders: Record<string, string
       verdict,
       detail,
       line: `${sender}: ${detail}`,
+      kind: r.isScam ? 'Scam' : 'Real',
+      right: r.verdict ? Boolean(r.verdictCorrect) : verdict === 'caught' || verdict === 'trusted',
+      sentence: `${sentenceOf(r, verdict, -walletDelta + recovered, money)}${r.questioned ? ' You asked questions first.' : ''}`,
       walletDelta,
       peopleDelta: r.peopleAfter - peopleBefore,
     };

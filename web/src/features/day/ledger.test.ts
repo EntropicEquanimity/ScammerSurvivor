@@ -146,3 +146,16 @@ test('a real message checked by a call is not counted as trusted, and the verdic
   assert.deepEqual(ledger.trusted, { handled: 0, total: 1 });
   assert.equal(ledger.rows[0].detail, 'real, you checked, you said scam (wrong)');
 });
+
+test('rows read as a sender, a Scam or Real tag and one plain sentence', async () => {
+  const { ledgerFrom } = await import('./ledger.ts');
+  const base = { slotId: 's1', walletAfter: 5000, peopleAfter: 3, lesson: { scam: { sender: { displayName: 'X' } }, real: { sender: { displayName: 'X' } } } };
+  const realIgnored = { ...base, isScam: false, actionCorrect: false, falseAlarm: true, action: 'ignore', verdict: 'real', verdictCorrect: true };
+  const scamIgnored = { ...base, slotId: 's2', isScam: true, actionCorrect: true, action: 'ignore', verdict: 'scam', verdictCorrect: true };
+  const ledger = ledgerFrom([realIgnored, scamIgnored] as never, { s1: 'Prize Desk', s2: 'Parcel Support' }, { wallet: 5000, people: 3 });
+  assert.equal(ledger.rows[0].kind, 'Real');
+  assert.equal(ledger.rows[0].right, true);
+  assert.equal(ledger.rows[0].sentence, 'You ignored it, so they never heard back.');
+  assert.equal(ledger.rows[1].sentence, 'You ignored it. Safe.');
+  assert.ok(ledger.rows.every((row) => !row.sentence.includes(', you said')));
+});

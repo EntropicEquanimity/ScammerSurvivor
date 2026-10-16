@@ -108,11 +108,14 @@ function RatesNote({ score, results, money }: { score: DayScore; results: SlotRe
   const checked = checkedOf(results);
   const { right, asked } = verdictsOf(results);
   return (
-    <p className="end-note" style={{ '--n': rows } as CSSProperties}>
-      {asked > 0 && <>You called {right} of {asked} right. </>}
-      Scams caught {caught} of {score.scamsCaught.total}. Real messages trusted {trusted} of {score.realTrusted.total}
-      {checked > 0 && <>, {checked} checked first</>}. Wallet {money(wallet)} of {money(score.walletStart)}.
-    </p>
+    <div className="end-note" style={{ '--n': rows } as CSSProperties}>
+      {asked > 0 && <p className="end-note-lead">{right} of {asked} read right</p>}
+      <p>
+        Caught {caught} of {score.scamsCaught.total} scams · Trusted {trusted} of {score.realTrusted.total} real messages
+        {checked > 0 && <> · {checked} checked first</>}
+      </p>
+      <p>Wallet: {money(wallet)}{score.wallet >= score.walletStart ? ', nothing lost' : ` of ${money(score.walletStart)}`}</p>
+    </div>
   );
 }
 
@@ -123,9 +126,13 @@ function Ledger({ results, senders, score, money }: { results: SlotResult[]; sen
     <InsetGroup header="Your day">
       {ledger.rows.map((row, i) => (
         <li key={row.slotId} className="inset-row inset-body ledger-row" style={{ '--i': i } as CSSProperties}>
-          <span>
-            <span className="ledger-verdict">{row.sender}:</span> {row.detail}
+          <span className="ledger-head">
+            <span className="ledger-verdict">{row.sender}</span>
+            <span className={row.right ? 'ledger-tag ledger-tag-right' : 'ledger-tag ledger-tag-wrong'}>
+              {row.kind} {row.right ? '✓' : '✗'}
+            </span>
           </span>
+          <span className="ledger-sentence">{row.sentence}</span>
         </li>
       ))}
     </InsetGroup>

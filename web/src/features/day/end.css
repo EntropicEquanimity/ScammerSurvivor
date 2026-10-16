@@ -97,6 +97,34 @@
   font-weight: 600;
 }
 
+/* Sender at left, the Scam or Real tag at right, the plain sentence under them. */
+.ledger-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  justify-content: space-between;
+  align-self: stretch;
+}
+
+.ledger-tag {
+  flex: none;
+  font-size: var(--t15);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ledger-tag-right { color: var(--accent-ink, var(--accent)); }
+.ledger-tag-wrong { color: var(--notice); }
+
+.ledger-sentence {
+  color: var(--ink-2);
+  font-size: var(--t15);
+  line-height: 1.35;
+}
+
+.end-note p { margin: 0 0 0.25rem; }
+.end-note .end-note-lead { font-weight: 700; }
+
 .end-note {
   padding: 0 1rem;
   color: var(--on-wall);
