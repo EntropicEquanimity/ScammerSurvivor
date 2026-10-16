@@ -86,7 +86,7 @@ function CardStep({ card, busy, failed, trace, personalised, onAct }: CardStepPr
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} trace={trace} personalised={personalised} />
       <div className="app-body scroll">
-        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} />
+        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
         {failed && (
           <p className="plain-note" role="alert">
             Your choice did not go through. Tap it again.

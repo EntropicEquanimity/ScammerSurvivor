@@ -39,6 +39,7 @@ export function TellPicker({ card, busy, failed, onDone }: Props) {
       <div className="page-body scroll">
         <p className="tells-hint">Tap what gave it away. Tap again to unmark. If nothing did, tap Done.</p>
         <MessageView
+          clues={card.clues}
           sender={card.sender}
           setup={card.setup}
           ask={card.ask}

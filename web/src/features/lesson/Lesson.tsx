@@ -122,7 +122,7 @@ export function RealNote({ card, result, busy, failed, onNext, trace, personalis
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} trace={trace} personalised={personalised} onBack={onBack} />
       <div className="app-body scroll" aria-live="polite">
-        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} />
+        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
         <p className="thread-note">{noteLine(card, result)}</p>
         {followUp && landed && (
           <div className="bubble-group bubble-later anim-pop">
