@@ -117,7 +117,8 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
 // The game layer shows while the player plays the day: lock, app, recovery, note. The tells and the
 // lesson are full app screens of their own (the Ruler's HOLD), the call has its own full-screen
 // look, and the end screen has its own score. A call over the day hides it too.
-const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'tells', 'lesson', 'call', 'end'];
+// The tells keep the HUD: the points fly into it from Done there.
+const HUD_HIDDEN: readonly Phase['kind'][] = ['loading', 'load-failed', 'lesson', 'call', 'end'];
 
 type Day = ReturnType<typeof useDay>;
 type Step = { busy: boolean; failed: boolean; onNext: () => void };
@@ -215,6 +216,7 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
       return (
         <EndOfDay
           score={phase.score}
+          points={juice.score}
           age={age}
           tells={d.tells}
           results={d.results}
