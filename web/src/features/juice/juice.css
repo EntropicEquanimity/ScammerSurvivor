@@ -33,9 +33,10 @@
   left: auto;
 }
 
-/* On the lock the "new messages" line sits where the capsule does, so it steps down under it. */
-.day-lock .day-lock-date {
-  margin-top: calc(var(--hud-h) + 0.75rem);
+/* The lock is the phone's own screen, so the game capsule stays off it; the lock widgets carry the
+   wallet there. It returns as soon as a card opens. */
+.phone:has(.day-lock) .game-hud {
+  display: none;
 }
 
 /* The lesson's large title keeps the nav row above it free, as iOS does, so the capsule sits there. */

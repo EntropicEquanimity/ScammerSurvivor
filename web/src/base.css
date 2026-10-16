@@ -48,6 +48,11 @@
   --wallpaper: url('/art/wallpaper.jpg');
   --on-wall: #ffffff;
   --on-wall-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.35);
+  /* The lock screen's own glass: the camera and flashlight discs, the swipe capsule, the lock widgets. */
+  --glass-lock: rgba(28, 24, 72, 0.5);
+  /* The swipe capsule carries white text over the light bottom band: a darker step of the same glass. */
+  --glass-lock-text: rgba(28, 24, 72, 0.6);
+  --on-wall-shadow-soft: 0 1px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* On WebKit the system font already applies SF's own tracking at every size (HIG typography), so the
@@ -133,6 +138,11 @@ p > a {
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* A screen title takes focus on mount so it is read first; it is a reading target, not a control. */
+h1[tabindex='-1']:focus {
+  outline: none;
 }
 
 button {

@@ -27,8 +27,8 @@
   to { transform: translateY(-100%); opacity: 0; }
 }
 
-/* Clock: the on-wallpaper colour and shadow from base.css, so it follows whichever wallpaper the phone wears.
-   The date is 20px, the clock the --clock-size token at weight 600. */
+/* Clock: solid on-wall white with the soft lock shadow (iOS lock text sits on the wallpaper with a
+   faint drop only). The date is 20px, the clock the --clock-size token at weight 600. */
 .lock .lock-head {
   display: flex;
   flex: 1 1 auto;
@@ -40,7 +40,7 @@
   padding: 2.25rem 0 1rem;
   color: var(--on-wall);
   text-align: center;
-  text-shadow: var(--on-wall-shadow);
+  text-shadow: var(--on-wall-shadow-soft);
 }
 
 .lock .lock-date {
@@ -59,23 +59,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The practice tag under the clock, in the Focus pill's place: a dark glass capsule, 15px semibold. */
-.lock .lock-focus {
-  margin: 0.75rem 0 0;
-  padding: 0.3rem 0.875rem;
-  background: var(--glass-dark);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  color: var(--on-wall);
-  font-size: var(--t15);
-  letter-spacing: var(--track-15);
-  line-height: 1.3;
-  text-shadow: none;
+/* The lock shows the big clock, so the status bar drops its own time, as the phone does. The same
+   rule covers the day's lock (features/day.css draws it). */
+.phone:has(.lock, .day-lock) .status-bar > span:first-child {
+  visibility: hidden;
 }
 
 /* The lock notification in the phone's anatomy: a 38px squircle, the title line with the time at its
-   right, a five-line body so the sentence reads in full. No edge, no inset highlight, only the drop
-   shadow. Not a button: tapping it does nothing. */
+   right, a two-line body. No edge, only the drop shadow. Not a button: tapping it does nothing. */
 .lock .lock-notif {
   display: flex;
   flex: none;
@@ -85,12 +76,17 @@
   padding: 0.75rem;
   border: 0;
   border-radius: var(--radius);
-  background: var(--glass-bar);
+  background: var(--glass);
   -webkit-backdrop-filter: blur(var(--glass-bar-blur)) saturate(1.2);
   backdrop-filter: blur(var(--glass-bar-blur)) saturate(1.2);
   box-shadow: var(--shadow);
   color: var(--ink);
   text-align: left;
+  animation: lock-rise var(--dur-sheet) var(--spring) 160ms both;
+}
+
+@keyframes lock-rise {
+  from { transform: translateY(16px); opacity: 0; }
 }
 
 .lock .lock-notif-art {
@@ -133,22 +129,105 @@
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: var(--t16);
   line-height: 1.3;
 }
 
-/* The alert body is two short lines with air between them. */
+/* The alert body: the practice line, the full notice and the age line, with air between them. */
 .lock .alert-msg {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-/* Reduced motion: the lift-off, the alert zoom and the country picker's slide become fades. Important beats
-   base.css's global animation: none, which is also important, on class specificity; the lock still gets
-   animationend. */
+/* One row: two 50px discs like the camera and flashlight, the swipe capsule centred between them.
+   It sits the one floating-capsule inset above the indicator (day.css --page-end-bottom, minus the
+   indicator band the screen already pads by). */
+.lock .lock-buttons {
+  display: grid;
+  flex: none;
+  grid-template-columns: 50px 1fr 50px;
+  align-items: center;
+  padding: 0 1.875rem;
+  margin-bottom: calc(var(--page-end-bottom) - var(--indicator-h));
+}
+
+.lock .lock-btn {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--glass-lock);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  box-shadow: var(--shadow);
+  color: var(--on-wall);
+  cursor: pointer;
+}
+
+.lock .lock-btn .icon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+
+/* "Swipe up to open" on a 34px glass capsule drawn behind it, so white text holds its contrast on the
+   wallpaper's light bottom band; the button itself keeps the 48px target. */
+.lock .lock-swipe {
+  position: relative;
+  justify-self: center;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 0 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--on-wall);
+  font-size: var(--t15);
+  font-weight: 600;
+  letter-spacing: var(--track-15);
+  white-space: nowrap;
+  text-shadow: none;
+  cursor: pointer;
+  isolation: isolate;
+  animation: lock-nudge 2.4s var(--spring) 1.2s infinite;
+}
+
+.lock .lock-swipe::before {
+  content: '';
+  position: absolute;
+  inset: 7px 0;
+  z-index: -1;
+  border-radius: var(--radius-pill);
+  background: var(--glass-lock-text);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+
+/* translate, not transform, so the press scale on .pressable still shows mid-nudge. */
+@keyframes lock-nudge {
+  0%, 100% { translate: 0 0; }
+  40% { translate: 0 -3px; }
+}
+
+/* On a 320 phone the row tightens so the capsule keeps its one line. */
+@media (max-width: 359px) {
+  .lock .lock-buttons {
+    padding: 0 0.75rem;
+  }
+
+  .lock .lock-swipe {
+    padding: 0 0.75rem;
+  }
+}
+
+/* Reduced motion: the lift-off, the alert zoom, the notification rise and the country picker's slide
+   become fades; the swipe nudge stops. Important beats base.css's global animation: none, which is also
+   important, on class specificity; the lock still gets animationend. */
 @keyframes lock-fade-out {
   from { opacity: 1; }
   to { opacity: 0; }
@@ -165,68 +244,14 @@
   }
 
   .lock .alert,
+  .lock .lock-notif,
   .country-picker.anim-sheet {
     animation: lock-fade-in var(--dur-press) ease-out both !important;
   }
-}
 
-/* Two 50px round glass buttons, the way the lock screen places them. */
-.lock-buttons {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2.25rem;
-}
-
-.lock-btn {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 50px;
-  height: 50px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--ink) 78%, transparent);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  box-shadow: var(--shadow);
-  color: var(--surface);
-  cursor: pointer;
-}
-
-.lock-btn .lock-glyph {
-  width: 24px;
-  height: 24px;
-}
-
-.lock-glyph {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* The swipe hint above the home indicator: 15px regular in the on-wallpaper colour. It is also the
-   tap and keyboard way to unlock, so it stays. */
-.lock-swipe {
-  display: block;
-  flex: none;
-  width: 100%;
-  min-height: var(--tap);
-  margin-top: 0.25rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--on-wall);
-  font-size: var(--t15);
-  font-weight: 400;
-  letter-spacing: var(--track-15);
-  text-align: center;
-  text-shadow: var(--on-wall-shadow);
-  cursor: pointer;
+  .lock .lock-swipe {
+    animation: none !important;
+  }
 }
 
 /* Country picker: a Settings page. The nav, large title and inset classes come from shell.css. */

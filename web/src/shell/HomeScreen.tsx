@@ -5,6 +5,7 @@ import type { Layout } from '../../../shared/types.ts';
 import type { PackSummary } from '../api.ts';
 import { ScreenTitle } from './PhoneShell.tsx';
 import { countryName } from './country.ts';
+import { Glyph } from './glyphs.tsx';
 import { haptic, rememberTap } from './feel.ts';
 import { liveStreak, readProgress } from './progress.ts';
 
@@ -81,25 +82,24 @@ interface WidgetProps {
   playRef: RefObject<HTMLButtonElement | null>;
 }
 
-// The widget's teaser: three notifications stacked and wiggling as if they just arrived, all but
-// the front one blurred. Made-up apps and generic lines only; nothing here is a card from the day.
+// The widget's teaser: three notifications stacked like a lock screen group, each row a step smaller
+// and fainter (home.css). Made-up apps and generic lines only; nothing here is a card from the day.
 const TEASERS: readonly { id: ArtId; title: string; line: string; when: string }[] = [
   { id: 'sms', title: 'Unknown', line: 'Quick question', when: 'now' },
-  { id: 'quillo', title: 'Quillo', line: 'Urgent: account', when: '5m' },
-  { id: 'fieldpost', title: 'Fieldpost', line: 'Job offer', when: '12m' },
+  { id: 'quillo', title: 'Quillo', line: 'Check your account', when: '5m ago' },
+  { id: 'fieldpost', title: 'Fieldpost', line: 'New job for you', when: '12m ago' },
 ];
 
 function Teaser() {
   return (
     <div className="teaser" aria-hidden="true">
       {TEASERS.map((t, i) => (
-        <div key={t.id} className="teaser-notif" style={{ ['--i' as string]: i } as CSSProperties}>
+        <div key={t.id} className="teaser-notif anim-pop" style={stagger(i)}>
           <AppArt id={t.id} />
           <span className="teaser-text">
-            <strong>{t.title}</strong>
+            <span className="teaser-head"><strong>{t.title}</strong><span className="teaser-when">{t.when}</span></span>
             <span>{t.line}</span>
           </span>
-          <span className="teaser-when">{t.when}</span>
         </div>
       ))}
     </div>
@@ -114,30 +114,32 @@ function Flame() {
   );
 }
 
-// The one way to start: messages already arriving, the day and the streak, a big Play, and the
-// country and people as quiet links along the foot.
+// The one way to start, the iOS large widget: the day, the streak and the country on top, messages
+// already arriving, Play and Quick day, then Your people. Every control is a capsule with a 48px target.
 function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
   const progress = readProgress();
   const streak = liveStreak(progress, new Date());
   return (
     <div className="widgets widgets-one">
       <div className="widget-cell anim-pop" style={stagger(0)}>
-        <div className="widget glass glass-strong widget-day">
+        <div className="widget widget-day">
           <ScreenTitle className="visually-hidden">Your practice day</ScreenTitle>
-          <div className="widget-day-top">
-            <Teaser />
-            <div className="widget-day-side">
-              <div className="widget-chips">
-                <span className="widget-chip">Day {progress.n + 1}</span>
-                {streak > 0 && <span className="widget-chip widget-chip-flame" aria-label={`Streak ${streak} days`}><Flame />{streak}</span>}
-              </div>
-              <button ref={playRef} type="button" className="btn btn-primary widget-play-btn pressable" onClick={(event) => onPlay(event, false)}>Play</button>
-              <button type="button" className="widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
-            </div>
+          <div className="widget-day-head">
+            <span className="widget-day-n">
+              Day {progress.n + 1}
+              {streak > 0 && <span className="widget-streak" aria-label={`Streak ${streak} days`}><Flame />{streak}</span>}
+            </span>
+            <button type="button" className="widget-capsule widget-country pressable" aria-label={`Country, ${name}`} onClick={onChange}>
+              <Glyph name="globe" size={16} />{name}
+            </button>
+          </div>
+          <Teaser />
+          <div className="widget-actions">
+            <button ref={playRef} type="button" className="widget-play-btn pressable" onClick={(event) => onPlay(event, false)}>Play</button>
+            <button type="button" className="widget-capsule widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
           </div>
           <div className="widget-foot">
-            <button type="button" className="widget-link pressable" onClick={onPeople}>Your people</button>
-            <button type="button" className="widget-link pressable" onClick={onChange}>{name}</button>
+            <button type="button" className="widget-capsule pressable" onClick={onPeople}><Glyph name="people" size={16} />Your people</button>
           </div>
         </div>
         <span className="widget-label">Scammer Survivor</span>

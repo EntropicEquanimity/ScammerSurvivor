@@ -3,6 +3,8 @@ import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent }
 import { NON_AFFILIATION } from '../../../shared/strings.ts';
 import type { AgeGroup } from '../../../shared/types.ts';
 import { CountryPicker } from './CountryPicker.tsx';
+import { Icon } from './Icon.tsx';
+import { Glyph } from './glyphs.tsx';
 import { ScreenTitle } from './PhoneShell.tsx';
 import { haptic, rememberTap } from './feel.ts';
 import './first-open.css';
@@ -18,12 +20,12 @@ const AGE_KEY = 'ageConfirmed';     // same key App.tsx writes; a valid value me
 const NOTICE_KEY = 'noticeSeen';    // same sessionStorage key PhoneShell used: the notice shows once per visit (rule 1)
 const SWIPE_PX = 60;
 
-// The alert sits over the lock notification, which carries the non-affiliation sentence (shared/strings.ts,
-// rule 1), so the alert never repeats it: one short practice line, plus the under-18 line on the first open.
-// Every later visit carries the practice line alone with a single OK.
+// The alert is the once-per-visit notice (rule 1): the practice line and the non-affiliation sentence
+// from shared/strings.ts in full, plus the under-18 line on the first open. Later visits get one OK.
 const PRACTICE_LINE = 'Every message, call and app on this phone is made up for practice.';
+const RETURN_LINES = [PRACTICE_LINE, NON_AFFILIATION];
 const ALERT_LINES = [
-  PRACTICE_LINE,
+  ...RETURN_LINES,
   'Under 18 gets prepared practice: no microphone or AI conversation.',
 ];
 
@@ -56,7 +58,8 @@ function markNoticeSeen(): void {
 
 // Same 24-hour clock as the status bar, so the two never disagree on screen.
 const timeFormat = new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', hour12: false });
-const dateFormat = new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long' });
+// "Friday 16 October": the day lock reuses it so both lock screens write the date one way.
+export const dateFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -67,7 +70,7 @@ function useNow(): Date {
   return now;
 }
 
-// The practice tag (rule 1) sits under the clock where the phone shows its Focus pill.
+// The date and the solid clock; the status bar hides its own time here (first-open.css).
 function LockClock() {
   const now = useNow();
   return (
@@ -76,20 +79,6 @@ function LockClock() {
       <p className="lock-clock" aria-hidden="true">{timeFormat.format(now)}</p>
       <p className="visually-hidden">{timeFormat.format(now)}</p>
     </div>
-  );
-}
-
-// Drawn here, not borrowed: a globe and a shield.
-const GLYPHS = {
-  globe: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M3 12h18M12 3c-3.2 3-3.2 15 0 18M12 3c3.2 3 3.2 15 0 18',
-  shield: 'M12 3L4 6v6c0 4 5 8 8 9 3-1 8-5 8-9V6zM9 12l2 2 4-5',
-};
-
-function Glyph({ name }: { name: keyof typeof GLYPHS }) {
-  return (
-    <svg className="lock-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d={GLYPHS[name]} />
-    </svg>
   );
 }
 
@@ -114,7 +103,7 @@ function AgeAlert({ askAge, onAnswer, onDismiss }: {
       <div className="alert anim-zoom" role="alertdialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-msg">
         <h2 ref={title} tabIndex={-1} id="age-title" className="alert-title">{askAge ? 'Are you 18 or older?' : 'Scammer Survivor'}</h2>
         <div id="age-msg" className="alert-msg">
-          {(askAge ? ALERT_LINES : [PRACTICE_LINE]).map((line) => <p key={line}>{line}</p>)}
+          {(askAge ? ALERT_LINES : RETURN_LINES).map((line) => <p key={line}>{line}</p>)}
         </div>
         {askAge ? (
           <>
@@ -129,15 +118,20 @@ function AgeAlert({ askAge, onAnswer, onDismiss }: {
   );
 }
 
-function LockButtons({ onCountry }: { onCountry: (event: ReactMouseEvent<HTMLButtonElement>) => void }) {
+// One row, as the lock places its camera and flashlight discs: country, the swipe capsule, privacy.
+// The swipe capsule is also the tap and keyboard way to unlock.
+function LockButtons({ onCountry, onUnlock }: {
+  onCountry: (event: ReactMouseEvent<HTMLButtonElement>) => void; onUnlock: () => void;
+}) {
   const privacy = () => {
     haptic();
     window.location.hash = '#/privacy';
   };
   return (
     <div className="lock-buttons">
-      <button type="button" className="lock-btn pressable" aria-label="Country" onClick={onCountry}><Glyph name="globe" /></button>
-      <button type="button" className="lock-btn pressable" aria-label="Privacy" onClick={privacy}><Glyph name="shield" /></button>
+      <button type="button" className="lock-btn pressable" aria-label="Country" onClick={onCountry}><Glyph name="globe" size={22} /></button>
+      <button type="button" className="lock-swipe pressable" onClick={onUnlock}>Swipe up to open</button>
+      <button type="button" className="lock-btn pressable" aria-label="Privacy" onClick={privacy}><Icon name="privacy" /></button>
     </div>
   );
 }
@@ -157,19 +151,19 @@ function useSwipeUp(onSwipe: () => void) {
   return { onPointerDown, onPointerUp, onPointerCancel: () => { startY.current = null; } };
 }
 
-// The lock screen's one notification: the non-affiliation sentence (rule 1) in the phone's anatomy, the
-// squircle names the app, the title line carries the time at its right, no app-name line above it.
+// The lock screen's one notification in the phone's anatomy: the squircle and the app name, the time at
+// the title line's right, a two-line body. The full notice lives in the alert above it.
 const LockNotification = () => (
-  <div className="lock-notif glass glass-strong" role="note">
+  <div className="lock-notif" role="note">
     <img className="lock-notif-art" src="/art/practice.png" alt="" width={38} height={38} />
     <span className="lock-notif-body">
-      <span className="lock-notif-title">Nothing here is real<span className="lock-notif-time">now</span></span>
-      <span className="lock-notif-text">{NON_AFFILIATION}</span>
+      <span className="lock-notif-title">Scammer Survivor<span className="lock-notif-time">now</span></span>
+      <span className="lock-notif-text">Your day is ready. Nothing here is real.</span>
     </span>
   </div>
 );
 
-// The lock screen itself: clock, the practice notification, two round buttons, the swipe hint, and the lift-off on
+// The lock screen itself: clock, the notification, the button row with the swipe hint, and the lift-off on
 // unlock (a fade under reduced motion, first-open.css, so animationend still fires). The clock remounts
 // when the alert closes so focus lands on the date instead of falling to the body.
 function LockScreen({ cleared, askAge, onAnswer, onDismiss, onPick, onUnlock }: {
@@ -191,8 +185,7 @@ function LockScreen({ cleared, askAge, onAnswer, onDismiss, onPick, onUnlock }: 
     >
       <LockClock key={String(cleared)} />
       <LockNotification />
-      <LockButtons onCountry={onPick} />
-      <button type="button" className="lock-swipe pressable" onClick={unlock}>Swipe up to practise</button>
+      <LockButtons onCountry={onPick} onUnlock={unlock} />
       {!cleared && <AgeAlert askAge={askAge} onAnswer={onAnswer} onDismiss={onDismiss} />}
     </section>
   );

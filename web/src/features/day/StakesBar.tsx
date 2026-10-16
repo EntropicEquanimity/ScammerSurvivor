@@ -1,4 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Icon } from '../../shell/Icon.tsx';
+import { initialCountry } from '../../shell/country.ts';
+import { Glyph } from '../../shell/glyphs.tsx';
+import { currencyFor } from './currency.ts';
+import './lock-widgets.css';
 
 interface Props {
   wallet: number;
@@ -42,8 +47,9 @@ function useCount(from: number, to: number): number {
   return shown;
 }
 
-// Two glass pills. Words, not only numbers: the people pill is how a player learns that
-// blocking a real person costs something.
+// Two lock screen widgets: the wallet with its currency, and the people who count on the player (the
+// people widget is how a player learns that blocking a real person costs something). The value font
+// shrinks with the widget's width by the number's length (day.css), so a long wallet keeps one line.
 export function StakesBar({ wallet, people }: Props) {
   const [from] = useState(() => lastShown ?? { wallet, people });
   useEffect(() => {
@@ -51,11 +57,18 @@ export function StakesBar({ wallet, people }: Props) {
   }, [wallet, people]);
   const shownWallet = useCount(from.wallet, wallet);
   const shownPeople = useCount(from.people, people);
-  const peopleLine = shownPeople === 1 ? '1 person counts on you' : `${shownPeople} people count on you`;
+  const amount = money(shownWallet);
+  const currency = currencyFor(initialCountry());
   return (
-    <div className="stakes">
-      <span className="glass glass-strong stakes-pill">Wallet {money(shownWallet)}</span>
-      <span className="glass glass-strong stakes-pill">{peopleLine}</span>
+    <div className="lock-widgets">
+      <div className="lock-widget" style={{ ['--len' as string]: amount.length + currency.length * 0.55 + 0.3 }}>
+        <span className="lock-widget-label"><Icon name="wallet" />Wallet</span>
+        <span className="lock-widget-value"><small>{currency}</small> {amount}</span>
+      </div>
+      <div className="lock-widget" style={{ ['--len' as string]: String(shownPeople).length }}>
+        <span className="lock-widget-label"><Glyph name="people" size={18} />People</span>
+        <span className="lock-widget-value">{shownPeople}</span>
+      </div>
     </div>
   );
 }
