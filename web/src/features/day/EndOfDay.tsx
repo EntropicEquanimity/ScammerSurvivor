@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { recordDay } from '../../shell/progress.ts';
 import type { CSSProperties, ReactNode } from 'react';
 import { addMisses, bossOutcome, pickBoss, readTally, saveTally } from '../../../../shared/boss.ts';
 import { TELLS } from '../../../../shared/taxonomy.ts';
@@ -28,22 +29,8 @@ interface Props {
   hotline?: SlotResult['lesson']['hotline']; // the pack's hotline; falls back to the first lesson's
 }
 
-const DAYS_KEY = 'daysPlayed';
-
-// Counts finished days on this device. ponytail: moves to Progress when sign-in lands; the dayId
-// guard stops a re-render or a StrictMode double mount counting the same day twice.
-function countDay(dayId: string | undefined): number {
-  try {
-    const stored = JSON.parse(localStorage.getItem(DAYS_KEY) ?? '{}') as { n?: number; last?: string };
-    const n = stored.n ?? 0;
-    if (dayId && stored.last === dayId) return n;
-    const next = n + 1;
-    localStorage.setItem(DAYS_KEY, JSON.stringify({ n: next, last: dayId ?? null }));
-    return next;
-  } catch {
-    return 1;
-  }
-}
+// Counts finished days and the streak on this device (shell/progress.ts).
+const countDay = (dayId: string | undefined): number => recordDay(dayId ?? null).n;
 
 // Adds the day's missed tells to the device tally once (the dayId guard), and returns the boss the
 // day was dealt against and the one tomorrow brings. Tell ids only.

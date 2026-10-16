@@ -6,8 +6,7 @@ import type { PackSummary } from '../api.ts';
 import { ScreenTitle } from './PhoneShell.tsx';
 import { countryName } from './country.ts';
 import { haptic, rememberTap } from './feel.ts';
-import { TELLS } from '../../../shared/taxonomy.ts';
-import { pickBoss, readTally } from '../../../shared/boss.ts';
+import { liveStreak, readProgress } from './progress.ts';
 
 // One piece of generated art per made-up app, plus the two phone tools. The colour fills the
 // squircle while the image loads or if it is missing, so the grid still reads.
@@ -82,23 +81,63 @@ interface WidgetProps {
   playRef: RefObject<HTMLButtonElement | null>;
 }
 
-// One medium widget is the only way to start: the day, the boss you keep missing, Play, and a
-// quieter Quick day. The country lives on the widget so nothing else on the home looks like a form.
+// The widget's teaser: three notifications stacked and wiggling as if they just arrived, all but
+// the front one blurred. Made-up apps and generic lines only; nothing here is a card from the day.
+const TEASERS: readonly { id: ArtId; title: string; line: string; when: string }[] = [
+  { id: 'sms', title: 'Unknown', line: 'Quick question', when: 'now' },
+  { id: 'quillo', title: 'Quillo', line: 'Urgent: account', when: '5m' },
+  { id: 'fieldpost', title: 'Fieldpost', line: 'Job offer', when: '12m' },
+];
+
+function Teaser() {
+  return (
+    <div className="teaser" aria-hidden="true">
+      {TEASERS.map((t, i) => (
+        <div key={t.id} className="teaser-notif" style={{ ['--i' as string]: i } as CSSProperties}>
+          <AppArt id={t.id} />
+          <span className="teaser-text">
+            <strong>{t.title}</strong>
+            <span>{t.line}</span>
+          </span>
+          <span className="teaser-when">{t.when}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Flame() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+      <path d="M8 1c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-5 0-7z" fill="currentColor" />
+    </svg>
+  );
+}
+
+// The one way to start: messages already arriving, the day and the streak, a big Play, and the
+// country and people as quiet links along the foot.
 function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
-  const boss = pickBoss(readTally());
+  const progress = readProgress();
+  const streak = liveStreak(progress, new Date());
   return (
     <div className="widgets widgets-one">
       <div className="widget-cell anim-pop" style={stagger(0)}>
         <div className="widget glass glass-strong widget-day">
-          <div className="widget-day-text">
-            <ScreenTitle className="widget-title">Your practice day</ScreenTitle>
-            <p className="widget-line">{boss ? `Boss: ${TELLS[boss].label}` : 'Messages arrive. Spot the scams.'}</p>
-            <button type="button" className="widget-country pressable" onClick={onChange}>{name}</button>
-            <button type="button" className="widget-country pressable" style={{ textAlign: 'left' }} onClick={onPeople}>Your people</button>
+          <ScreenTitle className="visually-hidden">Your practice day</ScreenTitle>
+          <div className="widget-day-top">
+            <Teaser />
+            <div className="widget-day-side">
+              <div className="widget-chips">
+                <span className="widget-chip">Day {progress.n + 1}</span>
+                {streak > 0 && <span className="widget-chip widget-chip-flame" aria-label={`Streak ${streak} days`}><Flame />{streak}</span>}
+              </div>
+              <button ref={playRef} type="button" className="btn btn-primary widget-play-btn pressable" onClick={(event) => onPlay(event, false)}>Play</button>
+              <button type="button" className="widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
+            </div>
           </div>
-          <div className="widget-day-actions">
-            <button ref={playRef} type="button" className="btn btn-primary pressable" onClick={(event) => onPlay(event, false)}>Play</button>
-            <button type="button" className="widget-quick pressable" aria-label="Quick day, about a minute" onClick={(event) => onPlay(event, true)}>Quick day</button>
+          <div className="widget-foot">
+            <button type="button" className="widget-link pressable" onClick={onPeople}>Your people</button>
+            <button type="button" className="widget-link pressable" onClick={onChange}>{name}</button>
           </div>
         </div>
         <span className="widget-label">Scammer Survivor</span>
