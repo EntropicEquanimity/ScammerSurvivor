@@ -79,10 +79,7 @@ function WalletHeader({ name }: { name: string }) {
     <div className="app-header">
       <AppIcon layout="wallet" size={44} />
       <div className="app-header-text">
-        <span className="app-header-name">
-          {name}
-          <span className="practice-tag">Practice</span>
-        </span>
+        <span className="app-header-name">{name}</span>
         <strong>Transfer sent</strong>
       </div>
     </div>

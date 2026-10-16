@@ -90,7 +90,6 @@ function LockClock() {
       <ScreenTitle className="lock-date">{dateFormat.format(now)}</ScreenTitle>
       <p className="lock-clock" aria-hidden="true">{timeFormat.format(now)}</p>
       <p className="visually-hidden">{timeFormat.format(now)}</p>
-      <span className="practice-tag lock-focus">Practice</span>
     </div>
   );
 }
