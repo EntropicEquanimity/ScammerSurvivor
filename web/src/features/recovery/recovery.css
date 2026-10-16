@@ -2,6 +2,9 @@
    from card.css (.app-header with --app-colour); the balance card, the ring and the three buttons
    are here. Tokens from base.css; no colour of its own beyond the wallet app's. */
 
+/* The sheet owns the status and indicator regions the way card.css .app does: .day starts under
+   the floating status bar and ends above the floating indicator, so the sheet reaches past both
+   edges and pads itself back. data-surface="light" on the root tells frame.css to ink the time. */
 .recovery-sheet {
   position: absolute;
   inset: 0;
@@ -9,6 +12,10 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin-top: calc(-1 * var(--status-h, 54px));
+  margin-bottom: calc(-1 * var(--indicator-h, 34px));
+  padding-top: var(--status-h, 54px);
+  padding-bottom: var(--indicator-h, 34px);
   background: var(--surface);
   color: var(--ink);
 }
@@ -27,15 +34,16 @@
   font-size: var(--t24);
 }
 
-/* The wallet's balance card, tinted with the app colour, the amount large. */
+/* The wallet's balance block: an inset group on the white sheet, the app colour as its tint, the
+   10px corner of a grouped list, no outline. */
 .recovery-balance {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding: 1rem 1.25rem;
-  border-radius: var(--radius);
+  padding: 1rem;
+  border: 0;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--app-colour) 14%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--app-colour) 30%, var(--line));
 }
 
 .recovery-balance-label {
@@ -110,7 +118,7 @@
   min-height: 3.125rem;
   padding: 0.5rem 1rem;
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  border-color: transparent;
+  border: 0;
   color: var(--accent);
   text-align: center;
   -webkit-backdrop-filter: none;

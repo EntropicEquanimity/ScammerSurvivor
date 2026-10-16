@@ -91,6 +91,25 @@ test('a good body reveals the card: tells on the parts, planted tells, the twin,
   assert.equal(write.inputs[0].note.id, 'family-trouble');
 });
 
+test('the preview fills "[institution]" and "[chat app name]" the way a dealt day does', async () => {
+  const bracketed: Card = {
+    ...card,
+    trickId: 'bank_check',
+    layout: 'sms',
+    sender: { displayName: '[institution] Alert', maskedNumber: '+65 XXXX 8201' },
+    ask: [{ id: 'a1', text: '[a code request in the name of [institution] on [chat app name]]', tellIds: ['credential_theft'] }],
+    realTwin: { ...card.realTwin, sender: { displayName: '[institution] Alert', maskedNumber: '+65 XXXX 1944' } },
+  };
+  const reply = await generateLab(good, '10.0.0.8', { write: fakeWrite({ card: bracketed, trace: okTrace }) });
+  assert.equal(reply.status, 200);
+  if (reply.status !== 200) return;
+  assert.equal(reply.body.preview?.sender.displayName, 'Harbourline Alert');
+  assert.equal(reply.body.preview?.twin.sender.displayName, 'Harbourline Alert');
+  assert.equal(reply.body.preview?.ask[0].text, '[a code request in the name of Harbourline on Messages]');
+  // The preview only: the Guard's brand_name rule text names the placeholder on purpose.
+  assert.ok(!/\[(institution|chat app name)\]/i.test(JSON.stringify(reply.body.preview)));
+});
+
 test('a Director error is its own verdict: no rules table, and the error text never reaches the browser', async () => {
   const errored: TraceEvent[] = [
     { agent: 'director', model: 'gemini-3.8-flash', ms: 0, outcome: 'rejected', reasons: ['GeminiError 503 model overloaded, retry later'] },

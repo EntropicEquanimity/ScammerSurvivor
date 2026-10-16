@@ -1,9 +1,7 @@
-/* The made-up app, full screen. It owns the status region: the app's tint runs from the top edge,
-   behind the phone's time, down through the Messages-style header; the thread sits on the surface
-   under it and the buttons in a glass bar pinned at the bottom. The message takes one of eight looks
-   by data-look. The looks differ in header tint and avatar shape only; the words and the controls
-   are the same on every card. The colours to avoid are in docs/ux-plan.md: nothing here is a real
-   app's colour, the tints all mix from --app-colour, set on .app from shared/brands.ts. */
+/* The made-up app, full screen. It owns the status region: its tint runs from the top edge behind
+   the phone's time, through the Messages-style header; the thread sits on the surface under it, the
+   buttons in a glass bar at the bottom. data-look picks one of eight looks (header tint and avatar
+   shape only). The colours to avoid are in docs/ux-plan.md: every tint mixes from --app-colour. */
 
 .app {
   display: flex;
@@ -34,8 +32,8 @@
   background: var(--surface);
 }
 
-/* The app header strip, tinted with the made-up app's own colour. The row form serves the recovery
-   sheet; the app's own header (data-look) is the Messages shape: the nav, then the avatar centred. */
+/* The app header strip in the app's tint. The row form serves the recovery sheet; the app's own
+   header (data-look) is the Messages shape: the nav, then the avatar centred. */
 .app-header {
   display: flex;
   flex: none;
@@ -71,9 +69,41 @@
   margin-inline: -0.5rem;
 }
 
-/* The chevron is the app's chrome, not a control: the card has no back step. */
-.app-header .nav-back {
+/* The chevron is a button when the day passes onBack; as a span it is the app's own chrome. */
+.app-header span.nav-back {
   cursor: default;
+}
+
+/* The AI chip, last in the header under the sender's number, so the nav stays 44px. The button box
+   is a 48px target; the pill inside is the visible chip. */
+.ai-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: var(--tap);
+  margin: -0.25rem 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ai-chip-pill {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: var(--track-13);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header-text {
@@ -89,6 +119,7 @@
   color: var(--ink-2);
 }
 
+/* The app name with its practice tag, right-aligned in the nav's trailing slot. */
 .app-header .nav .app-header-name {
   grid-column: 3;
   justify-self: end;
@@ -176,8 +207,7 @@
   text-align: center;
 }
 
-/* Setup and ask are two incoming bubbles: grey, borderless, the last one with a tail. Never a blue
-   and green pair, never an outline on the ask. */
+/* Setup and ask: two grey incoming bubbles, the last with a tail. Never a blue and green pair. */
 .bubble-group {
   display: flex;
   flex-direction: column;
@@ -192,8 +222,7 @@
   text-align: left;
 }
 
-/* The tail: a triangle in the bubble's own grey, tucked under the last bubble's left corner, which
-   squares off to meet it. */
+/* The tail: a triangle in the bubble's grey under the last bubble's left corner, which squares off. */
 .msg .bubble-group:last-of-type {
   border-bottom-left-radius: 6px;
 }
@@ -220,10 +249,8 @@
   text-align: right;
 }
 
-/* A plain part is a line; the tap-mode part (tells.css) lays itself out as a flex button. */
-.part:not(.part-tap) {
-  display: block;
-}
+/* A plain part is a line; the tap-mode part (tells.css) is a flex button. */
+.part:not(.part-tap) { display: block; }
 
 /* A fake link looks like a link and goes nowhere. It is a span, never an anchor. */
 .fake-link {
@@ -262,9 +289,8 @@
   content: none;
 }
 
-/* The composer's place: a glass bar pinned under the thread. The message's own buttons first, as
-   that app's call to action; the standard four as a 2 by 2 grid of capsules. Every column is
-   min-width 0, so 320px never overflows. */
+/* The composer's place: a glass bar under the thread. The message's own buttons first, then the
+   standard four as a 2 by 2 grid of capsules. Every column is min-width 0, so 320px never overflows. */
 .actions {
   display: flex;
   flex: none;
@@ -309,9 +335,9 @@
   min-width: 0;
   min-height: var(--tap);
   padding: 0.5rem 1rem;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   color: var(--accent);
   font-size: var(--t16);
   font-weight: 600;
@@ -320,6 +346,21 @@
   overflow-wrap: anywhere;
   cursor: pointer;
   touch-action: manipulation;
+  transition: transform var(--dur-press) ease-out;
+}
+
+/* Pressed: the capsule gives a little, the phone's own press. Reduced motion: a dip instead. */
+.action-std:active,
+.cta:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-std:active,
+  .cta:active {
+    opacity: 0.7;
+    transform: none !important;
+  }
 }
 
 .action-std:disabled,
@@ -328,27 +369,24 @@
   cursor: default;
 }
 
-/* Every offered button is a pill that shares the row. The wallet's pay button and a chat's install
-   button fill with the app's own colour. */
+/* Every offered button is a pill that shares the row; pay and install fill with the app's colour. */
 .cta {
   flex: 1 1 8rem;
 }
 
 .cta-fill {
-  border-color: transparent;
   background: color-mix(in srgb, var(--app-colour) 80%, #000);
   color: var(--surface);
 }
 
 /* A link chip: underlined accent text in a pill, the way a tapped link preview looks. */
 .cta-link {
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
-/* Any other offered button: an outline chip in the app's colour. */
+/* Any other offered button: a chip tinted with the app's own colour. */
 .cta-chip {
-  border-color: color-mix(in srgb, var(--app-colour) 60%, var(--surface));
+  background: color-mix(in srgb, var(--app-colour) 12%, var(--surface));
   color: var(--ink);
 }

@@ -1,25 +1,18 @@
-/* Room mode. The page frame (.page, .settings) comes from shell/shell.css; the chip rows follow
-   features/lab/lab.css. Bars are plain widths, no chart library. Everything is scoped under .room
-   except the join banner, which sits above the day. */
+/* Room mode. The page frame (.page, .settings) and the inset groups come from shell/shell.css; the
+   chips follow features/lab/lab.css. Bars are plain widths, no chart library. Everything is scoped
+   under .room except the join banner, which sits above the day. */
 
-.room .room-row {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 0.75rem 0.875rem;
-  border: 1px solid var(--glass-line);
-  border-radius: var(--radius-sm);
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+.room {
+  --chip-tint: color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 
-.room .room-role {
-  font-size: var(--t15);
-  font-weight: 600;
-  letter-spacing: var(--track-15);
-  color: var(--ink-2);
+/* One inset row holding a block (chips, link, counts, bars): stacked, not a tap target itself. */
+.room .room-block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0.875rem;
+  cursor: default;
 }
 
 .room .room-chips {
@@ -28,10 +21,11 @@
   gap: 0.5rem;
 }
 
+/* Chips: no outline, the accent tint with ink text, the chosen one filled (lab.css has the same). */
 .room .room-chip {
   padding: 0 1rem;
-  border-color: var(--line);
-  background: var(--surface);
+  border: 0;
+  background: var(--chip-tint);
   font-size: var(--t16);
   font-weight: 500;
   color: var(--ink);
@@ -41,7 +35,6 @@
 
 .room .room-chip[aria-checked='true'] {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--surface);
   font-weight: 600;
 }
@@ -69,7 +62,7 @@
   text-shadow: var(--on-wall-shadow);
 }
 
-.room .room-row .room-honest {
+.room .room-block .room-honest {
   color: var(--ink-2);
   text-shadow: none;
 }
@@ -91,9 +84,8 @@
 .room .room-link {
   display: block;
   padding: 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  border-radius: 10px;
+  background: var(--paper);
   font-size: var(--t15);
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -102,8 +94,8 @@
 }
 
 .room .room-select {
-  border-color: var(--line);
-  background: var(--surface);
+  border: 0;
+  background: var(--chip-tint);
   color: var(--ink);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

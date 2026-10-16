@@ -1,10 +1,30 @@
 import { useEffect, useState } from 'react';
 import type { TraceEvent } from '../../../../shared/types.ts';
+import type { GuardReason } from '../../../../server/guard/card.ts';
 import { fetchTrace } from '../../api.ts';
 import { haptic } from '../../shell/feel.ts';
 import './lab.css';
 
 const POLL_MS = 2000;
+
+// ponytail: the Guard keeps its rule list private, so the ids are restated here for the chip's
+// "N of N"; the GuardReason type (a type-only import, nothing of the server reaches the bundle)
+// makes a misspelt id a compile error. Exporting REASONS from server/guard/card.ts is the upgrade.
+export const GUARD_RULES: readonly GuardReason[] = [
+  'tells_missing_on_ask',
+  'planted_mismatch',
+  'digit_run',
+  'mask_format',
+  'same_last_four',
+  'twin_has_tells',
+  'twin_no_acceptable',
+  'reply_not_allowed',
+  'link_not_example',
+  'brand_name',
+  'name_not_allowed',
+  'empty_ask',
+  'unknown_tell',
+];
 
 const AGENT_WORDS: Record<TraceEvent['agent'], string> = {
   director: 'Director',
@@ -79,14 +99,15 @@ interface Props {
   open: boolean;
   onClose: () => void;
   dayId?: string; // polls GET /api/day/:dayId/trace while open
-  events?: TraceEvent[]; // or a list the caller already holds (the lab)
+  events?: TraceEvent[]; // or a list the caller already holds (the lab, the app header)
   title?: string;
+  empty?: string; // what an empty list says; a cache-only card explains itself here
 }
 
 // A half-sheet from the bottom of the phone listing every agent step of a day: a grabber, the
 // 44px bar with its glass Done, then the rows. The day screen can mount it with a dayId; the lab
 // mounts it with the events it just received. The scrim behind it closes it too.
-export function TraceDrawer({ open, onClose, dayId, events, title = 'AI trace' }: Props) {
+export function TraceDrawer({ open, onClose, dayId, events, title = 'AI trace', empty }: Props) {
   const polled = usePolledTrace(dayId, open && !events);
   if (!open) return null;
   const close = () => {
@@ -104,7 +125,7 @@ export function TraceDrawer({ open, onClose, dayId, events, title = 'AI trace' }
         </header>
         <div className="trace-drawer-body scroll">
           <p className="trace-note">Ids, verdicts and numbers only. Code checked every card; Gemini never scored anything.</p>
-          <TraceRows events={events ?? polled} />
+          <TraceRows events={events ?? polled} empty={empty} />
         </div>
       </div>
     </>

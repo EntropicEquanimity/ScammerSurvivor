@@ -1,9 +1,9 @@
 /* The lesson on one screen: the large title over the wallpaper (one short line), then inset groups
    (the scam with its tells stamped in place, the Coach's note, the real one, the ending and the
    safest move) and Next floating over the bottom as a capsule. The group and row classes are the
-   shared ones from shell.css; this file sets what goes inside a row. A stamp is blue when the
-   player found the tell and the warm notice colour when they missed it; each carries a word. Red
-   appears nowhere. */
+   shared ones from shell.css; this file sets what goes inside a row. A stamp is a filled pill: the
+   accent when the player found the tell, the warm notice colour when they missed it; each carries
+   a word. Red appears nowhere. */
 
 /* The containing block for the floating bar. anim-sheet's transform would do it, but the
    reduced-motion twin is opacity only. */
@@ -77,8 +77,9 @@
   align-items: baseline;
   gap: 0.375rem;
   padding: 0.125rem 0.625rem;
-  border: 1.5px solid currentColor;
+  border: 0;
   border-radius: var(--radius-pill);
+  color: var(--surface);
   font-size: var(--t15);
   font-weight: 700;
   line-height: 1.4;
@@ -90,14 +91,13 @@
   font-weight: 400;
 }
 
+/* Filled pills, two token colours: the accent when caught, the warm notice colour when missed. */
 .stamp-caught {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  background: var(--accent);
 }
 
 .stamp-missed {
-  color: var(--notice);
-  background: color-mix(in srgb, var(--notice) 10%, var(--surface));
+  background: var(--notice);
   transform: rotate(1.5deg);
 }
 

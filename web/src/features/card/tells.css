@@ -8,6 +8,20 @@
   cursor: default;
 }
 
+/* The nav's glass reaches up behind the floating status bar, so the time reads over it, not over
+   the wallpaper. frame.css turns the time to ink only for an app, a light surface or a settings nav,
+   so this screen turns it itself: ink on the glass, no wallpaper shadow. */
+.tells > .nav {
+  top: calc(-1 * var(--status-h));
+  margin-top: calc(-1 * var(--status-h));
+  padding-top: var(--status-h);
+}
+
+.phone:has(.tells > .nav) .status-bar {
+  color: var(--ink);
+  text-shadow: none;
+}
+
 /* The hint sits bare on the wallpaper, so it wears the on-wall colour and shadow like the clock. */
 .tells-hint {
   padding: 0 0.25rem;
@@ -37,7 +51,7 @@
   min-height: var(--tap);
   margin: 0;
   padding: 0.375rem 0.625rem;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--ink);
@@ -54,8 +68,7 @@
 }
 
 .part-tap[aria-pressed='true'] {
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   box-shadow: var(--shadow);
   transform: translateY(-3px);
 }
@@ -102,7 +115,7 @@
   .part-tap,
   .part-tap[aria-pressed='true'] {
     transform: none !important;
-    transition: background-color 160ms ease-out, border-color 160ms ease-out !important;
+    transition: background-color 160ms ease-out !important;
   }
 
   .part-stamp,

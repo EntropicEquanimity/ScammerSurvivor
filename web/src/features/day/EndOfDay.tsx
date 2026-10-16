@@ -145,13 +145,17 @@ function InstallNudge() {
     }
     setManual(true);
   };
+  // An inset group with one text row: accent on the grouped glass stays legible over any part of
+  // the wallpaper, where bare accent text does not (measured on the orange band at 1.3 to 1).
   return (
-    <div className="install-nudge">
-      <button type="button" className="btn btn-quiet pressable" onClick={install}>
-        Put it on your home screen
-      </button>
-      {manual && <p role="status">Tap Share, then Add to Home Screen.</p>}
-    </div>
+    <ul className="inset install-nudge">
+      <li>
+        <button type="button" className="inset-row install-btn pressable" onClick={install}>
+          Put it on your home screen
+        </button>
+      </li>
+      {manual && <li className="inset-row inset-body" role="status">Tap Share, then Add to Home Screen.</li>}
+    </ul>
   );
 }
 
@@ -180,7 +184,7 @@ export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders =
         </div>
         <InstallNudge />
       </div>
-      <div className="page-end">
+      <div className="end-foot">
         <button type="button" className="btn btn-primary pressable" onClick={play}>
           Play tomorrow
         </button>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { NavBar } from '../../shell/PhoneTools.tsx';
 import { fetchEval, fetchStats } from './api.ts';
 import type { EvalReport, LiveStats } from './api.ts';
 import './about.css';
 
 // "How it works": the agents, the Google services, the live counter, the Director
-// reliability report, the honest lines and the research sources. Self-contained on
-// purpose: tokens and classes from base.css only, so the shell can move under it.
+// reliability report, the honest lines and the research sources. A Settings page: the
+// shared nav bar and large title first (App.tsx wraps it in `.page.settings`), then the
+// lead on a glass block in ink and the groups.
 
 const AGENTS = [
   { name: 'Director', model: 'Gemini 3.8 Flash', job: 'Writes each card and its real twin from an approved pattern note and the people you picked. Structured JSON output.', status: 'live' },
@@ -185,9 +187,9 @@ export default function About() {
   const stats = useLoaded(fetchStats);
   const report = useLoaded(fetchEval);
   return (
-    <section className="about scroll">
-      <a className="btn btn-quiet about-back pressable" href="#/">Back to my phone</a>
-      <h1 className="about-title">How it works</h1>
+    <>
+      <NavBar title="How it works" />
+      <section className="about">
       <p className="about-lead">A practice phone for spotting scams across the Asia Pacific region. Gemini writes the day, code checks every card and keeps every score.</p>
       <Section title="The agents"><AgentRows /></Section>
       <Section title="Google services"><ServiceRows /></Section>
@@ -198,6 +200,7 @@ export default function About() {
       </Section>
       <Section title="The honest lines"><HonestRows /></Section>
       <Section title="Research sources"><SourceRows /></Section>
-    </section>
+      </section>
+    </>
   );
 }

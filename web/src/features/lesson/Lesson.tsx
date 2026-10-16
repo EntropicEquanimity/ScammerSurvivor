@@ -1,11 +1,15 @@
-import type { PublicCard, SlotResult } from '../../../../shared/types.ts';
+import type { CSSProperties } from 'react';
+import type { PublicCard, SlotResult, TraceEvent } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { ACTION_LABELS } from '../card/actionLabels.ts';
 import { AppHeader } from '../card/AppHeader.tsx';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { MessageView, PartView } from '../layouts/MessageView.tsx';
+import { appLookFor } from '../day/appNames.ts';
 import { useLater } from '../day/useArrival.ts';
+import { getPeople } from '../setup/storage.ts';
+import { twinLine } from '../../strings.ts';
 import { StampedScam, TwinMessage, useCoach } from './LessonGroups.tsx';
 import './lesson.css';
 
@@ -94,14 +98,14 @@ export function Lesson({ dayId, result, busy, failed, onNext }: LessonProps) {
 interface NoteProps extends StepProps {
   card: PublicCard;
   result: SlotResult; // a real message
+  trace?: TraceEvent[]; // the day's agent steps, for the header's chip
+  personalised?: boolean;
+  onBack?: () => void; // back to the day's lock
 }
 
-// "your bank" for an institution, "your Mom" for a person; a sender already named "Your bank" is not doubled.
-const noteLine = (card: PublicCard, result: SlotResult): string => {
-  if (!result.falseAlarm) return 'That one was real. You trusted it.';
-  const who = card.sender.displayName.replace(/^your\s+/i, '');
-  return `That was really ${card.sender.institutionId ? 'the' : 'your'} ${who}. They did not hear back.`;
-};
+// Role-aware: "your sister" for a picked person, "your manager" or "the buyer" for a role (strings.ts).
+const noteLine = (card: PublicCard, result: SlotResult): string =>
+  result.falseAlarm ? twinLine(card.sender, getPeople()) : 'That one was real. You trusted it.';
 
 // The server prefixes the follow-up with its sender; inside that sender's own thread the bubble drops it.
 const followUpText = (followUp: NonNullable<SlotResult['followUp']>): string =>
@@ -109,13 +113,15 @@ const followUpText = (followUp: NonNullable<SlotResult['followUp']>): string =>
 
 // A real message gets no lesson: the thread stays open with one quiet line under it, and when the
 // player turned a real person away, that person's later message lands a few seconds on.
-export function RealNote({ card, result, busy, failed, onNext }: NoteProps) {
+export function RealNote({ card, result, busy, failed, onNext, trace, personalised, onBack }: NoteProps) {
   const followUp = result.followUp ?? null;
   const landed = useLater(FOLLOW_UP_MS, followUp !== null);
+  // The same section as the card step: the app owns the status region, so the time reads over its tint.
+  const colour = { '--app-colour': appLookFor(card.layout).colour } as CSSProperties;
   return (
-    <section className="app anim-zoom">
+    <section className="app anim-zoom" data-look={card.layout} style={colour}>
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
-      <AppHeader card={card} />
+      <AppHeader card={card} trace={trace} personalised={personalised} onBack={onBack} />
       <div className="app-body scroll" aria-live="polite">
         <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} />
         <p className="thread-note">{noteLine(card, result)}</p>

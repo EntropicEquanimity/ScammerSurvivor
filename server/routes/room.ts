@@ -126,6 +126,14 @@ const firestore = (): Promise<Firestore> => {
 
 // Counts and ids only, never awaited on a request path. A failed mirror logs its error type.
 function mirror(room: Room): void {
+  try {
+    mirrorUnsafe(room);
+  } catch (error) {
+    console.error('room_mirror_error', (error as Error)?.name);
+  }
+}
+
+function mirrorUnsafe(room: Room): void {
   if (!process.env.GOOGLE_CLOUD_PROJECT) return;
   const doc = { roomId: room.roomId, country: room.country, seed: room.seed, createdAt: room.createdAt, players: room.players, reports: room.results.length };
   firestore()

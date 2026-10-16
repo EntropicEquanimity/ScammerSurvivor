@@ -71,10 +71,10 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
         {PEOPLE_ROLES.map((role) => (
           <Row key={role} role={role} chosen={people[role]} onPick={(name) => setPeople((prev) => pick(prev, role, name))} />
         ))}
+        <button type="button" className="btn setup-skip pressable" onClick={() => finish({})}>Skip</button>
       </div>
-      <div className="page-end">
+      <div className="setup-foot">
         <button type="button" className="btn btn-primary pressable" onClick={() => finish(people)}>Done</button>
-        <button type="button" className="btn btn-quiet pressable" onClick={() => finish({})}>Skip</button>
       </div>
     </section>
   );

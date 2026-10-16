@@ -106,7 +106,7 @@ export function Recovery({ dayId, slotId, stake, onDone }: Props) {
   };
 
   return (
-    <section className="recovery-sheet anim-sheet" style={{ '--app-colour': look.colour } as CSSProperties}>
+    <section className="recovery-sheet anim-sheet" data-surface="light" style={{ '--app-colour': look.colour } as CSSProperties}>
       <WalletHeader name={look.name} />
       <div className="recovery-body scroll">
         <ScreenTitle className="recovery-title">

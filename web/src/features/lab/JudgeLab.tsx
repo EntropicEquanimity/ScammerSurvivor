@@ -102,7 +102,6 @@ function LabMessage({ header, sender, parts }: { header: string; sender: LabSend
       <li className="inset-row inset-body lab-sender">
         <strong>{sender.displayName}</strong>
         <span>{sender.maskedNumber}</span>
-        <span className="practice-tag">Practice</span>
       </li>
       {parts.map((part) => (
         <li key={part.id} className="inset-row inset-body lab-part">

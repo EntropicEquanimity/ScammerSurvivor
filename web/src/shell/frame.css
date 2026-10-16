@@ -24,8 +24,10 @@
   text-shadow: var(--on-wall-shadow);
 }
 
-/* Inside an app, or over a collapsed nav's glass, the status region is a light surface: the glyphs go ink. */
-.phone:has(.app, .nav-collapsed) .status-bar {
+/* The glyphs go ink only when a light surface sits behind them: an app, a screen that says so, or a
+   collapsed nav whose glass reaches up under the status region (settings, shell.css; tells, tells.css).
+   The country picker's collapsed nav sits below the status region, so it never turns the time. */
+.phone:has(.app, [data-surface='light'], .settings > .nav-collapsed, .tells > .nav-collapsed) .status-bar {
   color: var(--ink);
   text-shadow: none;
 }
@@ -131,6 +133,12 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+/* A settings page scrolls in the screen, so its box spans its content: the sticky nav holds to the
+   end instead of releasing once the screen-height box scrolls past. */
+.page.settings {
+  flex: 1 0 auto;
 }
 
 /* The bar floats 8px above the bottom edge over whatever screen is showing, as on the phone: no band.

@@ -1,5 +1,6 @@
 // Room mode: #room starts a room (eight country chips, Create); #room=ABCDEF is the facilitator
 // view: the code big, the join link, the players count, the board as two bar lists, the debrief.
+// Every block is a Settings inset group: the header on the wallpaper, the content in the glass.
 // No input anywhere: the code is shown, the link is selected on tap, never typed or copied by code.
 import { useEffect, useRef, useState } from 'react';
 import { TELLS, TRICKS } from '../../../../shared/taxonomy.ts';
@@ -8,6 +9,7 @@ import { fetchPacks } from '../../api.ts';
 import type { PackSummary } from '../../api.ts';
 import { NavBar } from '../../shell/PhoneTools.tsx';
 import { haptic } from '../../shell/feel.ts';
+import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { createRoom, fetchBoard, fetchRoom, joinLink, streamDebrief } from './api.ts';
 import type { RoomBoard, RoomInfo } from './api.ts';
 import './room.css';
@@ -57,9 +59,9 @@ function StartRoom({ country }: { country: string | null }) {
     <section className="page settings room">
       <NavBar title="Start a room" back="About" href="#/about" />
       <p className="settings-lead">Everyone plays the same practice day on their own phone. You see who fell for which tell. Nobody is named.</p>
-      <div className="room-row" role="radiogroup" aria-labelledby="room-country">
-        <p id="room-country" className="room-role">Country pack</p>
-        <div className="room-chips">
+      <InsetGroup header="Country pack">
+        <li className="inset-row inset-body room-block">
+          <div className="room-chips" role="radiogroup" aria-label="Country pack">
           {packs.map((pack) => (
             <button
               key={pack.code}
@@ -75,8 +77,9 @@ function StartRoom({ country }: { country: string | null }) {
               {pack.name}
             </button>
           ))}
-        </div>
-      </div>
+          </div>
+        </li>
+      </InsetGroup>
       <div className="room-actions">
         <button type="button" className="btn btn-primary" disabled={!chosen || busy} onClick={create}>
           {busy ? 'Opening the room' : 'Create the room'}
@@ -102,13 +105,14 @@ function LinkBlock({ info }: { info: RoomInfo }) {
     }
   };
   return (
-    <div className="room-row">
-      <p className="room-role">Join link</p>
-      <code ref={box} className="room-link">{link}</code>
-      <button type="button" className="btn room-select" onClick={select}>
-        {selected ? 'Selected. Copy it from the menu.' : 'Select the link'}
-      </button>
-    </div>
+    <InsetGroup header="Join link">
+      <li className="inset-row inset-body room-block">
+        <code ref={box} className="room-link">{link}</code>
+        <button type="button" className="btn room-select" onClick={select}>
+          {selected ? 'Selected. Copy it from the menu.' : 'Select the link'}
+        </button>
+      </li>
+    </InsetGroup>
   );
 }
 
@@ -122,8 +126,8 @@ interface BarRow {
 function BarList({ title, rows, empty }: { title: string; rows: BarRow[]; empty: string }) {
   const max = Math.max(1, ...rows.map((row) => row.value));
   return (
-    <div className="room-row">
-      <p className="room-role">{title}</p>
+    <InsetGroup header={title}>
+      <li className="inset-row inset-body room-block">
       {rows.length === 0 ? (
         <p className="room-honest">{empty}</p>
       ) : (
@@ -139,7 +143,8 @@ function BarList({ title, rows, empty }: { title: string; rows: BarRow[]; empty:
           ))}
         </ul>
       )}
-    </div>
+      </li>
+    </InsetGroup>
   );
 }
 
@@ -204,10 +209,11 @@ function Debrief({ roomId, age, ready }: { roomId: string; age: AgeGroup; ready:
       {!ready && <p className="room-honest">The debrief needs at least one finished day.</p>}
       {state.failed && <p className="room-honest">The debrief did not arrive. Try again.</p>}
       {state.text && (
-        <div className="room-row room-debrief" aria-live="polite">
-          <p className="room-role">Group debrief, written by Gemini from the counts above</p>
-          <p className="room-debrief-text">{state.text}</p>
-        </div>
+        <InsetGroup header="Group debrief, written by Gemini from the counts above">
+          <li className="inset-row inset-body room-block" aria-live="polite">
+            <p className="room-debrief-text">{state.text}</p>
+          </li>
+        </InsetGroup>
       )}
     </div>
   );
@@ -222,12 +228,14 @@ function Facilitator({ roomId, age }: { roomId: string; age: AgeGroup }) {
       <p className="room-code" aria-label={`Room code ${roomId.split('').join(' ')}`}>{roomId}</p>
       {missing && <p className="settings-lead">This room is not open. Rooms live while the server does; start a new one.</p>}
       {info && <LinkBlock info={info} />}
-      <div className="room-row room-counts">
-        <p><strong>{info?.players ?? 0}</strong><span>joined</span></p>
-        <p><strong>{board?.reports ?? 0}</strong><span>finished</span></p>
-        <p><strong>{board ? `${board.rates.caught.handled} of ${board.rates.caught.total}` : '0 of 0'}</strong><span>scams caught</span></p>
-        <p><strong>{board ? `${board.rates.trusted.handled} of ${board.rates.trusted.total}` : '0 of 0'}</strong><span>real trusted</span></p>
-      </div>
+      <InsetGroup header="So far">
+        <li className="inset-row inset-body room-block room-counts">
+          <p><strong>{info?.players ?? 0}</strong><span>joined</span></p>
+          <p><strong>{board?.reports ?? 0}</strong><span>finished</span></p>
+          <p><strong>{board ? `${board.rates.caught.handled} of ${board.rates.caught.total}` : '0 of 0'}</strong><span>scams caught</span></p>
+          <p><strong>{board ? `${board.rates.trusted.handled} of ${board.rates.trusted.total}` : '0 of 0'}</strong><span>real trusted</span></p>
+        </li>
+      </InsetGroup>
       <BarList title="Tells missed most" rows={board ? tellRows(board) : []} empty={finished ? 'Nothing missed so far.' : 'No day finished yet.'} />
       <BarList title="Tricks, caught against fell" rows={board ? trickRows(board) : []} empty={finished ? 'No scam scored so far.' : 'No day finished yet.'} />
       <Debrief roomId={roomId} age={age} ready={finished} />

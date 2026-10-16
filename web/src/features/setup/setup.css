@@ -1,7 +1,35 @@
 /* "Make it your phone": the title and lead sit bare on the wallpaper (on-wall tokens), then one
    row per role: a 13px section label, the way an inset header reads, over six name capsules. No
-   card, no border; the capsules themselves are the surfaces. The page frame (.page-full,
-   .page-body, .page-end) comes from features/day.css; everything here is scoped under .setup. */
+   card, no border; the capsules themselves are the surfaces. Skip is the last line of the scroll
+   body; Done floats over the bottom as one accent capsule (.setup-foot), the way the lesson's Next
+   does: no glass band, no hairline. The page frame (.page-full, .page-body) comes from
+   features/day.css; everything here is scoped under .setup. */
+
+/* The containing block for the floating capsule. anim-sheet's transform would do it, but the
+   reduced-motion twin is opacity only. */
+.setup {
+  position: relative;
+}
+
+/* The rows scroll under the capsule; the last one clears it. */
+.setup .page-body {
+  padding-bottom: calc(var(--tap) + 1.75rem);
+}
+
+.setup .setup-foot {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  left: 1rem;
+}
+
+.setup .setup-foot .btn {
+  width: 100%;
+  min-height: 3.125rem;
+  border: 0;
+  box-shadow: var(--shadow);
+}
+
 .setup .setup-lead {
   flex: none;
   color: var(--on-wall);
@@ -28,38 +56,45 @@
   text-shadow: var(--on-wall-shadow);
 }
 
-/* Six capsules wrap into two or three lines at 390px; 8px between targets, 48px tall. */
+/* Six capsules wrap into two or three lines at 390px; 8px between targets, 48px tall (.btn). */
 .setup .setup-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
+/* The iOS tinted capsule: the accent at a wash on white, accent text, no outline. */
 .setup .setup-chip {
   padding: 0 1rem;
-  border-color: var(--line);
-  background: var(--surface);
+  border: 0;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   font-size: var(--t16);
   font-weight: 500;
-  color: var(--ink);
+  color: var(--accent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
-/* Radio chips carry aria-checked, not aria-pressed, so the pressed look is restated here. */
+/* Radio chips carry aria-checked, not aria-pressed, so the filled look is restated here. */
 .setup .setup-chip[aria-checked='true'] {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--surface);
   font-weight: 600;
 }
 
-/* .page-end .btn:not(.btn-primary) in day.css (0,3,0) would turn Skip into a surface pill; this
-   selector is (0,4,0) so it wins regardless of bundle order. Skip is plain text, Done the capsule. */
-.setup .page-end .btn.btn-quiet {
+/* Skip: a bare text button on the wallpaper after the last row, 48px tall, no capsule. */
+.setup .setup-skip {
+  align-self: center;
+  padding: 0 1rem;
+  border: 0;
   background: transparent;
-  border-color: transparent;
-  color: var(--accent);
+  color: var(--on-wall);
+  font-size: var(--t17);
+  font-weight: 600;
+  letter-spacing: var(--track-17);
+  text-shadow: var(--on-wall-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* Reduced motion: the sheet cross-fades in. The screen sits outside .day, so day.css's twin does

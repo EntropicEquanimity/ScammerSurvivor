@@ -1,10 +1,34 @@
 /* End of day: a ledger of senders, one row each, sliding in one by one at a 60ms stagger; the two
    rates counting up as a footnote once the rows have landed; the hotline once; the result card
-   sliding up last; the install nudge. The inset and row classes are shared from shell.css.
-   --i is a row's index, --n the row count; ROW_STAGGER_MS in EndOfDay.tsx matches --row-stagger. */
+   sliding up last; the install nudge. Play tomorrow floats over the bottom as one accent capsule
+   (.end-foot), the way the lesson's Next does: no glass band, no hairline. The inset and row
+   classes are shared from shell.css. --i is a row's index, --n the row count; ROW_STAGGER_MS in
+   EndOfDay.tsx matches --row-stagger. */
 
+/* The containing block for the floating capsule. anim-sheet's transform would do it, but the
+   reduced-motion twin is opacity only. */
 .end {
   --row-stagger: 60ms;
+  position: relative;
+}
+
+/* The groups scroll under the capsule; the last one clears it. */
+.end .page-body {
+  padding-bottom: calc(var(--tap) + 1.75rem);
+}
+
+.end .end-foot {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  left: 1rem;
+}
+
+.end .end-foot .btn {
+  width: 100%;
+  min-height: 3.125rem;
+  border: 0;
+  box-shadow: var(--shadow);
 }
 
 /* Resolved where --n is set: a custom property computed on .end would not see the children's --n. */
@@ -98,7 +122,7 @@
   width: 100%;
   height: auto;
   aspect-ratio: 4 / 5;
-  border: 1px solid var(--glass-line);
+  border: 0;
   border-radius: var(--radius-sm);
   background: var(--paper);
   box-shadow: var(--shadow);
@@ -111,25 +135,10 @@
   text-shadow: var(--on-wall-shadow);
 }
 
-.install-nudge {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  align-items: flex-start;
-  padding: 0 1rem;
-  color: var(--on-wall);
-  font-size: var(--t16);
-  text-shadow: var(--on-wall-shadow);
-}
-
-.install-nudge .btn-quiet {
-  min-height: var(--tap);
-  padding: 0;
-  color: var(--on-wall);
-  font-size: var(--t18);
+/* The install nudge: one text row in an inset group, the way Settings puts a blue action in a list.
+   Accent, no underline, no capsule, the 48px row is the target; the "how" line is a second row. */
+.install-nudge .install-btn {
+  color: var(--accent);
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  text-decoration: none;
 }

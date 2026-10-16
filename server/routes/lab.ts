@@ -13,6 +13,7 @@ import { writeCard } from '../agents/director.ts';
 import { reasonText } from '../guard/card.ts';
 import type { GuardReason } from '../guard/card.ts';
 import { PACKS } from '../country.ts';
+import { fillCard } from '../deal.ts';
 import { loadNote } from './trace.ts';
 import type { Writer } from './trace.ts';
 
@@ -106,8 +107,8 @@ export function parseLab(body: unknown): { input: LabInput } | { error: string }
 }
 
 // ponytail: hit times per client ip in server memory; Cloud Run runs one
-// instance for the Cup. Firestore counters are the upgrade. Behind a proxy
-// req.ip is the proxy until `trust proxy` is set in server/index.ts.
+// instance for the Cup. Firestore counters are the upgrade. server/index.ts
+// sets `trust proxy`, so req.ip is the client behind the load balancer.
 let hits = new Map<string, number[]>();
 
 export function allowHit(ip: string, now = Date.now()): boolean {
@@ -121,7 +122,10 @@ export const resetHits = (): void => {
   hits = new Map();
 };
 
-export const toPreview = (card: Card): LabPreview => ({
+// The same placeholder fill as a dealt day: the judge sees the names a player would.
+export const toPreview = (raw: Card): LabPreview => toPreviewOf(fillCard(raw));
+
+const toPreviewOf = (card: Card): LabPreview => ({
   layout: card.layout,
   difficulty: card.difficulty,
   sender: card.sender,

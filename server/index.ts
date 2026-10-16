@@ -13,8 +13,14 @@ const JSON_LIMIT = '10kb';
 const root = join(import.meta.dirname, '..');
 const dev = process.argv.includes('--dev');
 
+// A background mirror or a model client must never take the process down with it.
+process.on('unhandledRejection', (reason) => console.error('unhandled_rejection', (reason as Error)?.name ?? 'unknown'));
+
 const app = express();
 app.disable('x-powered-by');
+// Cloud Run's load balancer sets X-Forwarded-For; without this req.ip is the proxy
+// and the lab's per-client limit becomes one limit for everyone.
+app.set('trust proxy', true);
 
 app.use((_req, res, next) => {
   res.set({

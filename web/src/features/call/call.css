@@ -5,11 +5,19 @@
    its word. Every animation has a reduced-motion twin at the bottom that cross-fades instead.
    Divergence kept on purpose: the words under the round controls are 13px, like the home labels. */
 
+/* The call owns the status and indicator regions the way card.css .app does: .day starts under the
+   floating status bar and ends above the floating indicator, so the veil reaches past both edges
+   and pads itself back. The ended view is a white sheet and carries data-surface="light" for the
+   status time; the veil keeps the time white. */
 .call {
   --call-green: #2fb350;
   --call-red: #e2352d;
   --call-veil: rgba(22, 26, 34, 0.78);
   --call-disc: rgba(255, 255, 255, 0.22);
+  margin-top: calc(-1 * var(--status-h, 54px));
+  margin-bottom: calc(-1 * var(--indicator-h, 34px));
+  padding-top: var(--status-h, 54px);
+  padding-bottom: var(--indicator-h, 34px);
   background: var(--call-veil);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
   backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
@@ -41,13 +49,20 @@
   content: none;
 }
 
-/* The name: 34 light, the way the phone names a caller; on the talking screen it steps down. */
+/* The name: 34 light, the way the phone names a caller; on the talking screen it steps down. It is
+   the screen title, so focus lands on it when the view mounts; that focus arrives after a tap, never
+   from a key, so the ring is suppressed. The two-class selector outranks base.css :focus-visible
+   whatever the cascade order. */
 .call-name {
   font-size: var(--t34);
   font-weight: 400;
   letter-spacing: var(--track-34);
   line-height: 1.15;
   color: var(--on-wall);
+}
+
+.call-name:focus-visible {
+  outline: 0;
 }
 
 .call-name-talking {
@@ -308,7 +323,7 @@
 }
 
 .call-ended .page-end {
-  background: var(--glass-strong);
+  background: none;
 }
 
 @keyframes call-breathe {

@@ -25,3 +25,17 @@ Three worst web-page tells: 1 px outlines on capsules and chips; edge-to-edge ba
 Notes: the alert message measures 16 px against the 15 in the divergence list; call control labels are 13 px; the alert body and the lock notification carry the same sentence twice on one screen.
 
 Verdict: **HOLD**.
+
+## 2026-10-16, tree after Fix run A (34 modified web and server files on f8c365f), local build
+
+Method: four passes at 390x844 and 430x932, normal and reduced motion, DPR 3, iPhone user agent, 25 screens through the app's own taps; values from computed styles and rects. The call's three views were reached with stubbed start and turn responses (no local beats), so the mount is verified and the real beat path is not. The lab after Generate was not run locally.
+
+Pass counts: lock 27/28, country picker 11/11, home 16/16, setup 13/13, day lock 14/16, card 22/24, tells 10/10, real-twin note 7/9, recovery 11/11, lesson 11/11, call 20/21, end of day 13/13, lab 10/10, room 17/17, about 10/11, privacy 9/9. Total 221 of 230. Every reduced-motion twin resolves.
+
+Changed since the previous entry (69 of 99, HOLD): all four HOLD triggers gone. Real-twin note owns its look, status time in ink at 14.5:1. Tells nav glass spans y 0 to 98; scrolled lab, room, about and privacy bars the same. About has the 44 pt bar and a 34/700 title at 16:1. One clock everywhere on the day. Recovery and the call span the full height. Settings navs at y 0, no dead band. Floating capsules on setup, lesson and end. Chips, capsules, stamps, lock notification and result card unoutlined. Lock notification without the app-name line; banner lands under the clock. Lab quiet button without blur; install row plain. Alert and notification no longer repeat a sentence. The Gemini chip is a 48 px button under the number.
+
+Fails, ranked (fixed in the same session, before commit): the decorative back chevron (dropped when no destination); the glass band under Continue on the real-twin note and under Next on the ended call (page-end now floats everywhere); the 1 px outline on the day's notification cards and stakes pills (border 0); the translucent reduced-motion banner twin (banner appears whole); the 11 px chip text at 3.97:1 (13 px); the 16 px alert message (15 px); underlined About sources (plain accent); the room mirror that could exit the process without local credentials (guarded).
+
+Not failed, noted: home widget 176.5 at 430 against 170 (not verified); trace drawer top radius 10 against iOS 26's larger sheet corner (not verified); glass edges on inset groups and nav capsules; the composer bar hairline; swipe hint 3.2:1 at 430; the alert overlaps the lock notification by 31 px under the scrim at 390.
+
+Verdict: **SHIP**.

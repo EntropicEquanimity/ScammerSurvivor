@@ -28,20 +28,24 @@
   padding: 0 1rem 1rem;
 }
 
+/* A floating capsule over content, the way iOS 26 bottom actions sit. No band, no hairline. */
 .page-end {
   display: flex;
   flex: none;
   flex-direction: column;
   gap: 0.5rem;
-  position: relative;
-  padding: 0.5rem 1rem 0.75rem;
-  background: var(--glass-strong);
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  left: 1rem;
+  padding: 0;
+  background: none;
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
 }
 
 .page-end::before {
-  content: '';
+  content: none;
   position: absolute;
   top: 0;
   right: 0;
@@ -151,16 +155,37 @@
   padding-top: 1rem;
 }
 
-/* The one that just arrived: a banner over the top of the screen for a moment, then it settles. */
-.notif-banner {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.75rem;
-  left: 0.75rem;
+/* The one that just arrived: a banner for a moment, then it settles into the stack. It lives in a
+   zero-height slot under the clock and its entry scales down from the slot's top edge (banner-in),
+   so at every frame its box stays below the date and the clock, never over them, the way the
+   phone's banner sits under its clock. The base drop-in (translateY(-120%)) would ride up through
+   the clock, so the banner swaps the keyframe and keeps the class for the reduced-motion twin. */
+.notif-slot {
+  position: relative;
+  flex: none;
+  height: 0;
   z-index: 2;
 }
 
-/* The banner rides over the clock, so it is solid: the clock must not read through it. */
+.notif-banner {
+  position: absolute;
+  top: 0.5rem;
+  right: 0;
+  left: 0;
+}
+
+@keyframes banner-in {
+  from { transform: scale(0.92); }
+  to { transform: scale(1); }
+}
+
+.notif-banner.anim-drop {
+  animation-name: banner-in;
+  transform-origin: 50% 0;
+}
+
+/* The banner rides over the stakes pills, so it is solid and its entry never fades: nothing reads
+   through it. (The reduced-motion twin is the day's 200 ms cross-fade, like every other motion.) */
 .notif-banner .notif {
   background: var(--surface);
 }
@@ -269,4 +294,23 @@
   font-weight: 600;
   line-height: 1.4;
   vertical-align: middle;
+}
+
+/* iOS notifications and pills carry no edge; .glass gives one, so it comes off here. */
+.notif,
+.stakes-pill {
+  border: 0;
+  box-shadow: var(--shadow);
+}
+
+.page-end .btn {
+  min-height: 3.125rem;
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The banner appears whole; a translucent fade put its text over the clock's pills. */
+  .day .notif-banner.anim-drop {
+    animation: none !important;
+  }
 }

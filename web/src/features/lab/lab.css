@@ -5,6 +5,7 @@
 
 .lab {
   --lab-green: #2fb350;
+  --chip-tint: color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 
 /* Chips wrap inside one inset row; the row itself is not a tap target, the chips are. */
@@ -19,10 +20,12 @@
   gap: 0.5rem;
 }
 
+/* Chips: no outline, a tint of the accent with ink text (accent text on a tint falls under 4.5:1),
+   the chosen one filled. The group's glass block is the only edge. */
 .lab .lab-chip {
   padding: 0 1rem;
-  border-color: var(--line);
-  background: var(--surface);
+  border: 0;
+  background: var(--chip-tint);
   font-size: var(--t16);
   font-weight: 500;
   color: var(--ink);
@@ -32,7 +35,6 @@
 
 .lab .lab-chip[aria-checked='true'] {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--surface);
   font-weight: 600;
 }
@@ -54,9 +56,12 @@
   cursor: default;
 }
 
+/* A text button on the wallpaper: no glass, so no blur ghost behind the words. */
 .lab .lab-quiet {
   color: var(--on-wall);
   text-shadow: var(--on-wall-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .lab .lab-elapsed {

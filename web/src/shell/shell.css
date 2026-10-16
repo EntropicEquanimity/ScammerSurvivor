@@ -136,6 +136,11 @@
   opacity: 1;
 }
 
+/* The large title takes programmatic focus on mount; the ring belongs to keyboard travel, not a heading. */
+.large-title:focus {
+  outline: none;
+}
+
 .large-title {
   flex: none;
   padding: 0.125rem 0 0.5rem;
@@ -311,7 +316,7 @@
 
 .settings > .nav {
   top: calc(-1 * var(--status-h)); /* sticky measures from the content box, under the screen's top padding */
-  margin-top: calc(-1 * var(--status-h));
+  margin: calc(-1 * var(--status-h)) -1rem 0; /* one shorthand: a later margin reset left a 54px dead band */
   padding-top: var(--status-h);
 }
 
@@ -321,10 +326,6 @@
   font-size: var(--t18);
   line-height: 1.4;
   text-shadow: var(--on-wall-shadow);
-}
-
-.settings > .nav {
-  margin: 0 -1rem;
 }
 
 /* The one-time notice: a sheet above the home indicator with the sentence and an OK button. Never two

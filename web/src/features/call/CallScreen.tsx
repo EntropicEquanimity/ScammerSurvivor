@@ -54,10 +54,17 @@ const lessonLine: Lesson = (outcome, lastAction) => {
 // The tag the rule asks for, inside the line the phone shows under the name.
 const PracticeLine = ({ tail }: { tail: string }) => (
   <p className="call-practice">
-    <span className="practice-tag">Practice call</span>
+    <span>Practice call</span>
     <span aria-hidden="true">·</span>
     <span className="call-practice-tail">{tail}</span>
   </p>
+);
+
+// The caller's name is the screen title: focus moves to it when the ringing and the talking view
+// mount, so assistive technology hears the new screen and the practice label linked to it. The
+// ring that programmatic focus can draw is suppressed in call.css (.call-name:focus-visible).
+const CallName = ({ talking }: { talking?: boolean }) => (
+  <ScreenTitle className={talking ? 'call-name call-name-talking' : 'call-name'}>{CALLER.name}</ScreenTitle>
 );
 
 const Avatar = ({ children }: { children?: ReactNode }) => (
@@ -96,7 +103,7 @@ export function RingingView({ ready, busy, onAnswer, onDecline }: RingingProps) 
   return (
     <section className="page-full call call-ringing anim-zoom call-fade">
       <div className="page-body">
-        <ScreenTitle className="call-name">{CALLER.name}</ScreenTitle>
+        <CallName />
         <PracticeLine tail="mobile" />
         <p className="call-number">{CALLER.number}</p>
         <Avatar />
@@ -216,7 +223,7 @@ export function TalkingView({ beat, meter, offered, busy, failed, speaking, audi
   return (
     <section className="page-full call call-talking anim-zoom call-fade">
       <div className="page-body scroll">
-        <ScreenTitle className="call-name call-name-talking">{CALLER.name}</ScreenTitle>
+        <CallName talking />
         <Elapsed />
         <PracticeLine tail={CALLER.number} />
         <Avatar>
@@ -256,7 +263,7 @@ interface EndedProps {
 
 export function EndedView({ outcome, lastAction, beat, onDone }: EndedProps) {
   return (
-    <section className="page-full call call-ended anim-sheet call-fade">
+    <section className="page-full call call-ended anim-sheet call-fade" data-surface="light">
       <div className="page-body scroll">
         <PracticeLine tail="ended" />
         <ScreenTitle className="large-title">{lessonLine(outcome, lastAction)}</ScreenTitle>

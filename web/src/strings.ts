@@ -1,4 +1,7 @@
-import type { Lang } from '../../shared/types.ts';
+import type { Lang, People } from '../../shared/types.ts';
+import { PEOPLE_ROLES } from '../../shared/types.ts';
+import { INSTITUTIONS, isInstitutionId } from '../../shared/brands.ts';
+import { PEOPLE_CHIPS } from '../../shared/people.ts';
 import { NON_AFFILIATION } from '../../shared/strings.ts';
 
 // Placeholder until the team mailbox exists. Replace before the first deploy.
@@ -69,7 +72,6 @@ const en = {
     safe: 'No request for money. No rush. No secrets. Nothing asked for a code or a link.',
     ruleTitle: 'Remember',
     rule: 'Not sure it is really family? Call the number you already have for them.',
-    hotline: 'Scammed, or nearly? Call the CICC hotline 1326.',
     official: 'For a bank or e-wallet, use its official app or the number on your card.',
     scoreTitle: 'Your practice score',
     realTrust: 'Real messages trusted',
@@ -99,3 +101,26 @@ const en = {
 export type Strings = typeof en;
 
 export const STRINGS: Record<Lang, Strings> = { en };
+
+// Senders the player has a standing tie to read as "your"; every other role is a stranger, "the".
+const YOURS: ReadonlySet<string> = new Set(['relative', 'friend', 'bank', 'boss']);
+
+type Sender = { displayName: string; institutionId?: string };
+
+// Who a real message was really from, in words that fit the sender: "your sister" for a person the
+// player picked on the setup screen, "the buyer" or "your bank" for a role, the bare name when the
+// sender has neither. Never "your" for a stranger.
+export function whoReally(sender: Sender, people: People): string {
+  const { displayName, institutionId } = sender;
+  const role = PEOPLE_ROLES.find((candidate) => people[candidate] === displayName);
+  if (role) return `your ${PEOPLE_CHIPS[role].label.toLowerCase()}`;
+  if (isInstitutionId(institutionId)) {
+    const label = INSTITUTIONS[institutionId].replace(/^your\s+/i, '').toLowerCase();
+    return `${YOURS.has(institutionId) ? 'your' : 'the'} ${label}`;
+  }
+  return displayName;
+}
+
+// The line under a real message the player turned away (the lesson's RealNote).
+export const twinLine = (sender: Sender, people: People): string =>
+  `That was really ${whoReally(sender, people)}. They did not hear back.`;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId } from '../../../../shared/types.ts';
-import { fetchDay, postAct, postFinish, postOpen, postTap } from '../../api.ts';
+import type { Action, AgeGroup, DayPayload, DayScore, PublicCard, RecoverResult, SlotResult, TellId, TraceEvent } from '../../../../shared/types.ts';
+import { fetchDay, fetchTrace, postAct, postFinish, postOpen, postTap } from '../../api.ts';
 import { usePersonalised } from './useArrival.ts';
 import { getRoom, reportDay, startRoomDay } from '../room/api.ts';
 
@@ -39,6 +39,58 @@ const INITIAL: State = { day: null, phase: { kind: 'loading' }, results: [], ope
 
 const tellInfo = (results: SlotResult[]): TellInfo =>
   Object.fromEntries(results.flatMap((r) => r.lesson.tells).map(({ id, label, why }) => [id, { label, why }]));
+
+// True once the Director wrote a card for this day that the Guard passed, or repaired once.
+export const isPersonalised = (trace: TraceEvent[]): boolean =>
+  trace.some((event) => event.agent === 'director' && (event.outcome === 'ok' || event.outcome === 'repaired'));
+
+// The day's agent trace, ids and verdicts only, fetched again on every phase move: cards are
+// personalised in the background, so the chip in the app header reads the latest count each time
+// a card opens. A failed fetch keeps the last list.
+function useTrace(dayId: string | null, phaseKey: string): TraceEvent[] {
+  const [trace, setTrace] = useState<TraceEvent[]>([]);
+  useEffect(() => {
+    if (!dayId) return undefined;
+    let current = true;
+    fetchTrace(dayId).then((list) => current && setTrace(list), () => undefined);
+    return () => {
+      current = false;
+    };
+  }, [dayId, phaseKey]);
+  return trace;
+}
+
+// The one clock of the day, on the document root as data-clock so the status bar shows it: the
+// open card's time, the next card's before one opens, the last card's through the call and the
+// end. Set whenever it changes; cleared while the day has no clock (loading, a retry) and when the
+// day screen leaves, so a retried day never shows the old day's time.
+export function useDayClock(dayClock: string | undefined): void {
+  useEffect(() => {
+    if (dayClock) document.documentElement.dataset.clock = dayClock;
+    else delete document.documentElement.dataset.clock;
+  }, [dayClock]);
+  useEffect(() => () => {
+    delete document.documentElement.dataset.clock;
+  }, []);
+}
+
+// The practice call as a promise the day waits on. The call screen's Next, or its skip when the
+// day has no beats, resolves it; the day then finishes. Off when the screen is not wanted.
+export function useCallGate(enabled: boolean): { onCall?: () => Promise<void>; endCall: () => void } {
+  const resolve = useRef<(() => void) | null>(null);
+  const onCall = useCallback(
+    () =>
+      new Promise<void>((done) => {
+        resolve.current = done;
+      }),
+    [],
+  );
+  const endCall = useCallback(() => {
+    resolve.current?.();
+    resolve.current = null;
+  }, []);
+  return { onCall: enabled ? onCall : undefined, endCall };
+}
 
 function useLoadDay(country: string, age: AgeGroup, quick: boolean, tries: number, setState: SetState) {
   useEffect(() => {
@@ -170,11 +222,14 @@ export function useDay(country: string, age: AgeGroup, quick: boolean, options: 
   const handled = new Set(results.map((r) => r.slotId));
   const remaining = day ? day.cards.filter((card) => !handled.has(card.slotId)) : [];
   const last = results.at(-1);
+  const trace = useTrace(day?.dayId ?? null, `${phase.kind}:${'slotId' in phase ? phase.slotId : ''}`);
 
   return {
     day,
     phase,
     results,
+    trace,
+    personalised: isPersonalised(trace),
     busy: state.busy,
     failed: state.failed,
     remaining,

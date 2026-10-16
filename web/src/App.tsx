@@ -128,11 +128,12 @@ function Screen({ route, age, country, choosing, asked, unlocked, quick, packs, 
   if (route === '#/day') {
     // Only an adult day is personalised, so younger players are never asked to pick people.
     // A room day is the room's day, not personalised, so the picker is skipped there too.
+    // The practice call is an adult step (rule 9): without onCall the day never enters the call phase.
     if (!asked && age === 'adult' && !getRoom()) return <SetupScreen onDone={onAsked} />;
     return (
       <>
         <JoinBanner />
-        <DayScreen country={country} age={age} quick={quick} onDone={() => { window.location.hash = '#/'; }} />
+        <DayScreen country={country} age={age} quick={quick} onDone={() => { window.location.hash = '#/'; }} onCall={age === 'adult' ? () => haptic() : undefined} />
       </>
     );
   }

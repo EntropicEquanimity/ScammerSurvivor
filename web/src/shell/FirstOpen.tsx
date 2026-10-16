@@ -20,10 +20,12 @@ const AGE_KEY = 'ageConfirmed';     // same key App.tsx writes; a valid value me
 const NOTICE_KEY = 'noticeSeen';    // same sessionStorage key PhoneShell used: the notice shows once per visit (rule 1)
 const SWIPE_PX = 60;
 
-// The non-affiliation sentence verbatim (shared/strings.ts, rule 1), then the under-18 line. The first open
-// carries both inside the age question; every later visit carries the sentence alone with a single OK.
+// The alert sits over the lock notification, which carries the non-affiliation sentence (shared/strings.ts,
+// rule 1), so the alert never repeats it: one short practice line, plus the under-18 line on the first open.
+// Every later visit carries the practice line alone with a single OK.
+const PRACTICE_LINE = 'Every message, call and app on this phone is made up for practice.';
 const ALERT_LINES = [
-  NON_AFFILIATION,
+  PRACTICE_LINE,
   'Under 18 gets prepared practice: no sign-in, microphone or AI conversation.',
 ];
 
@@ -80,6 +82,7 @@ function useNow(): Date {
   return now;
 }
 
+// The practice tag (rule 1) sits under the clock where the phone shows its Focus pill.
 function LockClock() {
   const now = useNow();
   return (
@@ -87,6 +90,7 @@ function LockClock() {
       <ScreenTitle className="lock-date">{dateFormat.format(now)}</ScreenTitle>
       <p className="lock-clock" aria-hidden="true">{timeFormat.format(now)}</p>
       <p className="visually-hidden">{timeFormat.format(now)}</p>
+      <span className="practice-tag lock-focus">Practice</span>
     </div>
   );
 }
@@ -126,7 +130,7 @@ function AgeAlert({ askAge, onAnswer, onDismiss }: {
       <div className="alert anim-zoom" role="alertdialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-msg">
         <h2 ref={title} tabIndex={-1} id="age-title" className="alert-title">{askAge ? 'Are you 18 or older?' : 'Practice phone'}</h2>
         <div id="age-msg" className="alert-msg">
-          {(askAge ? ALERT_LINES : [NON_AFFILIATION]).map((line) => <p key={line}>{line}</p>)}
+          {(askAge ? ALERT_LINES : [PRACTICE_LINE]).map((line) => <p key={line}>{line}</p>)}
         </div>
         {askAge ? (
           <>
@@ -169,14 +173,13 @@ function useSwipeUp(onSwipe: () => void) {
   return { onPointerDown, onPointerUp, onPointerCancel: () => { startY.current = null; } };
 }
 
-// The lock screen's one notification (rule 1): the practice label in the day's notification anatomy.
-// ponytail: the body is the full sentence clamped to two lines; shared/strings.ts has no short form yet.
+// The lock screen's one notification: the non-affiliation sentence (rule 1) in the phone's anatomy, the
+// squircle names the app, the title line carries the time at its right, no app-name line above it.
 const LockNotification = () => (
   <div className="lock-notif glass glass-strong" role="note">
     <img className="lock-notif-art" src="/art/practice.png" alt="" width={38} height={38} />
     <span className="lock-notif-body">
-      <span className="lock-notif-top">Practice phone · now</span>
-      <span className="lock-notif-title">Nothing here is real</span>
+      <span className="lock-notif-title">Nothing here is real<span className="lock-notif-time">now</span></span>
       <span className="lock-notif-text">{NON_AFFILIATION}</span>
     </span>
   </div>

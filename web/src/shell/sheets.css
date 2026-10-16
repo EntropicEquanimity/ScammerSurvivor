@@ -45,7 +45,7 @@
 
 .alert-msg {
   padding: 0 1rem 1rem;
-  font-size: var(--t16);
+  font-size: 0.9375rem;
   letter-spacing: var(--track-13);
   line-height: 1.35;
 }

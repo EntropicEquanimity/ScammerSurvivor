@@ -1,11 +1,70 @@
+import { BRANDS, INSTITUTIONS, isInstitutionId } from '../shared/brands.ts';
 import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
 import { STANDARD_ACTIONS } from '../shared/types.ts';
-import type { Action, Card, CountryPack, DayPayload, DayScore, PublicCard, SlotResult } from '../shared/types.ts';
+import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, MessagePart, PublicCard, SlotResult } from '../shared/types.ts';
 
 export const PEOPLE_START = 3;
 const FIRST_TRICK = 'family_trouble';
 const CLOCK = ['08:10', '10:40', '13:20', '17:05'];
+
+// The Director writes "[institution]" and "[chat app name]" (rule 2: never a real brand).
+// They are filled here, at deal time, so no bracketed placeholder reaches a screen.
+// The institution is the sender's INSTITUTIONS label when the card names one; a
+// Director card has none, so the trick's category picks an invented, pack-neutral name.
+const INVENTED_INSTITUTION: Record<Category, string> = {
+  A: 'Kestrel Hiring',
+  B: 'Cedar Trading Circle',
+  C: 'Harbourline',
+  D: 'Northgate Parcel',
+  E: 'Harbourline',
+  F: 'Civic Notice Desk',
+  G: 'Harbourline',
+  H: 'Meridian Prize Desk',
+  I: 'Harbourline',
+  J: 'Harbourline',
+};
+
+// The app the card arrives in, by layout: the brand that owns the look.
+const APP_NAME: Record<Layout, string> = {
+  'green-chat': BRANDS.quillo.name,
+  'blue-chat': BRANDS.quillo.name,
+  'sticker-chat': BRANDS.quillo.name,
+  'cloud-chat': BRANDS.quillo.name,
+  'purple-chat': BRANDS.quillo.name,
+  sms: 'Messages',
+  email: BRANDS.fieldpost.name,
+  wallet: BRANDS.fold.name,
+  call: BRANDS.relay.name,
+};
+
+const institutionFor = (card: Card): string =>
+  isInstitutionId(card.sender.institutionId) ? INSTITUTIONS[card.sender.institutionId] : INVENTED_INSTITUTION[trickCategory(card.trickId)];
+
+const PLACEHOLDER = /\[(institution|chat app name)\]/i;
+
+const fillText = (text: string, institution: string, app: string): string =>
+  text.replace(/\[institution\]/gi, institution).replace(/\[chat app name\]/gi, app);
+
+// A card with every placeholder filled. A clean card (every fixture) is returned as is,
+// so a day dealt from the fixtures still holds the fixture objects themselves.
+export function fillCard(card: Card): Card {
+  if (!PLACEHOLDER.test(JSON.stringify(card))) return card;
+  const institution = institutionFor(card);
+  const app = APP_NAME[card.layout];
+  const fill = (text: string) => fillText(text, institution, app);
+  const fillParts = (parts: MessagePart[]): MessagePart[] => parts.map((part) => ({ ...part, text: fill(part.text) }));
+  const fillSender = (sender: Card['sender']): Card['sender'] => ({ ...sender, displayName: fill(sender.displayName) });
+  return {
+    ...card,
+    sender: fillSender(card.sender),
+    setup: fillParts(card.setup),
+    ask: fillParts(card.ask),
+    usualEnding: fill(card.usualEnding),
+    neverAsks: fill(card.neverAsks),
+    realTwin: { ...card.realTwin, sender: fillSender(card.realTwin.sender), parts: fillParts(card.realTwin.parts) },
+  };
+}
 
 export interface DealtSlot {
   slotId: string;
@@ -103,7 +162,7 @@ export interface DealInput {
 export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: DealInput): Deal {
   const random = seededRandom(seed);
   const count = Math.min(quick ? 2 : 4, cards.length);
-  const picked = pickCards(cards, count, firstPlay, random);
+  const picked = pickCards(cards.map(fillCard), count, firstPlay, random);
   const twinCount = Math.floor(count / 2);
   const protect = picked[0]?.trickId === FIRST_TRICK && firstPlay ? 1 : 0;
   const twinIds = new Set(shuffle(picked.slice(protect), random).slice(0, twinCount).map((card) => card.id));
@@ -130,13 +189,16 @@ export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: D
 
 // One slot re-dealt with a new card: the slot id, the clock label and the
 // scam-or-twin choice stay; the message, buttons and answer key come from the card.
-export const redealSlot = (slot: DealtSlot, card: Card): DealtSlot => ({
-  slotId: slot.slotId,
-  card,
-  isTwin: slot.isTwin,
-  public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt, slot.public.bannerHint ?? null),
-  key: toKey(card, slot.isTwin),
-});
+export const redealSlot = (slot: DealtSlot, raw: Card): DealtSlot => {
+  const card = fillCard(raw);
+  return {
+    slotId: slot.slotId,
+    card,
+    isTwin: slot.isTwin,
+    public: toPublic(card, slot.isTwin, slot.slotId, slot.public.arrivesAt, slot.public.bannerHint ?? null),
+    key: toKey(card, slot.isTwin),
+  };
+};
 
 // The wronged person's later message after a real twin was blocked or ignored. A fixed line per
 // sender role, templated with the display name; never a model call.
@@ -156,7 +218,8 @@ export function followUpFor(sender: Card['sender']): NonNullable<SlotResult['fol
   return { sender: sender.displayName, text: `${sender.displayName}: ${line}` };
 }
 
-export function lessonFor(card: Card, hotline: CountryPack['hotline']): SlotResult['lesson'] {
+export function lessonFor(raw: Card, hotline: CountryPack['hotline']): SlotResult['lesson'] {
+  const card = fillCard(raw);
   return {
     tells: card.plantedTells.map((id) => ({ id, ...TELLS[id] })),
     neverAsks: card.neverAsks,
