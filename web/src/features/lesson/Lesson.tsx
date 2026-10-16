@@ -25,11 +25,12 @@ const FOLLOW_UP_MS = 3000;
 
 const SAFEST = `Safest move next time: ${ACTION_LABELS.block_report}, or ${ACTION_LABELS.verify_known_number.toLowerCase()}.`;
 
-// Never shames. The headline names what happened, not what the player did wrong.
+// Never shames. The headline names what happened, not what the player did wrong, in one short
+// line: the large title is 34px, so about 18 characters fit at 390 wide.
 function headline(result: SlotResult): string {
   if (result.actionCorrect) return 'You caught it.';
-  if ((result.recovered ?? 0) > 0) return 'You acted in time. Some of it came back.';
-  return 'Most people would have hesitated here.';
+  if ((result.recovered ?? 0) > 0) return 'Some came back.';
+  return 'A common slip.';
 }
 
 function NextBar({ busy, failed, onNext, label }: StepProps & { label: string }) {
@@ -70,6 +71,7 @@ function CoachNote({ dayId, result }: { dayId: string; result: SlotResult }) {
 
 // One screen: the scam with its tells stamped where they sit, the Coach's note, the real twin,
 // the usual ending, the safest move. The hotline is not here; the end-of-day screen shows it once.
+// Next floats as a capsule over the scrolling groups (lesson.css), not an edge-to-edge bar.
 export function Lesson({ dayId, result, busy, failed, onNext }: LessonProps) {
   const { lesson } = result;
   return (

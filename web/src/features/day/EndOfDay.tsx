@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { AgeGroup, DayScore, SlotResult, Tally } from '../../../../shared/types.ts';
+import type { AgeGroup, DayScore, SlotResult } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { initialCountry } from '../../shell/country.ts';
 import { haptic } from '../../shell/feel.ts';
@@ -43,7 +43,43 @@ function countDay(dayId: string | undefined): number {
   }
 }
 
-const fraction = (t: Tally): string => `${t.handled} of ${t.total}`;
+const ROW_STAGGER_MS = 60; // matches --row-stagger in end.css
+const COUNT_MS = 600;
+const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Counts 0 to `to` with requestAnimationFrame once `delay` has passed; under reduced motion the
+// figure is final from the first frame and the footnote only fades (end.css).
+// ponytail: a twin of useCount in StakesBar.tsx, which is not exported; lift it when a third reader appears.
+function useCountUp(to: number, delay: number): number {
+  const [shown, setShown] = useState(() => (reducedMotion() ? to : 0));
+  useEffect(() => {
+    if (reducedMotion()) return undefined;
+    let frame = 0;
+    const start = performance.now() + delay;
+    const tick = (now: number) => {
+      const p = Math.min(1, Math.max(0, (now - start) / COUNT_MS));
+      setShown(Math.round(to * (1 - (1 - p) ** 3)));
+      if (p < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [to, delay]);
+  return shown;
+}
+
+// The two rates and the wallet, counting up once the last row has landed.
+function RatesNote({ score, rows }: { score: DayScore; rows: number }) {
+  const delay = rows * ROW_STAGGER_MS + 360;
+  const caught = useCountUp(score.scamsCaught.handled, delay);
+  const trusted = useCountUp(score.realTrusted.handled, delay);
+  const wallet = useCountUp(score.wallet, delay);
+  return (
+    <p className="end-note" style={{ '--n': rows } as CSSProperties}>
+      Scams caught {caught} of {score.scamsCaught.total}. Real messages trusted {trusted} of {score.realTrusted.total}. Wallet{' '}
+      {money(wallet)} of {money(score.walletStart)}.
+    </p>
+  );
+}
 
 function Ledger({ results, senders, score }: { results: SlotResult[]; senders: Record<string, string>; score: DayScore }) {
   const ledger = ledgerFrom(results, senders, { wallet: score.walletStart, people: score.peopleStart, money });
@@ -119,9 +155,11 @@ function InstallNudge() {
   );
 }
 
-// The day as a ledger: one row per sender, then the rates as a footnote, the hotline, the tell to
-// watch, the result card and the install nudge.
-export function EndOfDay({ score, age, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline }: Props) {
+// The day as a ledger: one row per sender sliding in, then the rates counting up as a footnote,
+// the hotline once, the tell to watch, the result card sliding up last, and the install nudge.
+// Sign-in is cut (AGENTS.md: no Firebase Authentication), so nothing stands in for it; `age`
+// stays in the props for the day the under-18 screen differs.
+export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline }: Props) {
   const [dayNumber] = useState(() => countDay(dayId));
   const country = initialCountry();
   const hotline = packHotline ?? results[0]?.lesson.hotline;
@@ -134,25 +172,18 @@ export function EndOfDay({ score, age, tells, onPlayTomorrow, results = [], send
       <div className="page-body scroll">
         <ScreenTitle className="large-title">Day over</ScreenTitle>
         <Ledger results={results} senders={senders} score={score} />
-        <p className="end-note">
-          Scams caught {fraction(score.scamsCaught)}. Real messages trusted {fraction(score.realTrusted)}. Wallet {money(score.wallet)} of{' '}
-          {money(score.walletStart)}.
-        </p>
+        <RatesNote score={score} rows={results.length} />
         {hotline && <HotlineGroup hotline={hotline} />}
         <MostMissed score={score} tells={tells} />
-        <ResultCard score={score} dayNumber={dayNumber} tells={tells} country={country} />
+        <div className="result-card-slot" style={{ '--n': results.length } as CSSProperties}>
+          <ResultCard score={score} dayNumber={dayNumber} tells={tells} country={country} />
+        </div>
         <InstallNudge />
       </div>
       <div className="page-end">
         <button type="button" className="btn btn-primary pressable" onClick={play}>
           Play tomorrow
         </button>
-        {age === 'adult' && (
-          // ponytail: sign-in is slice 7. The button is here so the screen reads as the plan describes it.
-          <button type="button" className="btn" disabled>
-            Sign in with Google to keep your progress (coming soon)
-          </button>
-        )}
       </div>
     </section>
   );

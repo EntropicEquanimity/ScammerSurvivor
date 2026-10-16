@@ -7,7 +7,7 @@
   --home-inset: 27.5px;
   flex: 1 0 auto;
   gap: 1.25rem;
-  padding: 0.5rem var(--home-inset) 0.75rem;
+  padding: 0.5rem var(--home-inset) 0;
 }
 
 .widgets {
@@ -22,6 +22,14 @@
   align-items: center;
   gap: 0.35rem;
   min-width: 0;
+}
+
+/* Widgets and the dock have no edge and no inset highlight, only the drop shadow, as on the phone.
+   Scoped under .home so the rule outranks .glass whatever order the bundle gives the two files. */
+.home .widget,
+.home .dock {
+  border: 0;
+  box-shadow: var(--shadow);
 }
 
 .widget {
@@ -182,7 +190,7 @@
 
 .dock {
   position: sticky;
-  bottom: 0.25rem;
+  bottom: 0.25rem; /* sticky measures from the screen's content box, which already clears the indicator */
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0 calc(10px - var(--home-inset));

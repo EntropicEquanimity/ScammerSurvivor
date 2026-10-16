@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, ReactNode } from 'react';
 import type { Action, CallBeatPublic } from '../../../../shared/types.ts';
 import { INSTITUTIONS } from '../../../../shared/brands.ts';
@@ -25,6 +25,22 @@ const RING_R = 46;
 const RING_C = 2 * Math.PI * RING_R;
 const BARS = 12;
 
+// Glyphs drawn for this screen, plain strokes on a 24 grid. The word under each button is the label.
+const PHONE = 'M6 3h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2 2A15 15 0 0 1 4 5a2 2 0 0 1 2-2z';
+const GLYPHS: Partial<Record<Action, string>> = {
+  ask_reference: 'M9 4L7 20M17 4l-2 16M4 9h17M3 15h17',
+  refuse_code: 'M12 3L4 6v6c0 4 5 8 8 9 3-1 8-5 8-9V6zM8.5 8.5l7 7',
+  call_back: 'M4 10a8 8 0 0 1 14-3M18 3v4h-4M20 14a8 8 0 0 1-14 3M6 21v-4h4',
+  read_code: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5',
+  hang_up_call_official: `${PHONE}M14 7l2 2 4-4`,
+};
+
+const Glyph = ({ d, className }: { d: string; className?: string }) => (
+  <svg className={className ? `icon ${className}` : 'icon'} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d={d} />
+  </svg>
+);
+
 type Lesson = (outcome: CallOutcome, lastAction: Action | null) => string;
 
 // Names what happened, never what the player did wrong.
@@ -35,9 +51,12 @@ const lessonLine: Lesson = (outcome, lastAction) => {
   return 'You hung up. That is always allowed. Next time, call the official number you already know as well.';
 };
 
-const PracticeLine = () => (
+// The tag the rule asks for, inside the line the phone shows under the name.
+const PracticeLine = ({ tail }: { tail: string }) => (
   <p className="call-practice">
     <span className="practice-tag">Practice call</span>
+    <span aria-hidden="true">·</span>
+    <span className="call-practice-tail">{tail}</span>
   </p>
 );
 
@@ -48,8 +67,26 @@ const Avatar = ({ children }: { children?: ReactNode }) => (
   </div>
 );
 
+interface RoundProps {
+  label: string;
+  tone: 'accept' | 'end' | 'glass';
+  glyph: string;
+  disabled: boolean;
+  onPress: () => void;
+}
+
+// One iOS call control: a round disc with the word under it. The whole thing is the tap target.
+function RoundButton({ label, tone, glyph, disabled, onPress }: RoundProps) {
+  return (
+    <button type="button" className={`call-round call-round-${tone} pressable`} disabled={disabled} onClick={() => { haptic(); onPress(); }}>
+      <span className="call-disc" aria-hidden="true"><Glyph d={glyph} className={tone === 'end' ? 'call-glyph-end' : undefined} /></span>
+      <span className="call-round-label">{label}</span>
+    </button>
+  );
+}
+
 interface RingingProps {
-  ready: boolean; // the first beat has arrived; Answer waits for it, Decline never does
+  ready: boolean; // the first beat has arrived; Accept waits for it, Decline never does
   busy: boolean; // the decline turn is in flight
   onAnswer: () => void;
   onDecline: () => void;
@@ -59,19 +96,14 @@ export function RingingView({ ready, busy, onAnswer, onDecline }: RingingProps) 
   return (
     <section className="page-full call call-ringing anim-zoom call-fade">
       <div className="page-body">
-        <PracticeLine />
-        <Avatar />
         <ScreenTitle className="call-name">{CALLER.name}</ScreenTitle>
+        <PracticeLine tail="mobile" />
         <p className="call-number">{CALLER.number}</p>
-        <p className="call-sub">Incoming call</p>
+        <Avatar />
       </div>
       <div className="page-end call-ring-end">
-        <button type="button" className="btn pressable call-decline" disabled={busy} onClick={() => { haptic(); onDecline(); }}>
-          Decline
-        </button>
-        <button type="button" className="btn btn-primary pressable" disabled={!ready || busy} onClick={() => { haptic(); onAnswer(); }}>
-          Answer
-        </button>
+        <RoundButton label="Decline" tone="end" glyph={PHONE} disabled={busy} onPress={onDecline} />
+        <RoundButton label="Accept" tone="accept" glyph={PHONE} disabled={!ready || busy} onPress={onAnswer} />
       </div>
     </section>
   );
@@ -146,13 +178,25 @@ function Waveform({ audio, speaking, graph }: { audio: HTMLAudioElement | null; 
   );
 }
 
-// The caller's confidence as a ring around the avatar; the number beside it carries the meaning.
+// The caller's confidence as a ring around the avatar; the line under it carries the number.
 const Ring = ({ meter }: { meter: number }) => (
   <svg className="call-ring" viewBox="0 0 100 100" aria-hidden="true">
     <circle className="call-ring-track" cx="50" cy="50" r={RING_R} />
     <circle className="call-ring-fill" cx="50" cy="50" r={RING_R} strokeDasharray={RING_C} strokeDashoffset={RING_C * (1 - meter / 100)} />
   </svg>
 );
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// The elapsed time under the name, as the phone shows it. Counts from Accept.
+function Elapsed() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return <p className="call-timer">{pad(Math.floor(seconds / 60))}:{pad(seconds % 60)}</p>;
+}
 
 interface TalkingProps {
   beat: CallBeatPublic | null;
@@ -166,35 +210,38 @@ interface TalkingProps {
   onAct: (action: Action) => void;
 }
 
+// Hang up is the red End button at the bottom; every other offered action sits in the grid.
 export function TalkingView({ beat, meter, offered, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
+  const grid = offered.filter((action) => action !== 'hang_up');
   return (
     <section className="page-full call call-talking anim-zoom call-fade">
       <div className="page-body scroll">
-        <PracticeLine />
+        <ScreenTitle className="call-name call-name-talking">{CALLER.name}</ScreenTitle>
+        <Elapsed />
+        <PracticeLine tail={CALLER.number} />
         <Avatar>
           <Ring meter={meter} />
         </Avatar>
-        <ScreenTitle className="call-name">{CALLER.name}</ScreenTitle>
-        <p className="call-number">{CALLER.number}</p>
         <p className="call-meter-text">
           Caller&apos;s confidence <strong>{Math.round(meter)}</strong> of 100
         </p>
         <Waveform audio={audio} speaking={speaking} graph={graph} />
         <p className="call-caption" aria-live="polite">{beat?.caption ?? ''}</p>
-        <ul className="call-actions">
-          {offered.map((action) => (
+        <ul className="call-grid">
+          {grid.map((action) => (
             <li key={action}>
-              <button type="button" className="btn pressable call-btn" disabled={busy} onClick={() => { haptic(); onAct(action); }}>
-                {ACTION_LABELS[action]}
-              </button>
+              <RoundButton label={ACTION_LABELS[action]} tone="glass" glyph={GLYPHS[action] ?? PHONE} disabled={busy} onPress={() => onAct(action)} />
             </li>
           ))}
         </ul>
         {failed && (
-          <p className="plain-note on-wall" role="alert">
+          <p className="plain-note call-note" role="alert">
             That did not go through. Tap again.
           </p>
         )}
+      </div>
+      <div className="page-end call-talk-end">
+        <RoundButton label="End" tone="end" glyph={PHONE} disabled={busy || !offered.includes('hang_up')} onPress={() => onAct('hang_up')} />
       </div>
     </section>
   );
@@ -211,7 +258,7 @@ export function EndedView({ outcome, lastAction, beat, onDone }: EndedProps) {
   return (
     <section className="page-full call call-ended anim-sheet call-fade">
       <div className="page-body scroll">
-        <PracticeLine />
+        <PracticeLine tail="ended" />
         <ScreenTitle className="large-title">{lessonLine(outcome, lastAction)}</ScreenTitle>
         <p className="call-sub">Call ended</p>
         {beat && <p className="call-caption">{beat.caption}</p>}

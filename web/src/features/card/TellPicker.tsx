@@ -3,6 +3,7 @@ import type { PublicCard } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { MessageView } from '../layouts/MessageView.tsx';
+import './tells.css';
 
 interface Props {
   card: PublicCard;

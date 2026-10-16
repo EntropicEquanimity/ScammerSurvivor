@@ -1,8 +1,50 @@
-/* The lesson on one screen: the large title over the wallpaper, then inset groups (the scam with
-   its tells stamped in place, the Coach's note, the real one, the ending and the safest move) and
-   Next pinned at the bottom. The group and row classes are the shared ones from shell.css; this
-   file sets what goes inside a row. A stamp is blue when the player found the tell and the warm
-   notice colour when they missed it; each carries a word. Red appears nowhere. */
+/* The lesson on one screen: the large title over the wallpaper (one short line), then inset groups
+   (the scam with its tells stamped in place, the Coach's note, the real one, the ending and the
+   safest move) and Next floating over the bottom as a capsule. The group and row classes are the
+   shared ones from shell.css; this file sets what goes inside a row. A stamp is blue when the
+   player found the tell and the warm notice colour when they missed it; each carries a word. Red
+   appears nowhere. */
+
+/* The containing block for the floating bar. anim-sheet's transform would do it, but the
+   reduced-motion twin is opacity only. */
+.lesson {
+  position: relative;
+}
+
+/* The groups scroll under the capsule; the last one clears it. */
+.lesson .page-body {
+  padding-bottom: calc(var(--tap) + 1.75rem);
+}
+
+/* Next as a floating capsule: no glass bar, no hairline. .page-end in day.css draws both. */
+.lesson .page-end {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  left: 1rem;
+  padding: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lesson .page-end::before {
+  content: none;
+}
+
+.lesson .page-end .btn {
+  min-height: 3.125rem;
+  box-shadow: var(--shadow);
+}
+
+/* The retry note sits over content, so it gets its own glass. */
+.lesson .page-end .plain-note {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
 
 .lesson-sender {
   display: flex;

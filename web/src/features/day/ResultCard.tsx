@@ -19,6 +19,10 @@ const H = 1350;
 // Candidate backgrounds in order; the first that loads wins, else a flat paper and ink card.
 // The repo ships result-card-bg.jpg; add result-card.png in front if an art agent lands one.
 const BACKGROUNDS = ['/art/result-card-bg.jpg'];
+// The mark, top-left. The glyph fills about the middle third of its 1024 box, so it is drawn large.
+const MARK = '/art/mark.png';
+const MARK_SIZE = 280;
+const MARK_INSET = 36;
 const PAPER = '#eef0f3';
 const INK = '#1c2027';
 const INK_2 = '#4a505a';
@@ -101,6 +105,8 @@ async function render(props: Props): Promise<string> {
   ctx.fillRect(0, 0, W, H);
   const art = await firstBackground();
   if (art) drawCover(ctx, art);
+  const mark = await loadImage(MARK).catch(() => null);
+  if (mark) ctx.drawImage(mark, MARK_INSET, MARK_INSET, MARK_SIZE, MARK_SIZE);
   drawLines(ctx, linesFor(props));
   ctx.font = `500 32px ${FONT}`;
   ctx.fillStyle = INK_2;

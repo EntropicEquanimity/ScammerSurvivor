@@ -108,16 +108,18 @@
 
 .day-lock-clock {
   font-size: var(--clock-size);
-  font-weight: 200;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .day-lock .stakes {
   margin-top: 0.75rem;
 }
 
-/* Wallet and people: two glass pills, words first. */
+/* Wallet and people: two glass pills, words first. The numbers are tabular so a draining wallet
+   counts down in place without the pill jittering. */
 .stakes {
   display: flex;
   flex: none;
@@ -134,6 +136,7 @@
   font-size: var(--t15);
   font-weight: 700;
   letter-spacing: var(--track-15);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -162,7 +165,8 @@
   background: var(--surface);
 }
 
-/* A notification is a button: one tap opens the card. */
+/* A notification is a button: one tap opens the card. The top line is only "Practice · time",
+   right-aligned the way the phone puts the time; the app squircle already names the app. */
 .notif {
   display: flex;
   gap: 0.625rem;
@@ -188,7 +192,7 @@
 .notif-top {
   display: flex;
   gap: 0.5rem;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-size: var(--t13);
   letter-spacing: var(--track-13);
   color: var(--ink-2);
@@ -207,8 +211,8 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  font-size: var(--t18);
-  letter-spacing: var(--track-18);
+  font-size: var(--t16); /* the notification body: 16 like the phone's, the one body under 18 */
+  letter-spacing: var(--track-15); /* nearest tracking token; base.css has no 16 step */
 }
 
 .app-icon {

@@ -1,6 +1,7 @@
 /* "Make it your phone": the title and lead sit bare on the wallpaper (on-wall tokens), then one
-   glass block per role holding six name chips. The page frame (.page-full, .page-body, .page-end)
-   comes from features/day.css; everything here is scoped under .setup. */
+   row per role: a 13px section label, the way an inset header reads, over six name capsules. No
+   card, no border; the capsules themselves are the surfaces. The page frame (.page-full,
+   .page-body, .page-end) comes from features/day.css; everything here is scoped under .setup. */
 .setup .setup-lead {
   flex: none;
   color: var(--on-wall);
@@ -14,22 +15,20 @@
   flex: none;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.75rem 0.75rem 0.875rem;
-  border: 1px solid var(--glass-line);
-  border-radius: var(--radius-sm);
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
 }
 
 .setup .setup-role {
-  font-size: var(--t15);
-  font-weight: 600;
-  letter-spacing: var(--track-15);
-  color: var(--ink-2);
+  padding: 0 1rem;
+  color: var(--on-wall);
+  font-size: var(--t13);
+  font-weight: 400;
+  letter-spacing: var(--track-13);
+  line-height: 1.3;
+  opacity: 0.85;
+  text-shadow: var(--on-wall-shadow);
 }
 
-/* Six chips wrap into two or three lines at 390px; 8px between targets, 48px tall. */
+/* Six capsules wrap into two or three lines at 390px; 8px between targets, 48px tall. */
 .setup .setup-chips {
   display: flex;
   flex-wrap: wrap;
@@ -56,9 +55,22 @@
 }
 
 /* .page-end .btn:not(.btn-primary) in day.css (0,3,0) would turn Skip into a surface pill; this
-   selector is (0,4,0) so it wins regardless of bundle order. */
+   selector is (0,4,0) so it wins regardless of bundle order. Skip is plain text, Done the capsule. */
 .setup .page-end .btn.btn-quiet {
   background: transparent;
   border-color: transparent;
   color: var(--accent);
+}
+
+/* Reduced motion: the sheet cross-fades in. The screen sits outside .day, so day.css's twin does
+   not reach it; base.css kills the slide with !important, and this restates a fade. */
+@keyframes setup-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup.anim-sheet {
+    animation: setup-fade 200ms ease-out both !important;
+  }
 }

@@ -2,15 +2,19 @@
    The practice strip and the shared iOS components live in shell.css; tokens in base.css. */
 
 /* Status bar: three columns, the island in the middle one; the time centres in the left ear and the
-   glyphs in the right ear, the way an island phone places them. Decorative, so aria-hidden. */
+   glyphs in the right ear, the way an island phone places them. Decorative, so aria-hidden.
+   It floats over the screen so an app can paint under it; the screen pads itself by the same height. */
 .status-bar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 25;
   display: grid;
-  flex: none;
   grid-template-columns: 1fr 126px 1fr;
   align-items: center;
   justify-items: center;
-  min-height: 54px;
+  min-height: var(--status-h);
   padding: 0;
   color: var(--on-wall);
   font-size: var(--t17);
@@ -18,6 +22,12 @@
   letter-spacing: var(--track-17);
   font-variant-numeric: tabular-nums;
   text-shadow: var(--on-wall-shadow);
+}
+
+/* Inside an app, or over a collapsed nav's glass, the status region is a light surface: the glyphs go ink. */
+.phone:has(.app, .nav-collapsed) .status-bar {
+  color: var(--ink);
+  text-shadow: none;
 }
 
 .island {
@@ -111,6 +121,8 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  padding-top: var(--status-h);
+  padding-bottom: var(--indicator-h);
 }
 
 /* A route's root. Structure only: each screen paints its own sheet over the wallpaper. */
@@ -121,20 +133,29 @@
   min-height: 0;
 }
 
-/* The bar sits 8px above the bottom edge, as on the phone; the 48px target stays. */
+/* The bar floats 8px above the bottom edge over whatever screen is showing, as on the phone: no band.
+   White on the wallpaper, ink once an app's surface is under it. */
 .home-indicator {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
   display: grid;
-  flex: none;
   align-items: end;
   justify-items: center;
-  min-height: var(--tap);
+  min-height: 0;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  background: var(--glass-strong);
+  background: transparent;
 }
 
 .home-indicator span {
   width: 134px;
   height: 5px;
   border-radius: var(--radius-pill);
+  background: var(--on-wall);
+}
+
+.phone:has(.app) .home-indicator span {
   background: var(--ink);
 }

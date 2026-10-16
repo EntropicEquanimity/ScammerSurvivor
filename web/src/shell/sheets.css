@@ -1,11 +1,12 @@
 /* The two modal iOS surfaces: the alert (centred 270px glass box) and the action sheet (grouped rows
    from the bottom, Cancel apart). Tokens from base.css; the hairline recipe matches shell.css. */
 
-/* Alert: a dim scrim over the screen, a 270px glass box, stacked full-width buttons with hairlines. */
+/* Alert: a dim scrim over the whole phone, status bar and home indicator included, a 270px glass box,
+   stacked full-width buttons with hairlines. */
 .alert-scrim {
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 31;
   display: grid;
   place-items: center;
   padding: 1rem;
@@ -37,6 +38,11 @@
   line-height: 1.3;
 }
 
+/* The title takes programmatic focus so it is read first; the ring would clip to a stray line. */
+.alert-title:focus {
+  outline: none;
+}
+
 .alert-msg {
   padding: 0 1rem 1rem;
   font-size: var(--t16);
@@ -61,11 +67,12 @@
   font-weight: 600;
 }
 
-/* Action sheet: slides up from the bottom (`anim-sheet`), 8px side margins, grouped rows, Cancel apart. */
+/* Action sheet: slides up from the bottom (`anim-sheet`), 8px side margins, grouped rows, Cancel apart,
+   clear of the floating home indicator. */
 .action-sheet {
   position: absolute;
   right: 0.5rem;
-  bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--indicator-h) + 0.5rem + env(safe-area-inset-bottom));
   left: 0.5rem;
   z-index: 21;
   display: flex;

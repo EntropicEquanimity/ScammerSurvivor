@@ -1,6 +1,17 @@
-/* End of day: a ledger of senders, one row each, sliding in one by one; the two rates as a
-   footnote; the hotline; the result card; the install nudge. The inset and row classes are
-   shared from shell.css. */
+/* End of day: a ledger of senders, one row each, sliding in one by one at a 60ms stagger; the two
+   rates counting up as a footnote once the rows have landed; the hotline once; the result card
+   sliding up last; the install nudge. The inset and row classes are shared from shell.css.
+   --i is a row's index, --n the row count; ROW_STAGGER_MS in EndOfDay.tsx matches --row-stagger. */
+
+.end {
+  --row-stagger: 60ms;
+}
+
+/* Resolved where --n is set: a custom property computed on .end would not see the children's --n. */
+.end-note,
+.result-card-slot {
+  --after-rows: calc(var(--n, 0) * var(--row-stagger) + 360ms);
+}
 
 .ledger-row {
   display: flex;
@@ -8,7 +19,7 @@
   gap: 0.25rem;
   align-items: flex-start;
   animation: ledger-in var(--dur-pop) var(--spring) both;
-  animation-delay: calc(var(--i, 0) * 90ms);
+  animation-delay: calc(var(--i, 0) * var(--row-stagger));
 }
 
 /* Rows start visible in their base style; only the keyframe carries the offset, so a browser that
@@ -23,13 +34,37 @@
 @media (prefers-reduced-motion: reduce) {
   .ledger-row {
     animation: ledger-fade 200ms ease-out both !important;
-    animation-delay: calc(var(--i, 0) * 90ms) !important;
+    animation-delay: calc(var(--i, 0) * var(--row-stagger)) !important;
+  }
+
+  .end-note,
+  .result-card-slot {
+    animation: ledger-fade 200ms ease-out both !important;
+    animation-delay: var(--after-rows) !important;
   }
 
   @keyframes ledger-fade {
     from { opacity: 0; }
     to { opacity: 1; }
   }
+}
+
+/* The footnote fades in as its figures start counting; tabular digits so the line does not jitter. */
+.end-note {
+  animation: ledger-fade var(--dur-pop) ease-out both;
+  animation-delay: var(--after-rows);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The result card comes last, sliding up once the footnote is in. */
+.result-card-slot {
+  animation: card-up var(--dur-sheet) var(--spring) both;
+  animation-delay: calc(var(--after-rows) + 240ms);
+}
+
+@keyframes card-up {
+  from { transform: translateY(2.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .ledger-verdict {
@@ -39,7 +74,7 @@
 .end-note {
   padding: 0 1rem;
   color: var(--on-wall);
-  font-size: var(--t15);
+  font-size: var(--t16);
   line-height: 1.4;
   text-shadow: var(--on-wall-shadow);
 }
@@ -72,7 +107,7 @@
 .result-card figcaption {
   padding: 0 1rem;
   color: var(--on-wall);
-  font-size: var(--t15);
+  font-size: var(--t16);
   text-shadow: var(--on-wall-shadow);
 }
 
@@ -83,7 +118,7 @@
   align-items: flex-start;
   padding: 0 1rem;
   color: var(--on-wall);
-  font-size: var(--t15);
+  font-size: var(--t16);
   text-shadow: var(--on-wall-shadow);
 }
 

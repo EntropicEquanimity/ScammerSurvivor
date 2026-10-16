@@ -7,6 +7,8 @@
   --t17: 1.0625rem;
   --t34: 2.125rem;
   --nav-h: 44px;
+  --status-h: 54px;    /* the floating status bar; the screen pads by it */
+  --indicator-h: 34px; /* the floating home indicator; the screen pads by it */
 }
 
 .stage {
@@ -25,9 +27,9 @@
   container-type: inline-size; /* the lock clock sizes from the phone's width, not the window's */
 }
 
-/* The lock clock: the phone's fills the width; this is the largest size five glyphs fit at tracking 0. */
+/* The lock clock: five glyphs at weight 600 span about 65 to 75 percent of the phone's width. */
 :root {
-  --clock-size: min(9.375rem, 38cqw);
+  --clock-size: min(6.5rem, 30cqw);
 }
 
 /* The practice strip rides the top safe area, above the status bar, so the screen under it reads
@@ -299,10 +301,18 @@
   stroke-width: 2.2;
 }
 
-/* Settings-style pages: Privacy and My practice. The nav bar, then the large title, then groups. */
+/* Settings-style pages: Privacy and My practice. The nav bar, then the large title, then groups.
+   The nav reaches up under the floating status bar, so its glass covers that region once the page
+   scrolls, the way the phone's bars do. */
 .settings {
   gap: 1.25rem;
   padding: 0 1rem 1.5rem;
+}
+
+.settings > .nav {
+  top: calc(-1 * var(--status-h)); /* sticky measures from the content box, under the screen's top padding */
+  margin-top: calc(-1 * var(--status-h));
+  padding-top: var(--status-h);
 }
 
 .settings-lead {
@@ -317,7 +327,12 @@
   margin: 0 -1rem;
 }
 
-/* The one-time notice: a sheet above the home indicator with the sentence and an OK button. */
+/* The one-time notice: a sheet above the home indicator with the sentence and an OK button. Never two
+   modals: the lock's alert carries the sentence itself, so the sheet hides under an alert and on the lock. */
+.phone:has(.alert-scrim, .lock) .notice {
+  display: none;
+}
+
 .notice {
   position: absolute;
   right: 0.5rem;

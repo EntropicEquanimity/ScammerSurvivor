@@ -1,25 +1,16 @@
 /* The Judge Lab and the trace drawer. The page frame (.page, .settings, .inset) comes from
-   shell/shell.css; the chip rows follow features/setup/setup.css; the stamped parts reuse
-   lesson/lesson.css. Nothing red: fail reads as the warm notice colour, pass as the accent. */
+   shell/shell.css; the chip rows are inset groups holding capsules, the setup screen's pattern;
+   the stamped parts reuse lesson/lesson.css. Pass is a green check, fail a grey one, and the word
+   beside each carries the state; nothing red. The drawer is a half-sheet with a grabber. */
 
-.lab .lab-row {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 0.75rem 0.875rem;
-  border: 1px solid var(--glass-line);
-  border-radius: var(--radius-sm);
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+.lab {
+  --lab-green: #2fb350;
 }
 
-.lab .lab-role {
-  font-size: var(--t15);
-  font-weight: 600;
-  letter-spacing: var(--track-15);
-  color: var(--ink-2);
+/* Chips wrap inside one inset row; the row itself is not a tap target, the chips are. */
+.lab .lab-chips-row {
+  padding: 0.75rem 1rem;
+  cursor: default;
 }
 
 .lab .lab-chips {
@@ -46,11 +37,12 @@
   font-weight: 600;
 }
 
+/* Generate is the one accent capsule; the trace drawer opens from a plain text button. */
 .lab .lab-actions {
   display: flex;
   flex: none;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .lab .lab-actions .btn {
@@ -62,10 +54,16 @@
   cursor: default;
 }
 
+.lab .lab-quiet {
+  color: var(--on-wall);
+  text-shadow: var(--on-wall-shadow);
+}
+
 .lab .lab-elapsed {
   color: var(--on-wall);
   font-size: var(--t15);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-align: center;
   text-shadow: var(--on-wall-shadow);
 }
@@ -74,8 +72,7 @@
   font-size: var(--t15);
 }
 
-.lab .lab-verdict,
-.lab .lab-rule {
+.lab .lab-verdict {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -84,39 +81,61 @@
 .lab .lab-verdict span {
   color: var(--ink-2);
   font-size: var(--t15);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A Guard rule: the check at left (green passed, grey failed), id and word, then the rule text. */
+.lab .lab-rule {
+  align-items: flex-start;
+}
+
+.lab .lab-check {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 0.125rem;
+  stroke-width: 2.4;
+}
+
+.lab .lab-check-pass {
+  color: var(--lab-green);
+}
+
+.lab .lab-check-fail {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.lab .lab-rule-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
 }
 
 .lab .lab-rule-head {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 0.5rem;
-  align-items: center;
+  align-items: baseline;
 }
 
 .lab .lab-rule-head strong {
+  display: inline;
   font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
   font-size: var(--t15);
 }
 
-/* The pass or fail tag beside a rule id: a bordered pill, the word carries the state. */
-.lab .lab-tag {
-  display: inline-block;
-  padding: 0 0.4rem;
-  border: 1px solid currentColor;
-  border-radius: var(--radius-pill);
-  font-size: var(--t13);
+.lab .lab-word {
+  font-size: var(--t15);
   font-weight: 600;
-  line-height: 1.4;
 }
 
 .lab .lab-pass {
-  border-color: var(--accent);
-  color: var(--accent);
+  color: var(--lab-green);
 }
 
 .lab .lab-fail {
-  border-color: var(--notice);
-  color: var(--notice);
+  color: var(--ink-2);
 }
 
 /* The revealed message: sender row, then parts; a stamped part gets the soft accent underline
@@ -160,18 +179,20 @@
   color: var(--accent);
 }
 
-/* Trace rows: shared by the lab page and the drawer. No coloured rule: the outcome word carries the state. */
-.trace-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  width: 100%;
+/* Trace rows: an inset list shared by the lab page and the drawer. Words at left, figures at right
+   in tabular numerals. No coloured rule: the outcome word carries the state. */
+.trace-row {
+  align-items: flex-start;
+  justify-content: space-between;
+  cursor: default;
 }
 
-.trace-row {
+.trace-main {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 0.125rem;
+  min-width: 0;
 }
 
 .trace-head {
@@ -179,7 +200,10 @@
   flex-wrap: wrap;
   gap: 0.25rem 0.5rem;
   align-items: baseline;
-  font-size: var(--t16);
+}
+
+.trace-head strong {
+  display: inline;
 }
 
 .trace-model {
@@ -189,6 +213,7 @@
 }
 
 .trace-outcome {
+  font-size: var(--t15);
   font-weight: 600;
   color: var(--accent);
 }
@@ -200,9 +225,14 @@
 
 .trace-meta {
   display: flex;
-  gap: 0.75rem;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
   font-size: var(--t15);
+  font-variant-numeric: tabular-nums;
   color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
 }
 
 .trace-reasons {
@@ -213,49 +243,71 @@
 
 .trace-empty,
 .trace-note {
+  padding: 0 0.25rem;
   font-size: var(--t15);
   color: var(--ink-2);
 }
 
-/* The drawer: a sheet from the bottom of the phone, two thirds high at most, its own scroll. */
+/* The half-sheet: edge to edge, bottom of the phone, top corners rounded, a 36x5 grabber, at most
+   two thirds high with its own scroll. The scrim behind it dims the screen and closes on tap. */
+.trace-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(20, 24, 30, 0.42);
+}
+
 .trace-drawer {
   position: absolute;
-  right: 0.5rem;
-  bottom: calc(0.5rem + env(safe-area-inset-bottom));
-  left: 0.5rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 21;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   max-height: 66%;
-  padding: 0.75rem 1rem 1rem;
-  border-radius: var(--radius-sm);
+  padding: 0 0 calc(0.75rem + env(safe-area-inset-bottom));
+  border-radius: 10px 10px 0 0;
+  border-bottom: 0;
   color: var(--ink);
 }
 
-.trace-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.trace-grabber {
+  flex: none;
+  width: 36px;
+  height: 5px;
+  margin: 6px auto 0;
+  border-radius: var(--radius-pill);
+  background: var(--separator);
 }
 
-.trace-drawer-head h2 {
-  font-size: var(--t18);
+.trace-drawer-head {
+  position: static;
 }
 
 .trace-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   min-height: 0;
+  padding: 0 1rem;
 }
 
-/* Reduced motion: the sheet cross-fades instead of sliding. base.css cancels every animation
-   under this query with an !important on *, so the twin restates itself at a higher specificity. */
+/* Reduced motion: the sheet and the scrim cross-fade instead of sliding. base.css cancels every
+   animation under this query with an !important on *, so the twins restate themselves. */
 @keyframes trace-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
+.trace-scrim-fade {
+  animation: trace-fade var(--dur-press) ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .trace-drawer.anim-sheet {
+  .trace-drawer.anim-sheet,
+  .trace-scrim-fade {
     animation: trace-fade var(--dur-press) ease-out both !important;
   }
 }

@@ -5,6 +5,7 @@ import { PEOPLE_ROLES } from '../../../../shared/types.ts';
 import type { AgeGroup, PeopleRole, TellId, TrickId } from '../../../../shared/types.ts';
 import { fetchPacks } from '../../api.ts';
 import type { PackSummary } from '../../api.ts';
+import { Icon } from '../../shell/Icon.tsx';
 import { NavBar } from '../../shell/PhoneTools.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
@@ -42,23 +43,27 @@ function Chips<T extends string>({ label, options, chosen, onPick, clearable = f
     onPick(clearable && chosen === id ? null : id);
   };
   return (
-    <div className="lab-row">
-      <h2 id={labelId} className="lab-role">{label}</h2>
-      <div className="lab-chips" role="radiogroup" aria-labelledby={labelId}>
-        {options.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            role="radio"
-            aria-checked={chosen === option.id}
-            className="btn lab-chip pressable"
-            onClick={() => pick(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <section className="inset-group">
+      <h2 id={labelId} className="inset-header">{label}</h2>
+      <ul className="inset">
+        <li className="inset-row inset-body lab-chips-row">
+          <div className="lab-chips" role="radiogroup" aria-labelledby={labelId}>
+            {options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={chosen === option.id}
+                className="btn lab-chip pressable"
+                onClick={() => pick(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </li>
+      </ul>
+    </section>
   );
 }
 
@@ -133,11 +138,14 @@ function Verdict({ result }: { result: LabResult }) {
       </li>
       {result.rules.map((rule) => (
         <li key={rule.id} className="inset-row inset-body lab-rule">
-          <span className="lab-rule-head">
-            <strong>{rule.id}</strong>
-            <span className={rule.passed ? 'lab-tag lab-pass' : 'lab-tag lab-fail'}>{rule.passed ? 'pass' : 'fail'}</span>
+          <Icon name="check" className={rule.passed ? 'lab-check lab-check-pass' : 'lab-check lab-check-fail'} />
+          <span className="lab-rule-body">
+            <span className="lab-rule-head">
+              <strong>{rule.id}</strong>
+              <span className={rule.passed ? 'lab-word lab-pass' : 'lab-word lab-fail'}>{rule.passed ? 'pass' : 'fail'}</span>
+            </span>
+            <span>{rule.text}</span>
           </span>
-          <span>{rule.text}</span>
         </li>
       ))}
     </InsetGroup>
@@ -170,9 +178,10 @@ function Outcome({ result }: { result: LabResult }) {
   const noCard = NO_CARD_WORDS[result.verdict === 'errored' ? 'errored' : 'rejected'];
   return (
     <>
-      <InsetGroup header="Live trace">
-        <li className="inset-row inset-body"><TraceRows events={result.trace} /></li>
-      </InsetGroup>
+      <section className="inset-group">
+        <h2 className="inset-header">Live trace</h2>
+        <TraceRows events={result.trace} />
+      </section>
       <Verdict result={result} />
       {result.preview ? <Preview preview={result.preview} /> : <p className="settings-lead">{noCard}</p>}
       <p className="settings-lead lab-honest">{HONEST_LINE}</p>
@@ -232,7 +241,7 @@ export function JudgeLab({ country: initial, age }: Props) {
       {role && <Chips label="Their name" options={PEOPLE_CHIPS[role].names.map((id) => ({ id, label: id }))} chosen={name} onPick={setName} clearable />}
       <div className="lab-actions">
         <button type="button" className="btn btn-primary pressable" disabled={!ready} onClick={generate}>Generate live</button>
-        {run.result && <button type="button" className="btn pressable" onClick={() => { haptic(); setDrawer(true); }}>Open trace drawer</button>}
+        {run.result && <button type="button" className="btn btn-quiet lab-quiet pressable" onClick={() => { haptic(); setDrawer(true); }}>Open trace drawer</button>}
       </div>
       {run.busy !== null && <Elapsed since={run.busy} />}
       {run.error && <p className="plain-note on-wall" role="alert">{run.error}</p>}

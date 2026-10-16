@@ -7,7 +7,7 @@
   --paper: #eef0f3;
   --surface: #ffffff;
   --line: #d9dde3;
-  --accent: #2f6bd6;
+  --accent: #0a70e8;
   --notice: #9a5b13;
   --glass: rgba(255, 255, 255, 0.62);
   --glass-strong: rgba(255, 255, 255, 0.82);
@@ -221,8 +221,15 @@ button {
   to { transform: translateY(0); }
 }
 
+/* An app grows out of its tile: small and squircle-cornered at the tap origin, then the full screen. */
 @keyframes zoom-in {
-  from { transform: scale(0.86); opacity: 0; }
+  from { transform: scale(0.2); border-radius: 22%; opacity: 0.3; }
+  to { transform: scale(1); border-radius: 0; opacity: 1; }
+}
+
+/* A glass box (alert, day notice) settles in place instead and keeps its own corners. */
+@keyframes zoom-soft {
+  from { transform: scale(1.1); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
@@ -237,7 +244,8 @@ button {
 }
 
 .anim-sheet { animation: sheet-up var(--dur-sheet) var(--spring) both; }
-.anim-zoom { animation: zoom-in var(--dur-sheet) var(--spring) both; transform-origin: var(--tap-x, 50%) var(--tap-y, 50%); }
+.anim-zoom { animation: zoom-in var(--dur-sheet) var(--spring) both; transform-origin: var(--tap-x, 50%) var(--tap-y, 50%); overflow: hidden; }
+.alert.anim-zoom, .glass.anim-zoom { animation-name: zoom-soft; transform-origin: center; }
 .anim-pop { animation: pop-in var(--dur-pop) var(--spring-out) both; animation-delay: calc(var(--i, 0) * 28ms); }
 .anim-drop { animation: drop-in var(--dur-sheet) var(--spring) both; }
 

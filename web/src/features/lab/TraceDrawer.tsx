@@ -24,22 +24,25 @@ const OUTCOME_WORDS: Record<TraceEvent['outcome'], string> = {
 const tokensOf = (event: TraceEvent): string | null =>
   event.tokens ? `${event.tokens.input} in, ${event.tokens.output} out` : null;
 
-// One agent step: who, which model, what happened, how long, how many tokens, which rules failed.
-// Ids and verdicts only; no prompt or model text ever reaches this list.
+// One agent step as an inset row: who, which model, what happened at left; the ms and tokens at
+// right in tabular figures; which rules failed under it. Ids and verdicts only; no prompt or model
+// text ever reaches this list.
 function TraceRow({ event }: { event: TraceEvent }) {
   const tokens = tokensOf(event);
   return (
-    <li className={`trace-row trace-${event.outcome}`}>
-      <span className="trace-head">
-        <strong>{AGENT_WORDS[event.agent]}</strong>
+    <li className={`inset-row inset-body trace-row trace-${event.outcome}`}>
+      <span className="trace-main">
+        <span className="trace-head">
+          <strong>{AGENT_WORDS[event.agent]}</strong>
+          <span className="trace-outcome">{OUTCOME_WORDS[event.outcome]}</span>
+        </span>
         {event.model && <span className="trace-model">{event.model}</span>}
-        <span className="trace-outcome">{OUTCOME_WORDS[event.outcome]}</span>
+        {event.reasons && event.reasons.length > 0 && <span className="trace-reasons">{event.reasons.join(', ')}</span>}
       </span>
       <span className="trace-meta">
         <span>{event.ms} ms</span>
         {tokens && <span>{tokens}</span>}
       </span>
-      {event.reasons && event.reasons.length > 0 && <span className="trace-reasons">{event.reasons.join(', ')}</span>}
     </li>
   );
 }
@@ -47,7 +50,7 @@ function TraceRow({ event }: { event: TraceEvent }) {
 export function TraceRows({ events, empty = 'Nothing traced yet.' }: { events: TraceEvent[]; empty?: string }) {
   if (events.length === 0) return <p className="trace-empty">{empty}</p>;
   return (
-    <ul className="trace-list">
+    <ul className="inset trace-list">
       {events.map((event, index) => (
         <TraceRow key={`${index}-${event.agent}-${event.ms}`} event={event} />
       ))}
@@ -80,8 +83,9 @@ interface Props {
   title?: string;
 }
 
-// A sheet from the bottom of the phone listing every agent step of a day. The day screen can mount
-// it with a dayId; the lab mounts it with the events it just received.
+// A half-sheet from the bottom of the phone listing every agent step of a day: a grabber, the
+// 44px bar with its glass Done, then the rows. The day screen can mount it with a dayId; the lab
+// mounts it with the events it just received. The scrim behind it closes it too.
 export function TraceDrawer({ open, onClose, dayId, events, title = 'AI trace' }: Props) {
   const polled = usePolledTrace(dayId, open && !events);
   if (!open) return null;
@@ -90,15 +94,19 @@ export function TraceDrawer({ open, onClose, dayId, events, title = 'AI trace' }
     onClose();
   };
   return (
-    <div className="trace-drawer glass glass-strong anim-sheet" role="dialog" aria-label={title}>
-      <header className="trace-drawer-head">
-        <h2>{title}</h2>
-        <button type="button" className="btn btn-quiet pressable" onClick={close}>Close</button>
-      </header>
-      <p className="trace-note">Ids, verdicts and numbers only. Code checked every card; Gemini never scored anything.</p>
-      <div className="trace-drawer-body scroll">
-        <TraceRows events={events ?? polled} />
+    <>
+      <div className="trace-scrim trace-scrim-fade" onClick={close} />
+      <div className="trace-drawer glass glass-strong anim-sheet" role="dialog" aria-modal="true" aria-label={title}>
+        <span className="trace-grabber" aria-hidden="true" />
+        <header className="nav trace-drawer-head">
+          <span className="nav-title">{title}</span>
+          <button type="button" className="pressable" onClick={close}>Done</button>
+        </header>
+        <div className="trace-drawer-body scroll">
+          <p className="trace-note">Ids, verdicts and numbers only. Code checked every card; Gemini never scored anything.</p>
+          <TraceRows events={events ?? polled} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,24 +1,69 @@
-/* The practice call: the incoming-call screen, the talking screen and the one-line lesson. Ink on
-   paper with the frame's accent; the only motion is the phone's own springs plus the waveform.
-   Every animation has a reduced-motion twin at the bottom that cross-fades instead. */
+/* The practice call: the incoming screen and the talking screen follow the phone's own call
+   anatomy (name large and light at the top, round controls with the word under each, the red End
+   at the bottom centre) over a dark veil on the wallpaper; the one-line lesson sits on the sheet.
+   Red and green appear here and nowhere else in the frame, and never alone: every control carries
+   its word. Every animation has a reduced-motion twin at the bottom that cross-fades instead.
+   Divergence kept on purpose: the words under the round controls are 13px, like the home labels. */
 
 .call {
-  background: var(--surface);
-  color: var(--ink);
+  --call-green: #2fb350;
+  --call-red: #e2352d;
+  --call-veil: rgba(22, 26, 34, 0.78);
+  --call-disc: rgba(255, 255, 255, 0.22);
+  background: var(--call-veil);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+  color: var(--on-wall);
   -webkit-user-select: none;
   user-select: none;
 }
 
 .call .page-body {
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 0.375rem;
+  padding: 0.75rem 1rem 1rem;
   text-align: center;
 }
 
-.call-practice {
+/* Nothing in the column shrinks: on a short phone the body scrolls instead of squeezing the caption. */
+.call .page-body > * {
   flex: none;
-  margin-bottom: 0.5rem;
+}
+
+/* The footer sits on the veil, not on glass: no sheet and no hairline under the round controls. */
+.call .page-end {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.call .page-end::before {
+  content: none;
+}
+
+/* The name: 34 light, the way the phone names a caller; on the talking screen it steps down. */
+.call-name {
+  font-size: var(--t34);
+  font-weight: 400;
+  letter-spacing: var(--track-34);
+  line-height: 1.15;
+  color: var(--on-wall);
+}
+
+.call-name-talking {
+  font-size: var(--t24);
+}
+
+/* The practice tag with its tail ("mobile", the masked number) as one 16px line under the name. */
+.call-practice {
+  display: flex;
+  flex: none;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--t16);
+  color: var(--on-wall);
+  opacity: 0.9;
 }
 
 .call-practice .practice-tag {
@@ -27,7 +72,14 @@
   font-size: var(--t15);
 }
 
-/* The caller's avatar: a paper disc with the initial. On the talking screen the ring sits over it. */
+.call-timer {
+  font-size: var(--t18);
+  font-variant-numeric: tabular-nums;
+  color: var(--on-wall);
+  opacity: 0.9;
+}
+
+/* The caller's avatar: a pale disc with the initial. On the talking screen the ring sits over it. */
 .call-avatar {
   position: relative;
   display: grid;
@@ -35,44 +87,41 @@
   place-items: center;
   width: 7rem;
   height: 7rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   border-radius: 50%;
-  background: var(--paper);
-  color: var(--ink-2);
+  background: var(--call-disc);
+  color: var(--on-wall);
   font-size: var(--t30);
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.call-talking .call-avatar {
+  width: 6.25rem;
+  height: 6.25rem;
+  margin-top: 0.5rem;
 }
 
 .call-ringing .call-avatar {
   width: 8.5rem;
   height: 8.5rem;
-  margin-top: 1.5rem;
+  margin-top: 2.5rem;
   animation: call-breathe 1800ms ease-in-out infinite alternate;
-}
-
-.call-name {
-  font-size: var(--t30);
-  color: var(--ink);
-}
-
-/* The lesson line sits on the white sheet, not on the wallpaper. */
-.call .large-title {
-  color: var(--ink);
-  text-shadow: none;
 }
 
 .call-number,
 .call-sub,
 .call-meter-text {
   font-size: var(--t18);
-  color: var(--ink-2);
+  color: var(--on-wall);
+  opacity: 0.85;
 }
 
 .call-meter-text strong {
-  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-/* The ring: a track and a fill drawn from the top, 0 to 100 as stroke length. */
+/* The ring: a track and a fill drawn from the top, 0 to 100 as stroke length, in the notice colour. */
 .call-ring {
   position: absolute;
   inset: -0.375rem;
@@ -89,11 +138,12 @@
 }
 
 .call-ring-track {
-  stroke: var(--line);
+  stroke: rgba(255, 255, 255, 0.25);
 }
 
 .call-ring-fill {
   stroke: var(--notice);
+  filter: saturate(1.4) brightness(1.5);
   transition: stroke-dashoffset var(--dur-sheet) var(--spring);
 }
 
@@ -103,15 +153,15 @@
   flex: none;
   gap: 0.25rem;
   align-items: center;
-  height: 2.5rem;
-  margin: 0.25rem 0;
+  height: 2rem;
+  margin: 0;
 }
 
 .wave-bar {
   width: 0.3rem;
   height: 18%;
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--on-wall);
   opacity: 0.35;
   transition: height 80ms linear, opacity var(--dur-press) ease-out;
 }
@@ -122,49 +172,143 @@
   animation-delay: calc(var(--i, 0) * 60ms);
 }
 
+/* The caption as the phone's subtitle: a dark pill, 19px, centred. */
 .call-caption {
-  min-height: 3.5rem;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid var(--line);
-  border-radius: var(--bubble-radius);
-  background: var(--paper);
+  min-height: 3rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.45);
   font-size: var(--t19);
-  text-align: left;
-  width: 100%;
-}
-
-/* Six buttons, one column, each a full tap target. The screen scrolls when the phone is short. */
-.call-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap);
-  width: 100%;
-  margin-top: 0.25rem;
-}
-
-.call-btn {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  background: var(--surface);
-  border-color: var(--line);
-  color: var(--accent);
-  line-height: 1.25;
+  line-height: 1.35;
   text-align: center;
+  width: 100%;
 }
 
-.call-btn:disabled {
-  opacity: 0.55;
+/* The round controls: a 72px disc, the word under it at 13px, the whole column one tap target. */
+.call-round {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  align-items: center;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--on-wall);
+  cursor: pointer;
+}
+
+.call-round:disabled {
+  opacity: 0.45;
   cursor: default;
 }
 
-/* Decline and Answer side by side; Answer carries the accent, Decline stays on paper. No red. */
+.call-disc {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--call-disc);
+}
+
+.call-disc .icon {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2;
+}
+
+.call-round-accept .call-disc {
+  background: var(--call-green);
+}
+
+.call-round-end .call-disc {
+  background: var(--call-red);
+}
+
+/* The hang-up handset: the same glyph turned, the way the phone draws it. */
+.call-glyph-end {
+  transform: rotate(135deg);
+}
+
+.call-round-label {
+  font-size: var(--t13);
+  font-weight: 500;
+  letter-spacing: var(--track-13);
+  line-height: 1.25;
+}
+
+/* Incoming: Decline left, Accept right, the way the phone places them. */
 .call-ring-end {
   flex-direction: row;
   gap: 0.75rem;
+  justify-content: space-around;
+  padding: 1rem 2rem 1.5rem;
 }
 
-.call-decline {
+.call-ring-end .call-round {
+  width: auto;
+  min-width: 5.5rem;
+}
+
+/* Talking: three columns of controls; a short last row centres. */
+.call-grid {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0.75rem 0;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.call-grid > li {
+  flex: 0 0 33.333%;
+  padding: 0 0.25rem;
+}
+
+.call-talk-end {
+  align-items: center;
+  padding: 0.375rem 1rem 0.75rem;
+}
+
+.call-talk-end .call-round {
+  width: auto;
+}
+
+.call-note {
+  color: var(--on-wall);
+}
+
+/* The lesson line sits on the white sheet, not on the veil. */
+.call-ended {
+  background: var(--surface);
   color: var(--ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.call-ended .large-title,
+.call-ended .call-sub,
+.call-ended .call-practice {
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.call-ended .call-sub {
+  color: var(--ink-2);
+}
+
+.call-ended .call-caption {
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+}
+
+.call-ended .page-end {
+  background: var(--glass-strong);
 }
 
 @keyframes call-breathe {

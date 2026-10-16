@@ -1,7 +1,5 @@
-import type { CSSProperties } from 'react';
 import { STANDARD_ACTIONS } from '../../../../shared/types.ts';
 import type { Action, PublicCard } from '../../../../shared/types.ts';
-import { appLookFor } from '../day/appNames.ts';
 import { haptic } from '../../shell/feel.ts';
 import { ACTION_LABELS } from './actionLabels.ts';
 
@@ -21,9 +19,10 @@ const ctaClass = (action: Action): string => {
   return 'cta cta-chip';
 };
 
-// The buttons sit directly under the message. The message's own buttons come first, styled as that
-// app's call to action; the standard four follow as a 2 by 2 grid. One tap acts. A scam and its real
-// twin offer the same extras, so the buttons never leak the answer.
+// The buttons sit in a glass bar pinned under the thread, where the app's composer would be. The
+// message's own buttons come first, styled as that app's call to action; the standard four follow as
+// a 2 by 2 grid of capsules. One tap acts. A scam and its real twin offer the same extras, so the
+// buttons never leak the answer. --app-colour comes from the .app section.
 export function ActionBar({ card, busy, onAct }: Props) {
   const extras = card.offered.filter((action) => !STANDARD_ACTIONS.includes(action));
   const standard = STANDARD_ACTIONS.filter((action) => card.offered.includes(action));
@@ -38,7 +37,7 @@ export function ActionBar({ card, busy, onAct }: Props) {
   );
 
   return (
-    <div className="actions" style={{ '--app-colour': appLookFor(card.layout).colour } as CSSProperties}>
+    <div className="actions">
       {extras.length > 0 && (
         <div className="actions-cta" role="group" aria-label="Buttons inside the message">
           {extras.map((action) => button(action, ctaClass(action)))}

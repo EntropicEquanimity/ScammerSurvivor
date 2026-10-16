@@ -16,11 +16,20 @@ export const clock = () => new Intl.DateTimeFormat('en', {
   hour: 'numeric', minute: '2-digit', hour12: false,
 }).format(new Date());
 
+// The day sets data-clock on the html element while it runs; otherwise the real time shows.
+const shownTime = () => document.documentElement.dataset.clock || clock();
+
 function StatusBar() {
-  const [time, setTime] = useState(clock);
+  const [time, setTime] = useState(shownTime);
   useEffect(() => {
-    const timer = window.setInterval(() => setTime(clock()), 30_000);
-    return () => window.clearInterval(timer);
+    const tick = () => setTime(shownTime());
+    const timer = window.setInterval(tick, 30_000);
+    const watcher = new MutationObserver(tick);
+    watcher.observe(document.documentElement, { attributes: true, attributeFilter: ['data-clock'] });
+    return () => {
+      window.clearInterval(timer);
+      watcher.disconnect();
+    };
   }, []);
   return (
     <div className="status-bar" aria-hidden="true">
@@ -84,11 +93,13 @@ const DeviceKeys = () => (
 // The only parent of every route. The practice label is read to assistive technology on every
 // screen and shown as a tag on every message surface; the non-affiliation sentence is the notice.
 export function PhoneShell({ children }: { children: ReactNode }) {
+  // The lock's alert marks the notice seen too, so each render re-checks: one sentence per visit.
   const [showNotice, setShowNotice] = useState(() => !noticeSeen());
   const dismiss = () => {
     markNoticeSeen();
     setShowNotice(false);
   };
+  const noticeDue = showNotice && !noticeSeen();
   return (
     <div className="stage">
       <div className="device">
@@ -97,7 +108,7 @@ export function PhoneShell({ children }: { children: ReactNode }) {
           <p id={SIM_LABEL_ID} className="visually-hidden">{PRACTICE_LABEL}</p>
           <StatusBar />
           <main className="screen scroll">{children}</main>
-          {showNotice && <Notice onDismiss={dismiss} />}
+          {noticeDue && <Notice onDismiss={dismiss} />}
           <a className="home-indicator pressable" href="#/" aria-label="Return to home" onClick={() => haptic()}><span /></a>
         </div>
       </div>

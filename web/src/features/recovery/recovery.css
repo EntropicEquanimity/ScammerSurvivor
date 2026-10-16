@@ -46,10 +46,12 @@
 .recovery-balance-amount {
   font-size: var(--t30);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
-/* The countdown ring: a track and an arc that drains clockwise. The number is always shown, so the
+/* The countdown ring: a track and an arc that drains clockwise over the whole window in one linear
+   animation (--ring-length and --window come from Recovery.tsx). The number is always shown, so the
    ring is never the only carrier of the time. */
 .recovery-ring {
   position: relative;
@@ -81,7 +83,13 @@
 
 .recovery-ring-arc {
   stroke: var(--app-colour);
-  transition: stroke-dashoffset 1s linear;
+  stroke-dashoffset: 0;
+  animation: ring-drain var(--window, 90s) linear forwards;
+}
+
+@keyframes ring-drain {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: var(--ring-length); }
 }
 
 .recovery-ring-count {
@@ -96,14 +104,17 @@
   gap: var(--gap);
 }
 
+/* Three full-width capsules in the iOS tinted style: the accent at a wash, no outline. */
 .recovery-btn {
   width: 100%;
-  min-height: 3.5rem;
+  min-height: 3.125rem;
   padding: 0.5rem 1rem;
-  background: var(--surface);
-  border-color: var(--line);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: transparent;
   color: var(--accent);
   text-align: center;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .recovery-btn:disabled {
@@ -138,9 +149,14 @@
 }
 
 /* Reduced motion: the sheet cross-fades instead of sliding (a class with !important outranks the
-   global reset in base.css), and the ring steps once a second because that reset drops its transition. */
+   global reset in base.css), and the ring stays full and still because that reset drops the drain;
+   the number under it keeps counting. */
 @media (prefers-reduced-motion: reduce) {
   .recovery-sheet {
     animation: recovery-fade 200ms ease-out both !important;
+  }
+
+  .recovery-ring-arc {
+    stroke-dashoffset: 0 !important;
   }
 }

@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import type { ComponentType } from 'react';
+import type { CSSProperties, ComponentType } from 'react';
 import type { Action, AgeGroup, PublicCard, RecoverResult } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
@@ -10,6 +10,7 @@ import { MessageView } from '../layouts/MessageView.tsx';
 import { Lesson, RealNote } from '../lesson/Lesson.tsx';
 import { EndOfDay } from './EndOfDay.tsx';
 import { Notifications } from './Notifications.tsx';
+import { appLookFor } from './appNames.ts';
 import { useDay } from './useDay.ts';
 import '../day.css';
 import '../card/card.css';
@@ -68,22 +69,24 @@ interface CardStepProps {
   onAct: (action: Action) => void;
 }
 
-// The made-up app, full screen: its own header, the message in that app's look, the buttons under it.
-// One tap on a button acts.
+// The made-up app, full screen: it owns the status region (its colour runs behind the time), then
+// its header, the thread in that app's look, and the buttons in a bar pinned at the bottom. One tap
+// on a button acts.
 function CardStep({ card, busy, failed, onAct }: CardStepProps) {
+  const colour = { '--app-colour': appLookFor(card.layout).colour } as CSSProperties;
   return (
-    <section className="app anim-zoom">
+    <section className="app anim-zoom" data-look={card.layout} style={colour}>
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} />
       <div className="app-body scroll">
         <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} />
-        <ActionBar card={card} busy={busy} onAct={onAct} />
         {failed && (
           <p className="plain-note" role="alert">
             Your choice did not go through. Tap it again.
           </p>
         )}
       </div>
+      <ActionBar card={card} busy={busy} onAct={onAct} />
     </section>
   );
 }

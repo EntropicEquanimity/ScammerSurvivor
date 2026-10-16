@@ -33,15 +33,16 @@ function useCountdown(seconds: number): number {
   return left;
 }
 
-// The ring drains with the clock. The arc has a one-second linear transition, which the global
-// reduced-motion rule in base.css turns into one step per second: the twin, no extra code.
+// The ring drains with the clock: one linear stroke-dashoffset animation over the whole window
+// (recovery.css), smooth rather than a step per second. The global reduced-motion rule in base.css
+// drops the animation, so the twin is a static full ring with the number counting underneath.
 function CountdownRing({ left }: { left: number }) {
-  const offset = RING_LENGTH * (1 - left / RECOVERY_WINDOW_SECONDS);
+  const ring = { '--ring-length': RING_LENGTH, '--window': `${RECOVERY_WINDOW_SECONDS}s` } as CSSProperties;
   return (
-    <div className="recovery-ring" role="timer" aria-live="off" aria-label={`${left} seconds left`}>
+    <div className="recovery-ring" role="timer" aria-live="off" aria-label={`${left} seconds left`} style={ring}>
       <svg viewBox="0 0 120 120" aria-hidden="true">
         <circle className="recovery-ring-track" cx="60" cy="60" r={RING_R} />
-        <circle className="recovery-ring-arc" cx="60" cy="60" r={RING_R} strokeDasharray={RING_LENGTH} strokeDashoffset={offset} />
+        <circle className="recovery-ring-arc" cx="60" cy="60" r={RING_R} strokeDasharray={RING_LENGTH} />
       </svg>
       <span className="recovery-ring-count">{left}</span>
     </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Layout, PublicCard } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
@@ -43,26 +44,32 @@ function PartText({ text }: { text: string }) {
   return looksLikeLink(text) ? <span className="fake-link">{text}</span> : <>{text}</>;
 }
 
-// In tap mode a part is a button that lifts when marked and takes a neutral stamp; the tell's name
-// comes back only after scoring, in the lesson, through `labels`.
+// A part in tap mode: a button that lifts when marked and takes a neutral stamp, and shivers when a
+// mark is taken back. The client never knows which parts are tells, so the shiver is the only
+// "wrong tap" it can show. The tell's name comes back only after scoring, in the lesson.
+function TapPart({ part, tap }: { part: Part; tap: TapMode }) {
+  const [shiver, setShiver] = useState(false);
+  const on = tap.pressed.includes(part.id);
+  const toggle = () => {
+    haptic();
+    if (on) setShiver(true);
+    tap.onToggle(part.id);
+  };
+  const className = shiver ? 'part part-tap part-shiver pressable' : 'part part-tap pressable';
+  return (
+    <button type="button" className={className} aria-pressed={on} onClick={toggle} onAnimationEnd={() => setShiver(false)}>
+      <span className="part-text">
+        <PartText text={part.text} />
+      </span>
+      <span className="part-stamp" aria-hidden="true">
+        Marked
+      </span>
+    </button>
+  );
+}
+
 export function PartView({ part, tap, labels = [] }: { part: Part; tap?: TapMode; labels?: string[] }) {
-  if (tap) {
-    const on = tap.pressed.includes(part.id);
-    const toggle = () => {
-      haptic();
-      tap.onToggle(part.id);
-    };
-    return (
-      <button type="button" className="part part-tap pressable" aria-pressed={on} onClick={toggle}>
-        <span className="part-text">
-          <PartText text={part.text} />
-        </span>
-        <span className="part-stamp" aria-hidden="true">
-          Marked
-        </span>
-      </button>
-    );
-  }
+  if (tap) return <TapPart part={part} tap={tap} />;
   if (labels.length === 0) {
     return (
       <span className="part">
@@ -100,8 +107,13 @@ function BubbleGroup({ parts, ask, tap, marks, name }: GroupProps) {
   );
 }
 
+// The threads that open with the day's time line, the way a chat shows "Today 08:10" over the first
+// bubble. Mail and the wallet have no thread.
+const THREADED = (layout: Layout): boolean => layout !== 'email' && layout !== 'wallet';
+
 // One component, eight looks picked by the layout id through CSS (card.css): the bubble shape,
-// the read line and where the sender name sits differ; the words and the parts never do.
+// the read line and where the sender name sits differ; the words and the parts never do. Every
+// sibling of a bubble here is a <p>, so the last bubble (the one with the tail) is :last-of-type.
 export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks = {}, layout = 'sms', bannerHint }: Props) {
   const nameInBubble = layout === 'cloud-chat' ? sender.displayName : undefined;
   const readLine = READ_LINE[layout];
@@ -113,6 +125,11 @@ export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, ma
           <strong>{sender.displayName}</strong>
           <span>{sender.maskedNumber}</span>
           {arrivesAt && <span>{arrivesAt}</span>}
+        </p>
+      )}
+      {arrivesAt && THREADED(layout) && (
+        <p className="thread-time">
+          <strong>Today</strong> {arrivesAt}
         </p>
       )}
       {bannerHint === 'likely_scam' && (

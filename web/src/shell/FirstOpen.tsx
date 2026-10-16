@@ -169,7 +169,20 @@ function useSwipeUp(onSwipe: () => void) {
   return { onPointerDown, onPointerUp, onPointerCancel: () => { startY.current = null; } };
 }
 
-// The lock screen itself: clock, the practice tag, two round buttons, the swipe hint, and the lift-off on
+// The lock screen's one notification (rule 1): the practice label in the day's notification anatomy.
+// ponytail: the body is the full sentence clamped to two lines; shared/strings.ts has no short form yet.
+const LockNotification = () => (
+  <div className="lock-notif glass glass-strong" role="note">
+    <img className="lock-notif-art" src="/art/practice.png" alt="" width={38} height={38} />
+    <span className="lock-notif-body">
+      <span className="lock-notif-top">Practice phone · now</span>
+      <span className="lock-notif-title">Nothing here is real</span>
+      <span className="lock-notif-text">{NON_AFFILIATION}</span>
+    </span>
+  </div>
+);
+
+// The lock screen itself: clock, the practice notification, two round buttons, the swipe hint, and the lift-off on
 // unlock (a fade under reduced motion, first-open.css, so animationend still fires). The clock remounts
 // when the alert closes so focus lands on the date instead of falling to the body.
 function LockScreen({ cleared, askAge, onAnswer, onDismiss, onPick, onUnlock }: {
@@ -190,7 +203,7 @@ function LockScreen({ cleared, askAge, onAnswer, onDismiss, onPick, onUnlock }: 
       onAnimationEnd={(event) => leaving && event.target === event.currentTarget && onUnlock()}
     >
       <LockClock key={String(cleared)} />
-      <p className="lock-tag-row"><span className="lock-tag">Practice phone</span></p>
+      <LockNotification />
       <LockButtons onCountry={onPick} />
       <button type="button" className="lock-swipe pressable" onClick={unlock}>Swipe up to practise</button>
       {!cleared && <AgeAlert askAge={askAge} onAnswer={onAnswer} onDismiss={onDismiss} />}
