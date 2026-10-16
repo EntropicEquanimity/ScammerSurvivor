@@ -20,7 +20,7 @@
     "pay",
     "open_link"
   ],
-  "usualEnding": "The scan pays them instead. No refund needs the player to approve an outgoing payment, and a real refund lands by itself inside the official app.",
+  "usualEnding": "The scam pays them instead. No refund needs the player to approve an outgoing payment, and a real refund lands by itself inside the official app.",
   "realTwin": "A real refund notice from the shop the player bought from appears in the wallet app as money received, with the order it belongs to.",
   "confidence": "medium",
   "source": {
