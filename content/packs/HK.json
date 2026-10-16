@@ -3,7 +3,8 @@
   "layouts": [
     "green-chat",
     "blue-chat",
-    "wallet"
+    "wallet",
+    "email"
   ],
   "confidence": "high",
   "hotline": {

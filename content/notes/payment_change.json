@@ -3,7 +3,7 @@
   "country": "*",
   "category": "I",
   "catalogueEntry": 58,
-  "app": "blue-chat",
+  "app": "email",
   "setup": "[an email from a known supplier, on their usual letterhead with a signature, says their bank details have changed] [another version: the boss's own chat account, or a number saved as the boss, asks for help with something confidential] [a level 3 version adds a short video call that keeps the camera low]",
   "ask": "[the supplier asks for the next invoice to go to the updated account, or the boss asks the player to buy gift cards in a shop and send the codes, or to make an urgent transfer, skipping the usual approval and keeping it from colleagues]",
   "tells": [

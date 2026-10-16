@@ -3,7 +3,8 @@
   "layouts": [
     "sticker-chat",
     "sms",
-    "wallet"
+    "wallet",
+    "email"
   ],
   "confidence": "high",
   "hotline": {

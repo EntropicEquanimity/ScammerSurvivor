@@ -72,7 +72,7 @@ export type TrickId =
 
 export interface CountryPack {
   code: string; // ISO 3166 alpha-2
-  layouts: Layout[]; // the three apps scams arrive on, in order
+  layouts: Layout[]; // the apps scams arrive on, in order (the home widget shows the first three)
   confidence: 'high' | 'medium' | 'low'; // shown as "from police statistics" or "based on usage"
   deckOrder: TrickId[]; // from the catalogue line; unlisted tricks dealt less often
   hotline: { label: string; number: string; reportUrl: string };
