@@ -8,7 +8,8 @@
 // beats are voiced; otherwise the stored one stays.
 // Usage: node scripts/tts-beats.ts --country-neutral [--limit N] [--dry] [--local] [--check]
 //   --local  audio to output/beats-audio, beats to output/beats (no bucket, no Firestore)
-//   --check  no model call: does every approved note's trick have a servable script? exit 1 if not
+//   --check  no model call: does every approved note's trick have a servable script with full
+//            sentences and the code beat's phrase? exit 1 if not
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -25,7 +26,9 @@ const BEATS_PER_SCRIPT = 6;
 const MAX_WORDS = 40;
 const ROLES: Beat['role'][] = ['open', 'pushback', 'pushback', 'pushback', 'code', 'close'];
 const PUSHBACKS = ['who is this', 'I do not want to read anything out', 'why can I not go to the branch'];
-const CODE_PHRASE = 'the practice code on screen';
+const CODE_PHRASE = 'the code we just sent you'; // what the text on screen holds: a one-time code
+const SENTENCE = /^[A-Z].*[.?!]["')]?$/; // a full sentence: a capital first, an end mark last
+const MIN_SENTENCE_WORDS = 6;
 
 const DIGIT_RUN = /\d{5,}/;
 const EM_DASH = String.fromCharCode(0x2014);
@@ -68,19 +71,24 @@ Input: a pattern note describing one scam pattern in neutral words. Output: six 
 2. pushback: the reply when the player asks "who is this".
 3. pushback: the reply when the player says "I do not want to read anything out".
 4. pushback: the reply when the player asks "why can I not go to the branch".
-5. code: the caller asks the player to read "${CODE_PHRASE}", in exactly those words, and nothing else.
+5. code: one full sentence, at least ${MIN_SENTENCE_WORDS} words, in which the caller asks the player to read out "${CODE_PHRASE}", containing exactly those words, for example "To finish the check, please read me ${CODE_PHRASE}."
 6. close: the caller ends the call.
 
 Identity, a hard rule: the caller speaks for the invented institution and role given in the input and nothing else. Write "[institution]" for the institution, never a real name. No personal names at all, for the caller or anyone mentioned: roles only, in lower case, like "the fraud desk", "a parcel officer", "my supervisor". Never the word "federal", never a country's police, court, tax office, ministry or any other government agency by name.
 
-Rules: each line under ${MAX_WORDS} words. Phone numbers only in masked form like "+XX XXXX 4821"; no run of more than four digits anywhere. No web addresses. Never mention a real one-time code, PIN, password, card or account number: only "${CODE_PHRASE}". Tag each line with the one tell it carries most from the enum, or null. English only, no em dashes, no country names.`;
+Rules: each line under ${MAX_WORDS} words. Phone numbers only in masked form like "+XX XXXX 4821"; no run of more than four digits anywhere. No web addresses. Every line is a full spoken sentence that starts with a capital and ends with a full stop or question mark, never a fragment. Never say "one-time code", PIN, password, card or account number: the code is only ever "${CODE_PHRASE}". Tag each line with the one tell it carries most from the enum, or null. English only, no em dashes, no country names.`;
 
 const words = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
 
 const offExampleLink = (text: string): boolean => [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
 
+// A line the caller could not say on its own: no capital first or no end mark. The code beat must
+// also carry more than the phrase itself.
+export const fragment = (text: string, role?: Beat['role']): boolean =>
+  !SENTENCE.test(text.trim()) || (role === 'code' && words(text) < MIN_SENTENCE_WORDS);
+
 // Guard-style checks on the whole script; reason ids only, never text.
-function check(drafts: Draft[], brands: readonly string[], isTellId: (id: unknown) => boolean): string[] {
+export function check(drafts: Draft[], brands: readonly string[], isTellId: (id: unknown) => boolean): string[] {
   const reasons = new Set<string>();
   if (drafts.length !== BEATS_PER_SCRIPT) reasons.add('beat_count');
   drafts.forEach((draft, index) => {
@@ -94,6 +102,7 @@ function check(drafts: Draft[], brands: readonly string[], isTellId: (id: unknow
     if (REAL_SECRET.test(text)) reasons.add('real_secret');
     if (text.includes(EM_DASH)) reasons.add('em_dash');
     if (draft.role === 'code' && !text.toLowerCase().includes(CODE_PHRASE)) reasons.add('code_phrase');
+    if (fragment(text, draft.role)) reasons.add('fragment');
     if (draft.tellId !== null && !isTellId(draft.tellId)) reasons.add('unknown_tell');
     identityReasons(text).forEach((reason) => reasons.add(reason));
   });
@@ -290,7 +299,9 @@ async function checkStore(notes: PatternNote[]): Promise<boolean> {
   const tricks = [...new Set(notes.map(trickFor))];
   const states = await Promise.all(tricks.map(async (trickId) => {
     const beats = await readBeats(trickId).catch(() => null);
-    return { trickId, state: !beats ? 'missing' : servable(trickId, beats) ? 'servable' : 'stale' };
+    const asks = (beat: Beat): boolean => beat.role !== 'code' || beat.text.toLowerCase().includes(CODE_PHRASE);
+    const whole = beats?.every((beat) => !fragment(beat.text, beat.role) && asks(beat)) ?? false;
+    return { trickId, state: !beats ? 'missing' : !servable(trickId, beats) ? 'stale' : whole ? 'servable' : 'fragment' };
   }));
   states.forEach(({ trickId, state }) => log(`  ${trickId}: ${state}`));
   const good = states.filter((s) => s.state === 'servable').length;
@@ -321,7 +332,10 @@ async function main(): Promise<void> {
   log(`wrote ${written} scripts, rejected ${results.length - written}, mean ${meanMs} ms`);
 }
 
-main().catch((err: Error) => {
-  log(`tts-beats failed: ${err.name}`);
-  process.exit(1);
-});
+// Run only as the script, so the test can import check and fragment.
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  main().catch((err: Error) => {
+    log(`tts-beats failed: ${err.name}`);
+    process.exit(1);
+  });
+}

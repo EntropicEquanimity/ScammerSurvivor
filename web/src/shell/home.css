@@ -194,6 +194,10 @@
   cursor: pointer;
 }
 
+.widget-capsule.widget-quick {
+  min-height: var(--tap); /* the 48px target; the links keep 40 with the 4px hit extender below */
+}
+
 .widget-capsule::before {
   content: '';
   position: absolute;

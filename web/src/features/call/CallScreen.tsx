@@ -154,22 +154,25 @@ function GridButton({ action, offered, busy, onAct }: { action: Action; offered:
 
 export function TalkingView({ caller, beat, meter, offered, heardCode, busy, failed, speaking, audio, graph, onAct }: TalkingProps) {
   const caption = useRef<HTMLParagraphElement>(null);
-  const column = useRef<HTMLDivElement>(null);
-  // A long beat on a short phone scrolls the column, and only the column, so the new caption is in
-  // view above the grid. scrollIntoView also scrolled the phone and slid the name under the status bar.
-  useEffect(() => {
-    const body = column.current;
+  // The name, timer and number stay pinned under the status bar; only the caption scrolls, inside
+  // itself, so a long beat on a short phone never moves the name or runs under the grid.
+  // data-more fades the caption's last line while more of it waits below, so it never cuts flat.
+  const mark = () => {
     const line = caption.current;
-    if (!body || !line) return;
-    const overflow = line.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom;
-    if (overflow > 0) body.scrollTop += overflow;
+    if (line) line.dataset.more = String(line.scrollTop + line.clientHeight < line.scrollHeight - 1);
+  };
+  useEffect(() => {
+    if (caption.current) caption.current.scrollTop = 0;
+    mark();
   }, [beat?.id]);
   return (
     <section className="page-full call call-talking anim-zoom call-fade">
-      <div className="page-body scroll" ref={column}>
+      <header className="call-head">
         <CallName name={caller.shown} talking />
         <Elapsed />
         <PracticeLine tail={tailOf(caller)} />
+      </header>
+      <div className="page-body">
         <Avatar caller={caller}>
           <Ring meter={meter} />
         </Avatar>
@@ -177,7 +180,7 @@ export function TalkingView({ caller, beat, meter, offered, heardCode, busy, fai
           Caller&apos;s confidence <strong>{Math.round(meter)}</strong> of 100
         </p>
         <Waveform audio={audio} speaking={speaking} graph={graph} />
-        <p className="call-caption" aria-live="polite" ref={caption}>{beat?.caption ?? ''}</p>
+        <p className="call-caption scroll" aria-live="polite" ref={caption} onScroll={mark}>{beat?.caption ?? ''}</p>
         {failed && (
           <p className="plain-note call-note" role="alert">
             That did not go through. Tap again.

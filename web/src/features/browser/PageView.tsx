@@ -90,7 +90,7 @@ function Sent({ given }: { given: FieldId[] }) {
   return (
     <div className="web-sent" role="status">
       <p className="web-sent-title">Sent</p>
-      <p>This page now has your {listOf(given.map((id) => ROW_LABEL[id].toLowerCase()))}.</p>
+      <p>This page now has your {listOf(given.map((id) => ROW_LABEL[id].replace(/^[A-Z](?=[a-z])/, (c) => c.toLowerCase())))}.</p>
     </div>
   );
 }

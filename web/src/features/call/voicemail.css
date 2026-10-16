@@ -172,8 +172,36 @@
   }
 }
 
-/* On the lock screen the missed call waits low, above the indicator, clear of the big clock. */
+/* On the lock screen the missed call joins the bottom of the stack: it waits low, above the
+   indicator, in the stack's own radius, and the stack makes room for it so no row sits under it.
+   The banner holds one fixed height (title plus one line, two on a 320 phone, clamped), so the
+   room the stack leaves always fits it. A day/* owner can make it a real stack entry. */
+.phone:has(.day-lock) {
+  --vm-lock-h: 74px;
+  --vm-lock-lines: 1;
+}
+
+@media (max-width: 359px) {
+  .phone:has(.day-lock) {
+    --vm-lock-h: 98px;
+    --vm-lock-lines: 2;
+  }
+}
+
 .phone:has(.day-lock) .vm-banner {
   top: auto;
   bottom: calc(var(--indicator-h, 34px) + 8px);
+  height: var(--vm-lock-h);
+  border-radius: 24px;
+}
+
+.phone:has(.day-lock) .vm-banner-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--vm-lock-lines);
+}
+
+.phone:has(.day-lock .notif-list):has(.vm-banner) .notif-list {
+  margin-bottom: calc(var(--vm-lock-h) + 4px);
 }

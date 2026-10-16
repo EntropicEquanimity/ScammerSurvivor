@@ -11,7 +11,7 @@
     "dev": "node --watch-path=server --watch-path=shared server/index.ts --dev",
     "build": "tsc --noEmit && vite build",
     "start": "node server/index.ts",
-    "test": "node --test \"shared/**/*.test.ts\" \"server/**/*.test.ts\" \"web/**/*.test.ts\"",
+    "test": "node --test \"shared/**/*.test.ts\" \"server/**/*.test.ts\" \"web/**/*.test.ts\" \"scripts/**/*.test.ts\"",
     "check": "node scripts/run-check.mjs"
   },
   "dependencies": {

@@ -23,7 +23,9 @@
 /* Chips: no outline, a tint of the accent with ink text (accent text on a tint falls under 4.5:1),
    the chosen one filled. The group's glass block is the only edge. */
 .lab .lab-chip {
+  max-width: 100%;
   padding: 0 1rem;
+  white-space: nowrap; /* the row wraps between chips, never inside one */
   border: 0;
   background: var(--chip-tint);
   font-size: var(--t16);

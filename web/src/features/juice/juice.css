@@ -39,6 +39,12 @@
   display: none;
 }
 
+/* The More sheet's scrim dims the whole app; the capsule sits over the scrim's layer, so it steps
+   away while the sheet is open instead of staying bright above the dim. */
+.phone:has(.action-sheet) .game-hud {
+  visibility: hidden;
+}
+
 /* The lesson's large title keeps the nav row above it free, as iOS does, so the capsule sits there. */
 .day .lesson .page-body {
   padding-top: var(--nav-h, 44px);
