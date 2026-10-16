@@ -165,3 +165,20 @@ test('the lab never touches the store or the cache', () => {
   assert.ok(!source.includes('saveDay'));
   assert.ok(!source.includes('writeCards'));
 });
+
+test('the lab returns the clues on both sides, names the kinds chosen, and lists the clue rules', async () => {
+  const clued: Card = {
+    ...card,
+    clues: [{ kind: 'countdown', partId: 'a1', title: 'Bill due', detail: 'Set by the sender', minutes: 60 }],
+    realTwin: { ...card.realTwin, clues: [{ kind: 'voice_note', partId: 'r1', title: 'Voice message', detail: 'From a saved contact' }] },
+  };
+  const reply = await generateLab(good, '10.0.0.9', { write: fakeWrite({ card: clued, trace: okTrace }) });
+  assert.equal(reply.status, 200);
+  if (reply.status !== 200) return;
+  assert.deepEqual(reply.body.clueKinds, { scam: ['countdown'], twin: ['voice_note'] });
+  assert.equal(reply.body.preview?.clues[0]?.partId, 'a1');
+  assert.equal(reply.body.preview?.twin.clues[0]?.kind, 'voice_note');
+  assert.ok(reply.body.rules.some((rule) => rule.id === 'clue_grounding'));
+  const plain = await generateLab(good, '10.0.0.10', { write: fakeWrite({ card, trace: okTrace }) });
+  if (plain.status === 200) assert.deepEqual(plain.body.clueKinds, { scam: [], twin: [] });
+});

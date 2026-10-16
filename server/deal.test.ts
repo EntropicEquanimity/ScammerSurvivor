@@ -229,3 +229,36 @@ test('keeping a secret on a scam is a slip that costs nothing; sending money cos
   if (sent.status === 200) assert.equal(sent.body.walletAfter, (readDay(paid.dayId)?.walletStart ?? 0) - paid.slot.card.stake);
   else assert.fail('send_money was not scored');
 });
+
+// Clues on both sides of the raw card: labels only, never a message.
+const clued: Card = {
+  ...raw,
+  id: 'clued-card',
+  clues: [{ kind: 'payment_request', partId: 'a1', title: 'Payment request', detail: 'To [institution]', amount: 3 }],
+  realTwin: { ...raw.realTwin, clues: [{ kind: 'parcel_status', partId: 'r1', title: 'Parcel on the way', detail: 'Arrives tomorrow' }] },
+};
+
+const slotFor = (card: Card, isTwin: boolean) => {
+  const { slots } = dealDay({ dayId: 'clue-day', pack, cards: [raw], quick: true, seed: 1 });
+  return redealSlot({ ...slots[0], isTwin }, card);
+};
+
+test('toPublic copies the scam clues on a scam slot and the twin clues on a twin slot, filled, ids on shown parts', () => {
+  const scam = slotFor(clued, false).public;
+  const twin = slotFor(clued, true).public;
+  assert.deepEqual(scam.clues?.map((clue) => clue.kind), ['payment_request']);
+  assert.equal(scam.clues?.[0]?.amount, 3);
+  assert.ok(!hasPlaceholder(scam.clues), 'clue words are filled like the parts');
+  assert.deepEqual(twin.clues?.map((clue) => clue.kind), ['parcel_status']);
+  for (const shown of [scam, twin]) {
+    const ids = [...shown.setup, ...shown.ask].map((part) => part.id);
+    assert.ok(shown.clues?.every((clue) => ids.includes(clue.partId)), 'every clue sits on a shown part');
+    assert.ok(!/tellIds|plantedTells/.test(JSON.stringify(shown.clues)), 'no answer key in a clue');
+  }
+});
+
+test('an old card has no clues key; a twin slot never shows the scam clues', () => {
+  assert.ok(!('clues' in slotFor(raw, false).public));
+  const scamOnly: Card = { ...clued, realTwin: raw.realTwin };
+  assert.ok(!('clues' in slotFor(scamOnly, true).public));
+});

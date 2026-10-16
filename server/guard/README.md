@@ -9,6 +9,10 @@ What `guardDraft(draft, { noteTells, allowedNames, allowedReplies })` checks:
 - Twin and replies: twin parts carry no tells, the twin has an acceptable reply, every reply id is on the allowed list.
 - Text: every link, with or without `http://` or `www.`, sits on a host ending in `.example`; no real brand from the short denylist as a whole word; a capitalised word in name position (after hi, hello, dear, this is, regards, a title such as Officer or Mr) must be an allowed first name, a people role, an institution label or a made-up app name from `shared/brands.ts`. Title-case nouns elsewhere are left alone so they never burn the repair turn. Bracketed placeholders are ignored.
 
+- Clues (`shared/clues.ts`): the scam's clues against the setup and ask parts, the twin's clues against the twin's own parts, through `cluesReasons` (kind, part, grounding, count, text), plus the brand, link and name rules on each clue's title and detail as `clue_text`. Every clue fault is a clue id. They go into the one repair turn like any reason; if clue ids are all that is left after the repair, `writeCard` drops the clues on both sides and keeps the card. A card is never lost to a clue.
+
+`GUARD_REASONS` is the full rule list in report order; the Judge Lab's table reads it.
+
 Known gaps:
 
 - The policy grep bans the messaging-app and bank names it lists from this folder too, so that list is not duplicated in the denylist and those words pass the Guard. The fix is outside this folder: let `scripts/check-policy.sh` exclude one `server/guard/denylist.ts`, then move `BRAND_DENYLIST` there and merge the grep's list in.

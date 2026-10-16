@@ -10,10 +10,11 @@ import { isChipName } from '../../shared/people.ts';
 import { PEOPLE_ROLES } from '../../shared/types.ts';
 import type { Action, Card, Layout, MessagePart, People, PeopleRole, TellId, TraceEvent, TrickId } from '../../shared/types.ts';
 import { writeCard } from '../agents/director.ts';
-import { reasonText } from '../guard/card.ts';
+import { GUARD_REASONS, reasonText } from '../guard/card.ts';
 import type { GuardReason } from '../guard/card.ts';
 import { PACKS } from '../country.ts';
 import { fillCard } from '../deal.ts';
+import type { Clue, ClueKind } from '../../shared/clues.ts';
 import { loadNote } from './trace.ts';
 import type { Writer } from './trace.ts';
 
@@ -22,24 +23,6 @@ export const LAB_WINDOW_MS = 60 * 60 * 1000;
 // ponytail: every lab player is level 1; a level chip is the upgrade.
 const LEVEL = 1;
 
-// ponytail: the Guard keeps its rule list private, so the ids are restated here
-// for the pass-or-fail table; the GuardReason type makes a missing or misspelt
-// id a compile error. Exporting REASONS from server/guard/card.ts is the upgrade.
-const GUARD_RULES: readonly GuardReason[] = [
-  'tells_missing_on_ask',
-  'planted_mismatch',
-  'digit_run',
-  'mask_format',
-  'same_last_four',
-  'twin_has_tells',
-  'twin_no_acceptable',
-  'reply_not_allowed',
-  'link_not_example',
-  'brand_name',
-  'name_not_allowed',
-  'empty_ask',
-  'unknown_tell',
-];
 
 export interface LabInput {
   country: string;
@@ -60,7 +43,8 @@ export interface LabPreview {
   unsafe: Action[];
   usualEnding: string;
   neverAsks: string;
-  twin: { sender: Card['sender']; parts: { id: string; text: string }[]; acceptable: Action[] };
+  clues: Clue[]; // the scam's clues; an empty list when the Director chose none
+  twin: { sender: Card['sender']; parts: { id: string; text: string }[]; acceptable: Action[]; clues: Clue[] };
 }
 
 export interface LabRule {
@@ -75,6 +59,7 @@ export interface LabResult {
   preview: LabPreview | null;
   rules: LabRule[]; // the Guard's last word, one row per rule; empty when the Guard never ran
   trace: TraceEvent[];
+  clueKinds: { scam: ClueKind[]; twin: ClueKind[] }; // the kinds the Director chose and the Guard kept, ids only
 }
 
 export type LabReply =
@@ -136,11 +121,18 @@ const toPreviewOf = (card: Card): LabPreview => ({
   unsafe: card.unsafeReplies,
   usualEnding: card.usualEnding,
   neverAsks: card.neverAsks,
+  clues: card.clues ?? [],
   twin: {
     sender: card.realTwin.sender,
     parts: card.realTwin.parts.map(({ id, text }) => ({ id, text })),
     acceptable: card.realTwin.acceptable,
+    clues: card.realTwin.clues ?? [],
   },
+});
+
+export const clueKindsOf = (card: Card | null): LabResult['clueKinds'] => ({
+  scam: (card?.clues ?? []).map((clue) => clue.kind),
+  twin: (card?.realTwin.clues ?? []).map((clue) => clue.kind),
 });
 
 const lastGuard = (trace: TraceEvent[]): TraceEvent | undefined =>
@@ -151,7 +143,7 @@ export const rulesFrom = (trace: TraceEvent[]): LabRule[] => {
   const guard = lastGuard(trace);
   if (!guard) return [];
   const failed = guard.reasons ?? [];
-  return GUARD_RULES.map((id) => ({ id, text: reasonText(id), passed: !failed.includes(id) }));
+  return GUARD_REASONS.map((id) => ({ id, text: reasonText(id), passed: !failed.includes(id) }));
 };
 
 const verdictFor = (card: Card | null, trace: TraceEvent[]): LabResult['verdict'] => {
@@ -160,7 +152,7 @@ const verdictFor = (card: Card | null, trace: TraceEvent[]): LabResult['verdict'
   return trace.some((event) => event.agent === 'director' && event.outcome === 'repaired') ? 'repaired' : 'pass';
 };
 
-const isRule = (reason: string): reason is GuardReason => GUARD_RULES.includes(reason as GuardReason);
+const isRule = (reason: string): reason is GuardReason => GUARD_REASONS.includes(reason as GuardReason);
 
 // Ids, verdicts and numbers only: a Director error row carries its error message as a
 // reason, and that never reaches the browser. Rule ids pass; anything else is dropped.
@@ -196,7 +188,7 @@ export async function generateLab(body: unknown, ip: string, deps: LabDeps = {})
   const { card, trace } = await write({ note, pack, people, level: LEVEL });
   return {
     status: 200,
-    body: { verdict: verdictFor(card, trace), preview: card ? toPreview(card) : null, rules: rulesFrom(trace), trace: publicTrace(trace) },
+    body: { verdict: verdictFor(card, trace), preview: card ? toPreview(card) : null, rules: rulesFrom(trace), trace: publicTrace(trace), clueKinds: clueKindsOf(card) },
   };
 }
 

@@ -144,3 +144,35 @@ test('reasonText gives one line per reason', () => {
   assert.equal(typeof line, 'string');
   assert.ok(line.length > 0 && !line.includes('\n'));
 });
+
+// Clue fixtures: labels on placeholder parts, never a message.
+const withClue = (clues: Draft['clues'], twinClues?: Draft['clues']): Draft => {
+  const base = clean();
+  return { ...base, clues, realTwin: { ...base.realTwin, ...(twinClues ? { clues: twinClues } : {}) } };
+};
+const payClue = { kind: 'payment_request' as const, partId: 'a1', title: 'Payment request', detail: 'To a new account', amount: 500 };
+
+test('a grounded clue passes; the same clue on a part without the figure is clue_grounding', () => {
+  const draft = withClue([payClue]);
+  const grounded = { ...draft, ask: [part('a1', '[ask line] 500 to the [institution].', ['authority']), draft.ask?.[1] ?? {}] };
+  assert.deepEqual(guardDraft(grounded, OPTIONS).reasons, []);
+  expectOnly(draft, 'clue_grounding');
+});
+
+test('clue_part: a twin clue must sit on a twin part, not a scam part', () => {
+  expectOnly(withClue(undefined, [{ kind: 'badge', partId: 'a1', title: 'Saved contact', detail: 'In your contacts' }]), 'clue_part');
+});
+
+test('clue_kind, clue_count and clue_text', () => {
+  const badge = { kind: 'badge' as const, partId: 's1', title: 'Verified sender', detail: 'Added by the sender' };
+  expectOnly(withClue([{ ...badge, kind: 'sticker' as never }]), 'clue_kind');
+  expectOnly(withClue([badge, badge, badge]), 'clue_count');
+  expectOnly(withClue([{ ...badge, detail: `Added by ${BRAND_DENYLIST[0]}` }]), 'clue_text');
+  expectOnly(withClue([{ ...badge, detail: 'Opens login.real-site.com' }]), 'clue_text');
+});
+
+test('every clue reason has its own repair line', () => {
+  for (const reason of ['clue_kind', 'clue_part', 'clue_grounding', 'clue_count', 'clue_text'] as GuardReason[]) {
+    assert.ok(reasonText(reason).length > 0, reason);
+  }
+});

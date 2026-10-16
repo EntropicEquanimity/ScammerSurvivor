@@ -3,6 +3,7 @@ import type { SlotKey } from '../shared/score.ts';
 import { TELLS, trickCategory } from '../shared/taxonomy.ts';
 import { STANDARD_ACTIONS } from '../shared/types.ts';
 import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout, PublicCard, SlotResult } from '../shared/types.ts';
+import type { Clue } from '../shared/clues.ts';
 
 export const PEOPLE_START = 3;
 const FIRST_TRICK = 'family_trouble';
@@ -191,6 +192,23 @@ const HINT_ODDS = { scam: 1 / 3, twin: 1 / 6 };
 const drawHint = (isTwin: boolean, random: () => number): PublicCard['bannerHint'] =>
   random() < (isTwin ? HINT_ODDS.twin : HINT_ODDS.scam) ? 'likely_scam' : null;
 
+// The shown side's clues, field by field, so nothing but the Clue shape reaches the browser. The twin
+// is shown as its own parts sliced in two, ids unchanged (r1, r2...), so its clues need no remap.
+// An old cached card has no clues: no key at all.
+const publicClues = (clues: readonly Clue[] | undefined): { clues?: Clue[] } =>
+  clues && clues.length > 0
+    ? {
+        clues: clues.map(({ kind, partId, title, detail, amount, minutes }) => ({
+          kind,
+          partId,
+          title,
+          detail,
+          ...(amount === undefined ? {} : { amount }),
+          ...(minutes === undefined ? {} : { minutes }),
+        })),
+      }
+    : {};
+
 function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string, bannerHint: PublicCard['bannerHint']): PublicCard {
   const cut = card.setup.length;
   const setup = isTwin ? card.realTwin.parts.slice(0, cut) : card.setup;
@@ -205,6 +223,7 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     stake: card.stake,
     arrivesAt,
     bannerHint,
+    ...publicClues(isTwin ? card.realTwin.clues : card.clues),
   };
 }
 

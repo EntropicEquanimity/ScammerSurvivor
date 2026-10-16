@@ -4,6 +4,8 @@
 import { isTellId } from '../../shared/taxonomy.ts';
 import { BRANDS, INSTITUTIONS } from '../../shared/brands.ts';
 import { PEOPLE_ROLES } from '../../shared/types.ts';
+import { cluesReasons } from '../../shared/clues.ts';
+import type { Clue, ClueReason } from '../../shared/clues.ts';
 
 export type GuardReason =
   | 'tells_missing_on_ask'
@@ -18,9 +20,15 @@ export type GuardReason =
   | 'brand_name'
   | 'name_not_allowed'
   | 'empty_ask'
-  | 'unknown_tell';
+  | 'unknown_tell'
+  | ClueReason;
 
-const REASONS: readonly GuardReason[] = [
+const CLUE_REASONS: readonly ClueReason[] = ['clue_kind', 'clue_part', 'clue_grounding', 'clue_count', 'clue_text'];
+
+export const isClueReason = (reason: string): reason is ClueReason => (CLUE_REASONS as readonly string[]).includes(reason);
+
+// Every rule id in the order the Guard reports them; the Judge Lab's table reads this list.
+export const GUARD_REASONS: readonly GuardReason[] = [
   'tells_missing_on_ask',
   'planted_mismatch',
   'digit_run',
@@ -34,6 +42,7 @@ const REASONS: readonly GuardReason[] = [
   'name_not_allowed',
   'empty_ask',
   'unknown_tell',
+  ...CLUE_REASONS,
 ];
 
 // The Director's raw JSON. Every field is optional because nothing here is trusted yet.
@@ -59,7 +68,8 @@ export interface Draft {
   unsafeReplies?: string[];
   usualEnding?: string;
   plantedTells?: string[];
-  realTwin?: { sender?: DraftSender; parts?: DraftPart[]; acceptable?: string[] };
+  clues?: Partial<Clue>[];
+  realTwin?: { sender?: DraftSender; parts?: DraftPart[]; acceptable?: string[]; clues?: Partial<Clue>[] };
 }
 
 export interface GuardOptions {
@@ -209,6 +219,26 @@ const checkText = (draft: Draft, allowedNames: readonly string[]): GuardReason[]
   return out;
 };
 
+const clueParts = (list: DraftPart[]): { id: string; text: string }[] => list.map((p) => ({ id: str(p.id), text: str(p.text) }));
+
+const clueLines = (clues: unknown): string[] =>
+  arr<Partial<Clue>>(clues).flatMap((c) => (c && typeof c === 'object' ? [str(c.title), str(c.detail)] : []));
+
+// Clues on each side against that side's own parts, plus the text rules on the clue lines. Every
+// fault is a clue id, so a bad clue can only cost the clues, never the card (see writeCard).
+const checkClues = (draft: Draft, allowedNames: readonly string[]): ClueReason[] => {
+  const scamClues = arr<Partial<Clue>>(draft.clues);
+  const twinClues = arr<Partial<Clue>>(draft.realTwin?.clues);
+  const own = [
+    ...cluesReasons(scamClues, clueParts([...parts(draft.setup), ...parts(draft.ask)])),
+    ...cluesReasons(twinClues, clueParts(parts(draft.realTwin?.parts))),
+  ];
+  const allowed = new Set(allowedNames.map((n) => n.toLowerCase()));
+  const lines = [...clueLines(draft.clues), ...clueLines(draft.realTwin?.clues)];
+  const badText = lines.some((t) => hasOffExampleLink(t) || hasBrand(t) || strangeNames(t, allowed).length > 0);
+  return badText ? [...own, 'clue_text'] : own;
+};
+
 export const guardDraft = (draft: Draft, options: GuardOptions): GuardResult => {
   const safeDraft = draft && typeof draft === 'object' ? draft : {};
   const found = new Set<GuardReason>([
@@ -216,8 +246,9 @@ export const guardDraft = (draft: Draft, options: GuardOptions): GuardResult => 
     ...checkNumbers(safeDraft),
     ...checkTwinAndReplies(safeDraft, options.allowedReplies),
     ...checkText(safeDraft, options.allowedNames),
+    ...checkClues(safeDraft, options.allowedNames),
   ]);
-  const reasons = REASONS.filter((r) => found.has(r));
+  const reasons = GUARD_REASONS.filter((r) => found.has(r));
   return { ok: reasons.length === 0, reasons };
 };
 
@@ -235,6 +266,12 @@ const REASON_TEXT: Record<GuardReason, string> = {
   name_not_allowed: 'Only first names from the allowed list may follow a greeting, an introduction or a title; drop any other name or swap in an allowed one.',
   empty_ask: 'The ask must have at least one part.',
   unknown_tell: 'Every tellId must be one of the nine tells in the taxonomy.',
+  clue_kind: 'Every clue kind must be one of: link_preview, payment_request, countdown, badge, voice_note, parcel_status, code_box.',
+  clue_part: 'Every clue partId must name a part on its own side: s1 or a1 style for the scam, r1 style for the real twin.',
+  clue_grounding:
+    'Each clue must be backed by its part: a link_preview detail names the .example host written in that part, a payment_request amount is a figure in that part, a countdown has minutes 1 to 60, a code_box sits on a part that says "code". Fix the clue or leave it out.',
+  clue_count: 'At most two clues on the scam and at most two on the real twin.',
+  clue_text: 'Clue title and detail must each be 1 to 60 characters, with no run of five digits, no em dash, no real brand, no link off .example and no name outside the allowed list.',
 };
 
 export const reasonText = (reason: GuardReason): string => REASON_TEXT[reason];
