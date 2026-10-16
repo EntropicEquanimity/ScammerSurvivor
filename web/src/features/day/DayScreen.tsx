@@ -104,8 +104,9 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: Car
           </p>
         )}
       </div>
+      {/* Replying swaps the bottom area like a keyboard: the chips while you pick, nothing while they type. */}
       <ReplyChips chat={chat} />
-      <ActionBar card={chat.card} busy={busy || chat.state.waiting} onAct={act} />
+      {!chat.state.open && !chat.state.waiting && <ActionBar card={chat.card} busy={busy} onAct={act} />}
     </section>
   );
 }

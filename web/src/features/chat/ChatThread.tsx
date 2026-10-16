@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { haptic } from '../../shell/feel.ts';
 import { CHIP_LABELS } from './labels.ts';
 import type { Chat } from './useChat.ts';
@@ -8,6 +9,11 @@ import './chat.css';
 // while the sender is typing. Plain text only: an answer's link is words, never an anchor.
 export function ChatThread({ chat }: { chat: Chat }) {
   const { bubbles, waiting, failed } = chat.state;
+  const end = useRef<HTMLDivElement>(null);
+  // Each new bubble or the typing dots scroll into view, as a thread does.
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }, [bubbles.length, waiting]);
   if (bubbles.length === 0 && !failed) return null;
   return (
     <div className="chat" aria-live="polite">
@@ -30,6 +36,7 @@ export function ChatThread({ chat }: { chat: Chat }) {
           Not delivered. Tap your reply again.
         </p>
       )}
+      <div ref={end} aria-hidden="true" />
     </div>
   );
 }
@@ -37,7 +44,7 @@ export function ChatThread({ chat }: { chat: Chat }) {
 // The reply chips, as pills above the action bar, once Reply was tapped and exchanges are left.
 export function ReplyChips({ chat }: { chat: Chat }) {
   const { open, chips, waiting } = chat.state;
-  if (!open || chips.length === 0) return null;
+  if (!open || waiting || chips.length === 0) return null;
   const press = (chip: (typeof chips)[number]) => {
     haptic();
     chat.send(chip);
@@ -49,6 +56,9 @@ export function ReplyChips({ chat }: { chat: Chat }) {
           {CHIP_LABELS[chip]}
         </button>
       ))}
+      <button type="button" className="chat-chip chat-chip-quiet pressable" onClick={chat.close}>
+        Not now
+      </button>
     </div>
   );
 }

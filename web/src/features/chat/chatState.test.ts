@@ -15,7 +15,7 @@ test('Reply opens the chips twice; after two answers it is an ordinary pick', ()
   assert.equal(takesReply(INITIAL_CHAT, 'reply'), true);
   assert.equal(takesReply(INITIAL_CHAT, 'ignore'), false);
   const first = answered(sent(opened(INITIAL_CHAT), 'who_is_this'), result(1, false));
-  assert.equal(first.open, true);
+  assert.equal(first.open, false); // the decisions come back after each answer
   assert.equal(takesReply(first, 'reply'), true);
   const second = answered(sent(first, 'why_so_urgent'), result(2, true));
   assert.equal(second.open, false);

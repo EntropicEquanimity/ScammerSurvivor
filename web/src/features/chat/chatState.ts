@@ -25,6 +25,8 @@ export const takesReply = (state: ChatState, action: Action): boolean => action 
 
 export const opened = (state: ChatState): ChatState => ({ ...state, open: true, failed: false });
 
+export const closed = (state: ChatState): ChatState => ({ ...state, open: false });
+
 export const sent = (state: ChatState, chip: ChatChipId): ChatState => ({
   ...state,
   bubbles: [...state.bubbles, { id: `me-${state.exchanges + 1}`, from: 'player', text: CHIP_LABELS[chip] }],
@@ -36,7 +38,7 @@ export const answered = (state: ChatState, result: ChatReplyResult): ChatState =
   ...state,
   bubbles: [...state.bubbles, { id: result.message.id, from: 'sender', text: result.message.text }],
   chips: result.chips,
-  open: !result.final,
+  open: false, // the answer is on screen: the decisions come back, Reply goes on
   waiting: false,
   offered: result.offered,
   exchanges: state.exchanges + 1,
