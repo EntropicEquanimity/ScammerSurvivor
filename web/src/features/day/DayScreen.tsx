@@ -5,6 +5,8 @@ import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { CallScreen } from '../call/CallScreen.tsx';
 import { ActionBar } from '../card/ActionBar.tsx';
+import { ChatThread, ReplyChips } from '../chat/ChatThread.tsx';
+import { useChat } from '../chat/useChat.ts';
 import { AppHeader } from '../card/AppHeader.tsx';
 import { TellPicker } from '../card/TellPicker.tsx';
 import { MessageView } from '../layouts/MessageView.tsx';
@@ -70,6 +72,7 @@ function LoadFailed({ onRetry }: { onRetry: () => void }) {
 }
 
 interface CardStepProps {
+  dayId: string;
   card: PublicCard;
   busy: boolean;
   failed: boolean;
@@ -81,7 +84,11 @@ interface CardStepProps {
 // The made-up app, full screen: it owns the status region (its colour runs behind the time), then
 // its header, the thread in that app's look, and the buttons in a bar pinned at the bottom. One tap
 // on a button acts.
-function CardStep({ card, busy, failed, trace, personalised, onAct }: CardStepProps) {
+function CardStep({ dayId, card, busy, failed, trace, personalised, onAct }: CardStepProps) {
+  const chat = useChat(dayId, card);
+  const act = (action: Action) => {
+    if (!chat.onAction(action)) onAct(action);
+  };
   const colour = { '--app-colour': appLookFor(card.layout).colour } as CSSProperties;
   return (
     <section className="app anim-zoom" data-look={card.layout} style={colour}>
@@ -90,13 +97,15 @@ function CardStep({ card, busy, failed, trace, personalised, onAct }: CardStepPr
       <SpeedBar key={card.slotId} />
       <div className="app-body scroll">
         <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
+        <ChatThread chat={chat} />
         {failed && (
           <p className="plain-note" role="alert">
             Your choice did not go through. Tap it again.
           </p>
         )}
       </div>
-      <ActionBar card={card} busy={busy} onAct={onAct} />
+      <ReplyChips chat={chat} />
+      <ActionBar card={chat.card} busy={busy || chat.state.waiting} onAct={act} />
     </section>
   );
 }
@@ -123,7 +132,7 @@ function slotScreen(d: Day, step: Step) {
     );
   }
   if (phase.kind === 'card' && card) {
-    return <CardStep card={card} busy={d.busy} failed={d.failed} trace={d.trace} personalised={d.personalised} onAct={d.act} />;
+    return <CardStep dayId={day.dayId} card={card} busy={d.busy} failed={d.failed} trace={d.trace} personalised={d.personalised} onAct={d.act} />;
   }
   if (phase.kind === 'tells' && card) return <TellPicker key={card.slotId} card={card} busy={d.busy} failed={d.failed} onDone={d.tap} />;
   return null;
