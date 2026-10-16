@@ -44,6 +44,8 @@ const rewriteTarget = (state: PersonalState, from: string): StoredSlot | undefin
   return order.find((slot) => !slot.isTwin && !slot.action && !state.opened.includes(slot.slotId));
 };
 
+// ponytail: a deal-time personalisation job and this rewrite can land on the same slot; the last to
+// finish wins. A per-slot pending flag is the upgrade if it shows up in play.
 // One Director job, only on an adult full day (the quick day and under 18 never reach a model),
 // only when a new leak has a token the rewrite can use.
 function planRewrite(state: PersonalState, from: string, fresh: FieldId[], deps: PageDeps): Job | null {
