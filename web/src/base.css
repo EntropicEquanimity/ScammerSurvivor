@@ -11,6 +11,9 @@
   --notice: #9a5b13;
   --glass: rgba(255, 255, 255, 0.62);
   --glass-strong: rgba(255, 255, 255, 0.82);
+  /* A bar over the wallpaper: iOS material hints at what is behind, never shows its shapes. */
+  --glass-bar: rgba(255, 255, 255, 0.9);
+  --glass-bar-blur: 30px;
   --glass-dark: rgba(28, 32, 39, 0.55);
   --glass-line: rgba(255, 255, 255, 0.7);
   --glass-blur: 22px;
