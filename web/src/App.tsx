@@ -8,9 +8,8 @@ import AboutPage from './features/about/About.tsx';
 import { JudgeLab } from './features/lab/JudgeLab.tsx';
 import { JoinBanner } from './features/room/JoinBanner.tsx';
 import { RoomPage } from './features/room/RoomPage.tsx';
-import { getRoom, joinCodeOf, setRoom } from './features/room/api.ts';
+import { joinCodeOf, setRoom } from './features/room/api.ts';
 import { SetupScreen } from './features/setup/SetupScreen.tsx';
-import { peopleAsked } from './features/setup/storage.ts';
 import { FirstOpen } from './shell/FirstOpen.tsx';
 import { HomeScreen } from './shell/HomeScreen.tsx';
 import { PracticeProgress } from './shell/PhoneTools.tsx';
@@ -106,18 +105,16 @@ interface ScreenProps {
   age: AgeGroup | null;
   country: string | null;
   choosing: boolean;
-  asked: boolean;
   unlocked: boolean;
   quick: boolean;
   packs: PackSummary[];
   lock: ReactElement; // built by App, which alone owns the lock screen's state
-  onAsked: () => void;
   onPlay: (quick: boolean) => void;
   onChangeCountry: () => void;
 }
 
 // The route switch, one screen per hash.
-function Screen({ route, age, country, choosing, asked, unlocked, quick, packs, lock, onAsked, onPlay, onChangeCountry }: ScreenProps) {
+function Screen({ route, age, country, choosing, unlocked, quick, packs, lock, onPlay, onChangeCountry }: ScreenProps) {
   if (route === '#/privacy') return <PrivacyNotice t={STRINGS.en} />;
   if (route === '#/about') return <About />;
   if (!age || !country || choosing) return lock;
@@ -125,11 +122,11 @@ function Screen({ route, age, country, choosing, asked, unlocked, quick, packs, 
   const room = roomRouteOf(route);
   if (room) return <RoomPage country={country} age={age} roomId={room.roomId} />;
   if (route === '#/progress') return <PracticeProgress />;
+  // "Choose your people" on the home widget opens the picker; Done or Skip goes back home.
+  if (route === '#/people') return <SetupScreen onDone={() => { window.location.hash = '#/'; }} />;
   if (route === '#/day') {
-    // Only an adult day is personalised, so younger players are never asked to pick people.
-    // A room day is the room's day, not personalised, so the picker is skipped there too.
+    // Play goes straight into the day: the server fills neutral names for anyone not picked.
     // The practice call is an adult step (rule 9): without onCall the day never enters the call phase.
-    if (!asked && age === 'adult' && !getRoom()) return <SetupScreen onDone={onAsked} />;
     return (
       <>
         <JoinBanner />
@@ -164,8 +161,6 @@ export function App() {
   // The lock screen stays until the swipe up, every visit, the way the phone does. #/day has its own lock.
   const [unlocked, setUnlocked] = useState(false);
   const [quick, setQuick] = useState(false);
-  // "Make it your phone" shows once per device, before the first day; Skip counts as asked.
-  const [asked, setAsked] = useState(peopleAsked);
   const route = useHashRoute();
   const packs = usePacks();
 
@@ -198,12 +193,10 @@ export function App() {
         age={age}
         country={country}
         choosing={choosing}
-        asked={asked}
         unlocked={unlocked}
         quick={quick}
         packs={packs}
         lock={lock}
-        onAsked={() => setAsked(true)}
         onPlay={play}
         onChangeCountry={openChooser}
       />

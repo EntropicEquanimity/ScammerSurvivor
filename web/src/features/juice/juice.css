@@ -161,6 +161,35 @@
   100% { transform: translate(var(--dx), var(--dy)) scale(0.5); opacity: 0.9; }
 }
 
+/* The speed tag inside the flying points, the quiz-show word for a fast right call. */
+.juice-speed {
+  margin-left: 0.375rem;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--accent);
+  font-size: var(--t11, 0.6875rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  vertical-align: 0.15em;
+}
+
+/* The speed bonus left on the open card: a slim accent bar in flow under the app header, so it
+   pushes the thread down by its height and never sits over text. SpeedBar sets the scale. */
+.speed-bar {
+  flex: none;
+  height: 3px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.speed-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left center;
+  transition: transform 100ms linear;
+}
+
 /* A bad decision: the phone shakes and a red vignette washes over it. */
 .phone.juice-bad {
   animation: phone-shake 380ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
@@ -191,15 +220,23 @@
 }
 
 /* The reduced-motion twins: nothing moves or scales; every change cross-fades in place. The points
-   land in the counter at once (useJuice skips the flight), the red fades without the shake, the
+   show and fade where they were earned, the speed bar steps once a second, the red fades without the shake, the
    fill steps to its new share while the chunk for the change fades out. */
 @media (prefers-reduced-motion: reduce) {
-  .juice-points { display: none; }
+  .juice-points { animation: points-still 650ms ease-out forwards; }
+  .speed-bar-fill { transition: none; }
   .phone.juice-bad { animation: none; }
   .score-hud[data-bump] { animation: hud-glow 300ms ease-out; }
   .game-hud-combo { animation: juice-fade-in 300ms ease-out; }
   .wallet-bar-fill { transition: background-color 300ms ease-out; }
   .wallet-bar-chunk[data-kind='drain'] { animation: chunk-fade-red 700ms ease-out forwards; }
+}
+
+/* The points show where they were earned and fade; they never travel. */
+@keyframes points-still {
+  0% { opacity: 0; }
+  20%, 70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 @keyframes hud-glow {

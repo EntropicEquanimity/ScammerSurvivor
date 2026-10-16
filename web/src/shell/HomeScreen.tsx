@@ -78,12 +78,13 @@ interface WidgetProps {
   name: string;
   onPlay: (event: Tap, quick: boolean) => void;
   onChange: (event: Tap) => void;
+  onPeople: (event: Tap) => void;
   playRef: RefObject<HTMLButtonElement | null>;
 }
 
 // One medium widget is the only way to start: the day, the boss you keep missing, Play, and a
 // quieter Quick day. The country lives on the widget so nothing else on the home looks like a form.
-function DayWidget({ name, onPlay, onChange, playRef }: WidgetProps) {
+function DayWidget({ name, onPlay, onChange, onPeople, playRef }: WidgetProps) {
   const boss = pickBoss(readTally());
   return (
     <div className="widgets widgets-one">
@@ -93,6 +94,7 @@ function DayWidget({ name, onPlay, onChange, playRef }: WidgetProps) {
             <ScreenTitle className="widget-title">Your practice day</ScreenTitle>
             <p className="widget-line">{boss ? `Boss: ${TELLS[boss].label}` : 'Messages arrive. Spot the scams.'}</p>
             <button type="button" className="widget-country pressable" onClick={onChange}>{name}</button>
+            <button type="button" className="widget-country pressable" style={{ textAlign: 'left' }} onClick={onPeople}>Choose your people</button>
           </div>
           <div className="widget-day-actions">
             <button ref={playRef} type="button" className="btn btn-primary pressable" onClick={(event) => onPlay(event, false)}>Play</button>
@@ -177,10 +179,15 @@ export function HomeScreen({ country, pack, onPlay, onChangeCountry, onOpenApp }
     feel(event);
     onChangeCountry();
   };
+  // The people scammers would pretend to be: optional, since Play fills neutral names.
+  const people = (event: Tap) => {
+    feel(event);
+    window.location.hash = '#/people';
+  };
   const tiles = APP_ARTS.length + 2;
   return (
     <section className="page home">
-      <DayWidget name={name} onPlay={play} onChange={change} playRef={playRef} />
+      <DayWidget name={name} onPlay={play} onChange={change} onPeople={people} playRef={playRef} />
       <AppGrid packLayouts={layouts} onOpenApp={openApp} />
       <Dock packLayouts={layouts} onOpenApp={openApp} first={tiles + 2} />
     </section>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pointsFor } from '../../../../shared/points.ts';
+import type { SpeedTag } from '../../../../shared/points.ts';
 import type { SlotResult } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
 import { multiplierFor, nextStreak } from './streak.ts';
@@ -8,6 +9,7 @@ import './juice.css';
 export interface Flight {
   id: number;
   amount: number;
+  speed?: SpeedTag; // a right call made fast: the small tag beside the number
   from: { x: number; y: number };
   to: { x: number; y: number };
 }
@@ -15,13 +17,20 @@ export interface Flight {
 const FLIGHT_MS = 650;
 const BAD_MS = 420;
 
-const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 // The phone is the containing block for fixed children (its container-type), so a flight is placed
 // in the phone's own coordinates: on desktop the device frame sits centred in the window.
 const centreIn = (rect: DOMRect, phone: DOMRect | undefined) => ({
   x: rect.left + rect.width / 2 - (phone?.left ?? 0),
   y: rect.top + rect.height / 2 - (phone?.top ?? 0),
+});
+
+// ponytail: a fixed half-width for the widest chip ("+400 lightning"); measure the chip if it grows.
+const CHIP_HALF = 96;
+
+// The points start where they were earned but never past the phone's edge, so the speed tag reads.
+const insidePhone = (point: { x: number; y: number }, phone: DOMRect | undefined) => ({
+  ...point,
+  x: phone ? Math.min(Math.max(point.x, CHIP_HALF), phone.width - CHIP_HALF) : point.x,
 });
 
 function shake(): void {
@@ -48,8 +57,9 @@ export function useJuice() {
     setBump((b) => b + 1);
   }, []);
 
-  const reward = useCallback((result: SlotResult, origin?: Element | null) => {
-    const base = pointsFor(result);
+  // decisionMs is how long the player took to act on the card; it scales the decision's points.
+  const reward = useCallback((result: SlotResult, origin?: Element | null, decisionMs?: number) => {
+    const base = pointsFor(result, decisionMs);
     const next = nextStreak(streakNow.current, base.good);
     streakNow.current = next;
     setStreak(next);
@@ -59,13 +69,13 @@ export function useJuice() {
     if (delta <= 0) return;
     const target = hud.current?.getBoundingClientRect();
     const start = origin?.getBoundingClientRect();
-    if (!target || !start || start.width === 0 || reducedMotion()) {
+    if (!target || !start || start.width === 0) {
       land(delta);
       return;
     }
     const phone = document.querySelector('.phone')?.getBoundingClientRect();
     const id = ++seq.current;
-    const flight: Flight = { id, amount: delta, from: centreIn(start, phone), to: centreIn(target, phone) };
+    const flight: Flight = { id, amount: delta, speed: base.speed, from: insidePhone(centreIn(start, phone), phone), to: centreIn(target, phone) };
     setFlights((list) => [...list, flight]);
     window.setTimeout(() => {
       setFlights((list) => list.filter((f) => f.id !== id));
@@ -108,6 +118,7 @@ export function FlyingPoints({ flights }: { flights: Flight[] }) {
           }}
         >
           +{f.amount}
+          {f.speed && <span className="juice-speed">{f.speed}</span>}
         </span>
       ))}
     </div>

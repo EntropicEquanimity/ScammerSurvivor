@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useRef } from 'react';
 import type { CSSProperties, ComponentType } from 'react';
 import type { Action, AgeGroup, PublicCard, RecoverResult, SlotResult, TraceEvent } from '../../../../shared/types.ts';
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
@@ -11,6 +11,8 @@ import { MessageView } from '../layouts/MessageView.tsx';
 import { Lesson, RealNote } from '../lesson/Lesson.tsx';
 import { GameHud } from '../juice/GameHud.tsx';
 import { FlyingPoints, useJuice } from '../juice/Juice.tsx';
+import { SpeedBar } from '../juice/SpeedBar.tsx';
+import { clockMs } from '../juice/speedClock.ts';
 import { EndOfDay } from './EndOfDay.tsx';
 import { Notifications } from './Notifications.tsx';
 import { appLookFor } from './appNames.ts';
@@ -85,6 +87,7 @@ function CardStep({ card, busy, failed, trace, personalised, onAct }: CardStepPr
     <section className="app anim-zoom" data-look={card.layout} style={colour}>
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} trace={trace} personalised={personalised} />
+      <SpeedBar key={card.slotId} />
       <div className="app-body scroll">
         <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
         {failed && (
@@ -144,9 +147,15 @@ function DayHud({ d, juice }: { d: Day; juice: ReturnType<typeof useJuice> }) {
 export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
   const gate = useCallGate(Boolean(onCall));
   const juice = useJuice();
+  // The decision time, read when the player taps an action on the card, before the request goes out.
+  const decisionMs = useRef<number | undefined>(undefined);
   // The points fly from the button that scored the slot: the tell picker's Done.
-  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .nav button'));
+  const onResult = (result: SlotResult) => juice.reward(result, document.querySelector('.tells .nav button'), decisionMs.current);
   const d = useDay(country, age, quick, { canRecover: Recovery !== null, onCall: gate.onCall, onResult });
+  const act = (action: Action) => {
+    decisionMs.current = clockMs();
+    d.act(action);
+  };
   const step = { busy: d.busy, failed: d.failed, onNext: d.next };
   const { phase } = d;
   const slotId = 'slotId' in phase ? phase.slotId : null;
@@ -177,7 +186,7 @@ export function DayScreen({ country, age, quick, onDone, onCall }: Props) {
         />
       );
     }
-    return slotScreen(d, step) ?? <Notifications cards={d.remaining} wallet={d.wallet} people={d.people} onOpen={d.open} />;
+    return slotScreen({ ...d, act }, step) ?? <Notifications cards={d.remaining} wallet={d.wallet} people={d.people} onOpen={d.open} />;
   };
 
   return (
