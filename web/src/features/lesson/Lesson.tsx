@@ -115,7 +115,7 @@ export function RealNote({ card, result, busy, failed, onNext, trace, personalis
       <div className="app-body scroll" aria-live="polite">
         {/* The message is settled here, so its timer holds still. */}
         <ClueClockStopped.Provider value>
-          <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
+          <MessageView history={card.history} sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
         </ClueClockStopped.Provider>
         <div className="real-note">
           <p className="real-note-title">{lessonTitle(result, getPeople())}</p>

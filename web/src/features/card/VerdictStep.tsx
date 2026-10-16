@@ -27,7 +27,7 @@ export function VerdictStep({ card, onPick }: Props) {
       <ScreenTitle className="visually-hidden">Scam or real?</ScreenTitle>
       <AppHeader card={card} />
       <div className="app-body scroll">
-        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
+        <MessageView history={card.history} sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
       </div>
       <div className="actions">
         <p className="verdict-question" id={`verdict-${card.slotId}`}>Is this a scam?</p>

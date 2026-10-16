@@ -57,7 +57,7 @@ function Flags({ card, busy, failed, verdict, onDone }: Omit<Props, 'onDone'> & 
       {timed && <SpeedBar />}
       <div className="page-body scroll">
         <p className="tells-hint">{HINT[verdict]}</p>
-        <MessageView clues={card.clues} sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} layout={card.layout} bannerHint={card.bannerHint} hideSender tap={{ pressed, onToggle: toggle }} />
+        <MessageView history={card.history} clues={card.clues} sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} layout={card.layout} bannerHint={card.bannerHint} hideSender tap={{ pressed, onToggle: toggle }} />
         {/* The page the link opened: its lines can carry tells too. */}
         {card.page && card.page.lines.length > 0 && <PageTells page={card.page} tap={{ pressed, onToggle: toggle }} />}
         {failed && (

@@ -121,7 +121,7 @@ function CardStep({ dayId, card, busy, failed, trace, personalised, typed, onAct
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} trace={trace} personalised={personalised} />
       <div className="app-body scroll">
-        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
+        <MessageView history={card.history} sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} bannerHint={card.bannerHint} clues={card.clues} />
         <ChatThread chat={chat} />
         {failed && (
           <p className="plain-note" role="alert">

@@ -151,6 +151,8 @@ function toPublic(card: Card, isTwin: boolean, slotId: string, arrivesAt: string
     arrivesAt,
     bannerHint,
     ...publicClues(groundedClues(isTwin ? card.realTwin.clues : card.clues, [...setup, ...ask])),
+    // The shown side's earlier days of chat (the rapport arc), when the card has them.
+    ...((isTwin ? card.twinHistory : card.history) ? { history: isTwin ? card.twinHistory : card.history } : {}),
     ...withPage(card, isTwin, (page) => ({ page: publicPage(page) })),
   };
 }
