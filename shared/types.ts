@@ -1,3 +1,4 @@
+import type { Clue } from './clues.ts';
 // The data model from docs/build-plan.md section 5, plus the public and scoring
 // shapes the browser and the day routes share. Answer-key fields never leave
 // the server: see PublicCard.
@@ -133,7 +134,8 @@ export interface Card {
   neverAsks: string; // "A courier never asks for ..." line, shown in the lesson
   stake: number; // wallet amount at risk, in the pack's currency
   plantedTells: TellId[]; // union of ask part tells; answer key, server only
-  realTwin: { sender: Card['sender']; parts: MessagePart[]; acceptable: Action[] };
+  realTwin: { sender: Card['sender']; parts: MessagePart[]; acceptable: Action[]; clues?: Clue[] };
+  clues?: Clue[]; // inspectable objects on the scam's parts (shared/clues.ts); optional, old cards have none
   callBeats?: { tellId: TellId; instruction: string; fallbackLine: string }[];
   language: 'en';
   approved: boolean;
@@ -205,6 +207,7 @@ export interface PublicCard {
   stake: number; // wallet amount at risk, shown in the stakes bar
   arrivesAt: string; // day clock label such as '08:10', decorative
   bannerHint?: 'likely_scam' | null; // a system banner like the ones phones show; a hint, sometimes wrong, never proof
+  clues?: Clue[]; // the shown side's clues, scam or twin alike
 }
 
 // The practice call. Beats are written by the Director at build time, voiced by TTS,
