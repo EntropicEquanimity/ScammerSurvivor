@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { pointsFor } from '../../../../shared/points.ts';
-import type { SpeedTag } from '../../../../shared/points.ts';
+import { partsFor, sumParts } from '../../../../shared/points.ts';
+import type { SlotPoints, SpeedTag } from '../../../../shared/points.ts';
 import type { SlotResult } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
 import { multiplierFor, nextStreak } from './streak.ts';
@@ -54,6 +54,7 @@ export function useJuice() {
   const [bump, setBump] = useState(0);
   const [streak, setStreak] = useState(0);
   const [flights, setFlights] = useState<Flight[]>([]);
+  const [slots, setSlots] = useState<SlotPoints[]>([]); // what each slot scored, for the end screen's breakdown
   const hud = useRef<HTMLSpanElement>(null);
   const streakNow = useRef(0); // read synchronously inside reward; the state mirrors it for render
   const seq = useRef(0);
@@ -65,13 +66,16 @@ export function useJuice() {
 
   // correctTapMs: the time to each mark that held a tell, from the tell picker opening (speedClock.ts).
   const reward = useCallback((result: SlotResult, origin?: Element | null, correctTapMs: readonly number[] = []) => {
-    const base = pointsFor(result, correctTapMs);
-    const next = nextStreak(streakNow.current, base.good);
+    const { speedTag, ...parts } = partsFor(result, correctTapMs);
+    const good = result.actionCorrect;
+    const next = nextStreak(streakNow.current, good);
     streakNow.current = next;
     setStreak(next);
-    haptic(base.good ? 12 : 40);
-    if (!base.good) shake();
-    const delta = base.delta * multiplierFor(next);
+    const mult = multiplierFor(next);
+    setSlots((list) => [...list.filter((s) => s.slotId !== result.slotId), { slotId: result.slotId, parts, mult }]);
+    haptic(good ? 12 : 40);
+    if (!good) shake();
+    const delta = sumParts(parts) * mult;
     if (delta <= 0) return;
     const target = hud.current?.getBoundingClientRect();
     const start = origin?.getBoundingClientRect();
@@ -81,7 +85,7 @@ export function useJuice() {
     }
     const phone = document.querySelector('.phone')?.getBoundingClientRect();
     const id = ++seq.current;
-    const flight: Flight = { id, amount: delta, speed: base.speed, from: insidePhone(centreIn(start, phone), phone), to: insidePhone(centreIn(target, phone), phone) };
+    const flight: Flight = { id, amount: delta, speed: speedTag, from: insidePhone(centreIn(start, phone), phone), to: insidePhone(centreIn(target, phone), phone) };
     setFlights((list) => [...list, flight]);
     window.setTimeout(() => {
       setFlights((list) => list.filter((f) => f.id !== id));
@@ -89,7 +93,7 @@ export function useJuice() {
     }, FLIGHT_MS);
   }, [land]);
 
-  return { score, bump, streak, flights, hud, reward };
+  return { score, bump, streak, flights, hud, reward, slots };
 }
 
 // The counting number. It counts up to the score in small steps, and pops on every landing.

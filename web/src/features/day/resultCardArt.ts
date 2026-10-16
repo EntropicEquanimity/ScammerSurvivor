@@ -8,6 +8,8 @@ export interface CardText {
   bigLabel: string;
   tiles: { value: string; label: string }[];
   watch: string;
+  stars?: number; // 1 to 3, drawn as a row of stars over the score
+  rank?: string; // the day's rank title, under the score
 }
 
 const W = 1080;
@@ -77,14 +79,43 @@ function drawTiles(ctx: CanvasRenderingContext2D, tiles: CardText['tiles'], top:
   });
 }
 
+const GOLD = '#ffcc00'; // systemYellow, the end screen's star
+const STAR_R = 46;
+
+// A five-point star centred on x, y, filled gold when earned and a faint white when not.
+function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, earned: boolean): void {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i += 1) {
+    const r = i % 2 === 0 ? STAR_R : STAR_R * 0.45;
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
+  ctx.closePath();
+  ctx.fillStyle = earned ? GOLD : 'rgba(255, 255, 255, 0.22)';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawStars(ctx: CanvasRenderingContext2D, stars: number, y: number): void {
+  const gap = STAR_R * 2 + 28;
+  [0, 1, 2].forEach((i) => drawStar(ctx, W / 2 + (i - 1) * gap, y, i < stars));
+}
+
+// With stars and a rank the score block moves down to make room; without, the old layout.
 export async function drawCard(ctx: CanvasRenderingContext2D, card: CardText): Promise<void> {
   drawBackground(ctx, await loadImage(BACKGROUND).catch(() => null));
   ctx.textBaseline = 'top';
   ctx.textAlign = 'center';
-  text(ctx, card.product, W / 2, 132, 72, 800, WHITE);
-  text(ctx, card.day, W / 2, 236, 46, 600, SOFT);
-  text(ctx, card.big, W / 2, 360, 240, 800, WHITE);
-  text(ctx, card.bigLabel, W / 2, 640, 44, 600, SOFT);
+  text(ctx, card.product, W / 2, 112, 72, 800, WHITE);
+  text(ctx, card.day, W / 2, 210, 46, 600, SOFT);
+  if (card.stars !== undefined) drawStars(ctx, card.stars, 330);
+  const top = card.stars !== undefined ? 396 : 360;
+  text(ctx, card.big, W / 2, top, card.rank ? 210 : 240, 800, WHITE);
+  text(ctx, card.bigLabel, W / 2, top + (card.rank ? 220 : 280), 44, 600, SOFT);
+  if (card.rank) text(ctx, card.rank, W / 2, top + 284, 60, 800, WHITE);
   drawTiles(ctx, card.tiles, 780);
   ctx.textAlign = 'center';
   text(ctx, card.watch, W / 2, 1080, 42, 600, WHITE);

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { recordDay } from '../../shell/progress.ts';
 import type { CSSProperties, ReactNode } from 'react';
 import { addMisses, bossOutcome, pickBoss, readTally, saveTally } from '../../../../shared/boss.ts';
+import { breakdown, dayStars, slotTotal } from '../../../../shared/points.ts';
+import type { SlotPoints } from '../../../../shared/points.ts';
 import { TELLS } from '../../../../shared/taxonomy.ts';
 import type { AgeGroup, DayScore, SlotResult, TellId } from '../../../../shared/types.ts';
 import { NavBar } from '../../shell/PhoneTools.tsx';
@@ -9,9 +11,13 @@ import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { HotlineGroup } from '../lesson/LessonGroups.tsx';
 import { ResultCard } from './ResultCard.tsx';
+import { ScoreBars } from './ScoreBars.tsx';
+import { ScoreReveal } from './ScoreReveal.tsx';
+import { recordBest } from './best.ts';
 import { moneyIn } from './currency.ts';
 import { ledgerFrom } from './ledger.ts';
 import type { TellInfo } from './useDay.ts';
+import { REVEAL, useCountUp } from './useReveal.ts';
 import './end.css';
 
 interface Props {
@@ -26,7 +32,8 @@ interface Props {
   senders?: Record<string, string>; // slotId to display name; falls back to the sender the lesson shows
   dayId?: string;
   hotline?: SlotResult['lesson']['hotline']; // the pack's hotline; falls back to the first lesson's
-  points?: number; // the day's game points for the result card; DayScreen passes points={juice.score}
+  points?: number; // the day's game points (juice.score), used when the slots are missing
+  slots?: SlotPoints[]; // what each slot scored (juice.slots): the breakdown, the row points and the total
   country?: string; // the pack, for the currency code on every amount (currency.ts)
 }
 
@@ -66,28 +73,6 @@ function BossRow({ dayId, results, rows }: { dayId?: string; results: SlotResult
 }
 
 const ROW_STAGGER_MS = 60; // matches --row-stagger in end.css
-const COUNT_MS = 600;
-const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// Counts 0 to `to` with requestAnimationFrame once `delay` has passed; under reduced motion the
-// figure is final from the first frame and the footnote only fades (end.css).
-// ponytail: a twin of useCount in StakesBar.tsx, which is not exported; lift it when a third reader appears.
-function useCountUp(to: number, delay: number): number {
-  const [shown, setShown] = useState(() => (reducedMotion() ? to : 0));
-  useEffect(() => {
-    if (reducedMotion()) return undefined;
-    let frame = 0;
-    const start = performance.now() + delay;
-    const tick = (now: number) => {
-      const p = Math.min(1, Math.max(0, (now - start) / COUNT_MS));
-      setShown(Math.round(to * (1 - (1 - p) ** 3)));
-      if (p < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [to, delay]);
-  return shown;
-}
 
 // The real messages checked by a call: handled, but not trusted (shared/score.ts scoreDay).
 export const checkedOf = (results: readonly SlotResult[]): number => results.filter((r) => !r.isScam && r.cautious).length;
@@ -101,7 +86,7 @@ const verdictsOf = (results: readonly SlotResult[]): { right: number; asked: num
 // The rates and the wallet, counting up once the last row has landed.
 function RatesNote({ score, results, money }: { score: DayScore; results: SlotResult[]; money: (n: number) => string }) {
   const rows = results.length;
-  const delay = rows * ROW_STAGGER_MS + 360;
+  const delay = REVEAL.barsAt + rows * ROW_STAGGER_MS + 360;
   const caught = useCountUp(score.scamsCaught.handled, delay);
   const trusted = useCountUp(score.realTrusted.handled, delay);
   const wallet = useCountUp(score.wallet, delay);
@@ -119,20 +104,27 @@ function RatesNote({ score, results, money }: { score: DayScore; results: SlotRe
   );
 }
 
-function Ledger({ results, senders, score, money }: { results: SlotResult[]; senders: Record<string, string>; score: DayScore; money: (n: number) => string }) {
+interface LedgerProps {
+  results: SlotResult[];
+  senders: Record<string, string>;
+  score: DayScore;
+  money: (n: number) => string;
+  earned: Record<string, number>; // slotId to the points the row earned, when the slots are known
+}
+
+function Ledger({ results, senders, score, money, earned }: LedgerProps) {
   const ledger = ledgerFrom(results, senders, { wallet: score.walletStart, people: score.peopleStart, money });
   if (ledger.rows.length === 0) return null;
   return (
     <InsetGroup header="Your day">
       {ledger.rows.map((row, i) => (
         <li key={row.slotId} className="inset-row inset-body ledger-row" style={{ '--i': i } as CSSProperties}>
-          <span className="ledger-head">
-            <span className="ledger-verdict">{row.sender}</span>
-            <span className={row.right ? 'ledger-tag ledger-tag-right' : 'ledger-tag ledger-tag-wrong'}>
-              {row.kind} {row.right ? '✓' : '✗'}
-            </span>
-          </span>
+          <span className="ledger-verdict">{row.sender}</span>
+          {row.slotId in earned && <span className={earned[row.slotId] > 0 ? 'ledger-points' : 'ledger-points ledger-points-none'}>{earned[row.slotId] > 0 ? `+${earned[row.slotId].toLocaleString('en')}` : '0'}</span>}
           <span className="ledger-sentence">{row.sentence}</span>
+          <span className={row.right ? 'ledger-tag ledger-tag-right' : 'ledger-tag ledger-tag-wrong'}>
+            {row.kind} {row.right ? '✓' : '✗'}
+          </span>
         </li>
       ))}
     </InsetGroup>
@@ -207,9 +199,24 @@ function InstallNudge() {
 // the hotline once, the tell to watch, the result card sliding up last, and the install nudge.
 // Sign-in is cut (AGENTS.md: no Firebase Authentication), so nothing stands in for it; `age`
 // stays in the props for the day the under-18 screen differs.
-export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline, points, country }: Props) {
+// The day's total, its stars and rank, and the best it is measured against, worked out once.
+function useResult(score: DayScore, results: SlotResult[], slots: SlotPoints[], points: number | undefined, dayId: string | undefined) {
+  const parts = slots.length > 0 ? breakdown(slots) : null;
+  const total = parts?.total ?? points ?? 0;
+  const day = dayStars(results, score.wallet >= score.walletStart);
+  const [best] = useState(() => recordBest(total, dayId ?? null));
+  const earned = Object.fromEntries(slots.map((s) => [s.slotId, slotTotal(s)]));
+  return { parts, total, day, best, earned };
+}
+
+// "Play tomorrow" after a new best or before any; otherwise the number to beat.
+const playLabel = (best: { isNew: boolean; best: number }): string =>
+  best.isNew || best.best <= 0 ? 'Play tomorrow' : `Play again to beat ${best.best.toLocaleString('en')}`;
+
+export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline, points, slots = [], country }: Props) {
   const money = (amount: number): string => moneyIn(amount, country ?? null);
   const [dayNumber] = useState(() => countDay(dayId));
+  const { parts, total, day, best, earned } = useResult(score, results, slots, points, dayId);
   const hotline = packHotline ?? results[0]?.lesson.hotline;
   const play = () => {
     haptic();
@@ -219,18 +226,20 @@ export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders =
     <section className="page-full end anim-sheet">
       <div className="page-body scroll">
         <NavBar title="Day over" />
-        <Ledger results={results} senders={senders} score={score} money={money} />
+        <ScoreReveal total={total} day={day} best={best} />
+        {parts && <ScoreBars points={parts} />}
+        <Ledger results={results} senders={senders} score={score} money={money} earned={earned} />
         <RatesNote score={score} results={results} money={money} />
         {hotline && <HotlineGroup hotline={hotline} />}
         <MostMissed score={score} tells={tells} boss={<BossRow dayId={dayId} results={results} rows={results.length} />} />
         <div className="result-card-slot" style={{ '--n': results.length } as CSSProperties}>
-          <ResultCard score={score} dayNumber={dayNumber} tells={tells} points={points} checked={checkedOf(results)} />
+          <ResultCard score={score} dayNumber={dayNumber} tells={tells} points={total} stars={day.stars} rank={day.rank} checked={checkedOf(results)} />
         </div>
         <InstallNudge />
       </div>
       <div className="end-foot">
         <button type="button" className="btn btn-primary pressable" onClick={play}>
-          Play tomorrow
+          {playLabel(best)}
         </button>
       </div>
     </section>

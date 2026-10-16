@@ -15,6 +15,8 @@ interface Props {
   tells: TellInfo;
   points?: number; // the day's game points; without them the card leads with the share handled safely
   checked?: number; // real messages checked by a call: safe, so they count in the day line, but not as trusted
+  stars?: number; // 1 to 3, shared/points.ts dayStars
+  rank?: string; // the day's rank title, from the same
 }
 
 const W = 1080;
@@ -23,7 +25,7 @@ const PRODUCT = 'Scammer Survivor';
 const fraction = (t: Tally): string => `${t.handled} of ${t.total}`;
 
 // The words on the card, from the score alone. Exported for the caption and kept pure.
-export function cardText({ score, dayNumber, tells, points, checked = 0 }: Props): CardText {
+export function cardText({ score, dayNumber, tells, points, checked = 0, stars, rank }: Props): CardText {
   const safe = score.scamsCaught.handled + score.realTrusted.handled + checked;
   const total = score.scamsCaught.total + score.realTrusted.total;
   const missed = score.tellMostMissed;
@@ -39,6 +41,8 @@ export function cardText({ score, dayNumber, tells, points, checked = 0 }: Props
       { value: fraction(score.realTrusted), label: 'Real ones trusted' },
     ],
     watch: missedLabel ? `Watch for: ${missedLabel.toLowerCase()}` : 'No red flag got past you',
+    ...(stars !== undefined && { stars }),
+    ...(rank && { rank }),
   };
 }
 
@@ -55,16 +59,17 @@ async function render(props: Props): Promise<string> {
 // ponytail: rendered once per mount into a data URL; a page that renders many cards would want a blob URL.
 export function ResultCard(props: Props) {
   const [src, setSrc] = useState('');
-  const { score, dayNumber, tells, points, checked } = props;
+  const { score, dayNumber, tells, points, checked, stars, rank } = props;
   useEffect(() => {
     let current = true;
-    render({ score, dayNumber, tells, points, checked }).then((url) => current && setSrc(url), () => undefined);
+    render({ score, dayNumber, tells, points, checked, stars, rank }).then((url) => current && setSrc(url), () => undefined);
     return () => {
       current = false;
     };
-  }, [score, dayNumber, tells, points, checked]);
+  }, [score, dayNumber, tells, points, checked, stars, rank]);
   const text = cardText(props);
-  const caption = `${PRODUCT}, ${text.day}. ${text.big} ${text.bigLabel}. Scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
+  const earned = text.stars !== undefined ? ` ${text.stars} of 3 stars${text.rank ? `, ${text.rank}` : ''}.` : '';
+  const caption = `${PRODUCT}, ${text.day}. ${text.big} ${text.bigLabel}.${earned} Scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
   return (
     <figure className="result-card">
       {src ? <img src={src} alt={caption} width={W} height={H} /> : <div className="result-card-blank" aria-hidden="true" />}

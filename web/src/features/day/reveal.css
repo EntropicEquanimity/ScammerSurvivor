@@ -1,0 +1,250 @@
+/* The score reveal (ScoreReveal.tsx) and the points bars (ScoreBars.tsx). Every beat waits for its
+   --at (REVEAL in useReveal.ts). Base styles are the final frame; only keyframes carry the start, so
+   a browser that drops animations shows the settled screen. base.css cancels every animation under
+   reduced motion; the twin at the foot brings back quick fades with !important. */
+
+.reveal {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem 0.25rem;
+  text-align: center;
+}
+
+.reveal-stars {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.reveal-star svg {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: visible;
+}
+
+.reveal-star path {
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.reveal-star-empty {
+  fill: #e5e5ea; /* systemGray5 */
+  stroke: #e5e5ea;
+}
+
+.reveal-star-fill {
+  fill: #ffcc00; /* systemYellow */
+  stroke: #ffcc00;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reveal-star-in 520ms var(--spring-out) both;
+  animation-delay: var(--at);
+}
+
+@keyframes reveal-star-in {
+  0% { transform: scale(0) rotate(-40deg); opacity: 0; }
+  60% { transform: scale(1.25) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.reveal-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+}
+
+.reveal-number {
+  color: var(--ink);
+  font-family: ui-rounded, var(--font-body);
+  font-size: 4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  animation: reveal-pop 380ms var(--spring-out) both;
+  animation-delay: var(--land);
+}
+
+@keyframes reveal-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.14); color: var(--accent-ink); }
+  100% { transform: scale(1); }
+}
+
+.reveal-unit {
+  color: var(--ink-2);
+  font-size: var(--t17);
+  font-weight: 600;
+}
+
+.reveal-rank {
+  margin: 0.5rem 0 0;
+  color: var(--ink);
+  font-size: 1.375rem; /* title2 */
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.reveal-goal {
+  max-width: 20rem;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t15);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.reveal-rank,
+.reveal-goal,
+.reveal-best {
+  animation: reveal-rise var(--dur-pop) var(--spring) both;
+  animation-delay: var(--at);
+}
+
+@keyframes reveal-rise {
+  from { transform: translateY(0.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.reveal-best {
+  position: relative;
+  margin: 0.375rem 0 0;
+  color: var(--ink-2);
+  font-size: var(--t15);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* New best: an accent capsule that pops, with one ring bursting out of it. */
+.reveal-best-new {
+  padding: 0.25rem 0.875rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  animation: reveal-best-pop 480ms var(--spring-out) both;
+  animation-delay: var(--at);
+}
+
+.reveal-best-new::after {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: inherit;
+  content: '';
+  opacity: 0;
+  animation: reveal-ring 620ms ease-out both;
+  animation-delay: calc(var(--at) + 120ms);
+}
+
+@keyframes reveal-best-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes reveal-ring {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.6, 2.2); opacity: 0; }
+}
+
+/* Confetti: pieces from the stars' centre, thrown out, then falling and fading. */
+.reveal-confetti {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+.reveal-bit {
+  position: absolute;
+  width: 0.4375rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  background: var(--c);
+  opacity: 0;
+  animation: reveal-throw 1100ms cubic-bezier(0.2, 0.7, 0.4, 1) both;
+  animation-delay: var(--at);
+}
+
+.reveal-bit-round {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+@keyframes reveal-throw {
+  0% { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 1; }
+  45% { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--spin) / 2)) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + var(--fall))) rotate(var(--spin)) scale(1); opacity: 0; }
+}
+
+/* The points bars: label and figure on one line, a 6px capsule bar under them. */
+.score-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  row-gap: 0.375rem;
+  align-items: baseline;
+}
+
+.score-bar-label {
+  font-size: var(--t16);
+}
+
+.score-bar-value {
+  font-size: var(--t16);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.score-bar-cost { color: var(--notice); }
+
+.score-bar-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #e5e5ea; /* systemGray5, the iOS progress track */
+}
+
+.score-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--bar);
+  transform: scaleX(var(--fill));
+  transform-origin: left;
+  animation: score-bar-grow var(--bar-ms, 450ms) var(--spring) both;
+  animation-delay: var(--at);
+}
+
+@keyframes score-bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(var(--fill)); }
+}
+
+/* Reduced motion: numbers are final already (useCountUp); stars, lines and bars fade in quickly,
+   filled, in a short stagger; no pop, no ring, no confetti (not rendered). */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-star-fill,
+  .reveal-rank,
+  .reveal-goal,
+  .reveal-best,
+  .score-bar-fill {
+    animation: reveal-fade 240ms ease-out both !important;
+    animation-delay: calc(var(--i, 0) * 120ms) !important;
+  }
+
+  .reveal-best-new::after { animation: none !important; }
+
+  @keyframes reveal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
