@@ -8,7 +8,8 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readAllCards, writeCards } from '../server/cache.ts';
-import { draftDomains, liveCheck } from '../server/guard/domains.ts';
+import { draftDomains, draftHosts, liveCheck } from '../server/guard/domains.ts';
+import { isReservedHost } from '../shared/links.ts';
 import type { CheckDomain, DomainStatus } from '../server/guard/domains.ts';
 import type { Card } from '../shared/types.ts';
 
@@ -18,19 +19,21 @@ export const cardDomains = (card: Card): string[] => [...new Set([...(card.domai
 export interface Recheck {
   card: Card;
   changed: boolean;
-  status: 'clean' | 'registered' | 'unchecked';
+  status: 'clean' | 'registered' | 'unchecked' | 'reserved';
 }
 
 const worst = (statuses: DomainStatus[]): Recheck['status'] =>
   statuses.includes('registered') ? 'registered' : statuses.includes('error') ? 'unchecked' : 'clean';
 
-// One card, as a new object: servable false on a registered or unchecked name, the flag dropped otherwise.
+// One card, as a new object: servable false on a registered or unchecked name, or on a reserved host
+// (.example, from before the realistic domains: the Builder, ".example gives it away"); the flag dropped otherwise.
 export async function recheckCard(card: Card, check: CheckDomain, date: string): Promise<Recheck> {
   const names = cardDomains(card);
-  if (names.length === 0) return { card, changed: false, status: 'clean' };
+  const reserved = draftHosts(card).some(isReservedHost);
+  if (names.length === 0 && !reserved) return { card, changed: false, status: 'clean' };
   const statuses: DomainStatus[] = [];
   for (const name of names) statuses.push(await check(name).catch((): DomainStatus => 'error'));
-  const status = worst(statuses);
+  const status = reserved ? 'reserved' : worst(statuses);
   const { servable, ...rest } = card;
   const next: Card = status === 'clean' ? { ...rest, recheckedOn: date } : { ...rest, servable: false, recheckedOn: date };
   return { card: next, changed: (servable === false) !== (status !== 'clean') || card.recheckedOn !== date, status };
@@ -53,7 +56,7 @@ export async function recheckAll(countries: readonly string[], deps: RecheckDeps
     const changed = results.filter((r) => r.changed).map((r) => r.card);
     if (!deps.dry && changed.length > 0) await deps.write(changed);
     const count = (status: Recheck['status']) => results.filter((r) => r.status === status).length;
-    out[code] = { clean: count('clean'), registered: count('registered'), unchecked: count('unchecked') };
+    out[code] = { clean: count('clean'), registered: count('registered'), unchecked: count('unchecked'), reserved: count('reserved') };
   }
   return out;
 }
@@ -65,8 +68,8 @@ async function main(): Promise<void> {
   const dry = process.argv.includes('--dry');
   const date = new Date().toISOString().slice(0, 10);
   const tally = await recheckAll(only ? [only] : packs, { read: readAllCards, write: writeCards, check: liveCheck, date, dry });
-  for (const [code, t] of Object.entries(tally)) console.log(`${code}: clean ${t.clean}, registered ${t.registered}, unchecked ${t.unchecked}${dry ? ' (dry)' : ''}`);
-  const held = Object.values(tally).reduce((sum, t) => sum + t.registered + t.unchecked, 0);
+  for (const [code, t] of Object.entries(tally)) console.log(`${code}: clean ${t.clean}, registered ${t.registered}, unchecked ${t.unchecked}, reserved ${t.reserved}${dry ? ' (dry)' : ''}`);
+  const held = Object.values(tally).reduce((sum, t) => sum + t.registered + t.unchecked + t.reserved, 0);
   console.log(`done, ${held} cards held back`);
 }
 

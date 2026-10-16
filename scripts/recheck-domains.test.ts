@@ -70,7 +70,7 @@ test('a host in the text with no domains list is checked too; a card with no lin
 test('readCards never deals a held card; a later clean recheck brings it back', async () => {
   await writeCards([card('s1', 'quiet-harbour-notice.net'), card('s2', 'bought-since-test.com'), card('s3')]);
   const tally = await recheckAll(['SG'], { read: readAllCards, write: writeCards, check: fake(ANSWERS), date: '2026-10-17' });
-  assert.deepEqual(tally.SG, { clean: 2, registered: 1, unchecked: 0 });
+  assert.deepEqual(tally.SG, { clean: 2, registered: 1, unchecked: 0, reserved: 0 });
   assert.deepEqual((await readCards('SG')).map((c) => c.id).sort(), ['s1', 's3']);
   assert.equal((await readAllCards('SG')).length, 3, 'the held card is kept, not deleted');
   await recheckAll(['SG'], { read: readAllCards, write: writeCards, check: fake({ ...ANSWERS, 'bought-since-test.com': 'unregistered' }), date: '2026-10-18' });
@@ -87,4 +87,12 @@ test('the filter: approved and not held back', () => {
   assert.equal(servable(card('f1')), true);
   assert.equal(servable(card('f2', undefined, { servable: false })), false);
   assert.equal(servable(card('f3', undefined, { approved: false })), false);
+});
+
+test('a cached card with a reserved host (.example) is held back; the fixtures keep theirs', async () => {
+  const old = card('x1', undefined, { ask: [{ id: 'a1', text: '[ask placeholder] parcel-desk.example/track', tellIds: ['urgency'] }] });
+  const held = await recheckCard(old, fake(ANSWERS), '2026-10-17');
+  assert.equal(held.status, 'reserved');
+  assert.equal(held.card.servable, false);
+  assert.equal(old.servable, undefined, 'the input card is not mutated');
 });
