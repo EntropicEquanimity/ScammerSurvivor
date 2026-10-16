@@ -9,6 +9,13 @@
   --nav-h: 44px;
   --status-h: 54px;    /* the floating status bar; the screen pads by it */
   --indicator-h: 34px; /* the floating home indicator; the screen pads by it */
+  /* The one bottom inset for every floating capsule (setup Done, lesson Next, end Play tomorrow, the
+     note's Continue), from the phone's bottom edge: the indicator band plus 12px, so a capsule clears
+     the 5px bar (8px up from the edge) by 33px. */
+  --page-end-bottom: calc(var(--indicator-h) + 0.75rem);
+  /* Accent words on a tint of the accent or on the grouped grey: the plain accent gives 3.97:1 on
+     its 12% tint; this one gives 5.15:1 there and 5.43:1 on #f2f2f7. */
+  --accent-ink: color-mix(in srgb, var(--accent) 85%, #000);
 }
 
 .stage {
@@ -306,17 +313,44 @@
   stroke-width: 2.2;
 }
 
-/* Settings-style pages: Privacy and My practice. The nav bar, then the large title, then groups.
-   The nav reaches up under the floating status bar, so its glass covers that region once the page
-   scrolls, the way the phone's bars do. */
+/* Settings-style pages: lab, room, about, privacy, progress. The nav bar, then the large title, then
+   groups. The nav reaches up under the floating status bar, so its glass covers that region once the
+   page scrolls, the way the phone's bars do. In-app screens sit on the grouped grey, never the
+   wallpaper (docs/agent-lessons.md row 26): the screen behind them paints it edge to edge, and
+   on-wall text turns to ink. */
 .settings {
   gap: 1.25rem;
   padding: 0 1rem 1.5rem;
+  color: var(--ink);
+  --on-wall: var(--ink);
+  --on-wall-shadow: none;
+}
+
+.screen:has(> .settings) {
+  background: var(--grouped);
+}
+
+.settings .inset {
+  background: var(--surface);
 }
 
 .settings > .nav {
   top: calc(-1 * var(--status-h)); /* sticky measures from the content box, under the screen's top padding */
   margin: calc(-1 * var(--status-h)) -1rem 0; /* one shorthand: a later margin reset left a 54px dead band */
+  padding-top: var(--status-h);
+}
+
+/* The same large-title nav on a full-screen step (setup, the end): the scrolling body reaches up
+   under the floating status bar and the bar's glass covers that region once the title slides under,
+   so scrolled rows blur away under it instead of cutting hard at the status line. */
+.page-full > .page-body:has(> .nav) {
+  margin-top: calc(-1 * var(--status-h));
+  padding-top: var(--status-h);
+}
+
+.page-full > .page-body > .nav {
+  top: calc(-1 * var(--status-h));
+  margin: calc(-1 * var(--status-h)) -1rem 0;
   padding-top: var(--status-h);
 }
 

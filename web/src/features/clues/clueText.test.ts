@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hostOf, mmss, voiceLength, waveBars } from './clueText.ts';
+import { hostOf, minutesLeft, voiceLength, waveBars } from './clueText.ts';
 
-test('the countdown reads mm:ss and stops at zero', () => {
-  assert.equal(mmss(30 * 60_000), '30:00');
-  assert.equal(mmss(60 * 60_000), '60:00');
-  assert.equal(mmss(61_500), '01:02');
-  assert.equal(mmss(400), '00:01');
-  assert.equal(mmss(-5000), '00:00');
+test('the countdown reads in whole minutes and stops at zero', () => {
+  assert.equal(minutesLeft(30 * 60_000), '30 min left');
+  assert.equal(minutesLeft(29 * 60_000 + 1), '30 min left');
+  assert.equal(minutesLeft(61_500), '2 min left');
+  assert.equal(minutesLeft(400), '1 min left');
+  assert.equal(minutesLeft(-5000), 'Time is up');
 });
 
 test('the host line comes from the detail, made-up hosts only', () => {
@@ -23,5 +23,5 @@ test('the waveform and length are stable, in range, and never a long digit run',
   assert.ok(bars.every((h) => h >= 0.25 && h <= 1));
   const length = voiceLength('Voice note from the office');
   assert.match(length, /^0:[0-4]\d$/);
-  assert.ok(!/\d{5,}/.test(mmss(60 * 60_000) + length));
+  assert.ok(!/\d{5,}/.test(minutesLeft(60 * 60_000) + length));
 });

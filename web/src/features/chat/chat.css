@@ -107,5 +107,5 @@
 /* Back to the decisions without sending: the quiet pill. */
 .chat-chip-quiet {
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  color: var(--accent);
+  color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
 }

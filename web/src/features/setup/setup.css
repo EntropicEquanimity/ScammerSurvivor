@@ -19,7 +19,7 @@
 .setup .setup-foot {
   position: absolute;
   right: 1rem;
-  bottom: 0.75rem;
+  bottom: var(--page-end-bottom); /* the shared inset (shell.css): 33px clear of the indicator */
   left: 1rem;
 }
 
@@ -70,7 +70,7 @@
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   font-size: var(--t16);
   font-weight: 500;
-  color: var(--accent);
+  color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }

@@ -4,8 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { addMisses, bossOutcome, pickBoss, readTally, saveTally } from '../../../../shared/boss.ts';
 import { TELLS } from '../../../../shared/taxonomy.ts';
 import type { AgeGroup, DayScore, SlotResult, TellId } from '../../../../shared/types.ts';
-import { ScreenTitle } from '../../shell/PhoneShell.tsx';
-import { initialCountry } from '../../shell/country.ts';
+import { NavBar } from '../../shell/PhoneTools.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { HotlineGroup } from '../lesson/LessonGroups.tsx';
@@ -27,6 +26,7 @@ interface Props {
   senders?: Record<string, string>; // slotId to display name; falls back to the sender the lesson shows
   dayId?: string;
   hotline?: SlotResult['lesson']['hotline']; // the pack's hotline; falls back to the first lesson's
+  points?: number; // the day's game points for the result card; DayScreen passes points={juice.score}
 }
 
 // Counts finished days and the streak on this device (shell/progress.ts).
@@ -186,9 +186,8 @@ function InstallNudge() {
 // the hotline once, the tell to watch, the result card sliding up last, and the install nudge.
 // Sign-in is cut (AGENTS.md: no Firebase Authentication), so nothing stands in for it; `age`
 // stays in the props for the day the under-18 screen differs.
-export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline }: Props) {
+export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders = {}, dayId, hotline: packHotline, points }: Props) {
   const [dayNumber] = useState(() => countDay(dayId));
-  const country = initialCountry();
   const hotline = packHotline ?? results[0]?.lesson.hotline;
   const play = () => {
     haptic();
@@ -197,13 +196,13 @@ export function EndOfDay({ score, tells, onPlayTomorrow, results = [], senders =
   return (
     <section className="page-full end anim-sheet">
       <div className="page-body scroll">
-        <ScreenTitle className="large-title">Day over</ScreenTitle>
+        <NavBar title="Day over" />
         <Ledger results={results} senders={senders} score={score} />
         <RatesNote score={score} rows={results.length} />
         {hotline && <HotlineGroup hotline={hotline} />}
         <MostMissed score={score} tells={tells} boss={<BossRow dayId={dayId} results={results} rows={results.length} />} />
         <div className="result-card-slot" style={{ '--n': results.length } as CSSProperties}>
-          <ResultCard score={score} dayNumber={dayNumber} tells={tells} country={country} />
+          <ResultCard score={score} dayNumber={dayNumber} tells={tells} points={points} />
         </div>
         <InstallNudge />
       </div>

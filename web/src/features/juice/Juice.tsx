@@ -27,10 +27,16 @@ const centreIn = (rect: DOMRect, phone: DOMRect | undefined) => ({
 // ponytail: a fixed half-width for the widest chip ("+400 lightning"); measure the chip if it grows.
 const CHIP_HALF = 96;
 
-// The points start where they were earned but never past the phone's edge, so the speed tag reads.
+// The status bar's band (54px) plus a margin: the chip's top never rises above y 60, so it never
+// lands over the time or the status icons. The chip is about 30px tall, so its centre stays at 76 or lower.
+const STATUS_FLOOR = 60;
+const CHIP_HALF_H = 16;
+
+// The points stay inside the phone: never past its sides, so the speed tag reads, and never up in
+// the status bar.
 const insidePhone = (point: { x: number; y: number }, phone: DOMRect | undefined) => ({
-  ...point,
   x: phone ? Math.min(Math.max(point.x, CHIP_HALF), phone.width - CHIP_HALF) : point.x,
+  y: Math.max(point.y, STATUS_FLOOR + CHIP_HALF_H),
 });
 
 function shake(): void {
@@ -75,7 +81,7 @@ export function useJuice() {
     }
     const phone = document.querySelector('.phone')?.getBoundingClientRect();
     const id = ++seq.current;
-    const flight: Flight = { id, amount: delta, speed: base.speed, from: insidePhone(centreIn(start, phone), phone), to: centreIn(target, phone) };
+    const flight: Flight = { id, amount: delta, speed: base.speed, from: insidePhone(centreIn(start, phone), phone), to: insidePhone(centreIn(target, phone), phone) };
     setFlights((list) => [...list, flight]);
     window.setTimeout(() => {
       setFlights((list) => list.filter((f) => f.id !== id));

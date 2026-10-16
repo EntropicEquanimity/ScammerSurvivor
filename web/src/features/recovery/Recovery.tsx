@@ -7,9 +7,13 @@ import { haptic } from '../../shell/feel.ts';
 import { ACTION_LABELS } from '../card/actionLabels.ts';
 import { AppIcon } from '../day/AppIcon.tsx';
 import { appLookFor } from '../day/appNames.ts';
-import { money } from '../day/StakesBar.tsx';
+import { initialCountry } from '../../shell/country.ts';
+import { moneyIn } from '../day/currency.ts';
 import { postRecover } from './api.ts';
 import './recovery.css';
+
+// Amounts in the player's pack currency ("SGD 1,500").
+const money = (amount: number): string => moneyIn(amount, initialCountry());
 
 interface Props {
   dayId: string;
@@ -105,6 +109,13 @@ function WalletHeader({ name }: { name: string }) {
   );
 }
 
+// The lead under the header says where the clock stands: running, run out, or the choice made.
+function leadLine(step: Step, left: number, expired: boolean): string {
+  if (expired) return `That transfer went through. The ${RECOVERY_WINDOW_SECONDS} seconds are up.`;
+  if (step.kind === 'done' || step.kind === 'failed') return 'That transfer went through.';
+  return `That transfer went through. You have ${left} ${left === 1 ? 'second' : 'seconds'}.`;
+}
+
 // Shown right after an unsafe action on a scam: the transfer went through, the clock runs, three
 // ways to act. The server scores the choice; this screen only shows the clock and the result.
 export function Recovery({ dayId, slotId, stake, onDone, onSkip }: Props) {
@@ -127,9 +138,7 @@ export function Recovery({ dayId, slotId, stake, onDone, onSkip }: Props) {
     <section className="recovery-sheet anim-sheet" data-surface="light" style={{ '--app-colour': look.colour } as CSSProperties}>
       <WalletHeader name={look.name} />
       <div className="recovery-body scroll">
-        <ScreenTitle className="recovery-title">
-          That transfer went through. You have {RECOVERY_WINDOW_SECONDS} seconds.
-        </ScreenTitle>
+        <ScreenTitle className="recovery-title">{leadLine(step, left, expired)}</ScreenTitle>
         <div className="recovery-balance">
           <span className="recovery-balance-label">At stake</span>
           <span className="recovery-balance-amount">{money(stake)}</span>

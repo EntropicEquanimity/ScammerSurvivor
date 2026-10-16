@@ -6,7 +6,7 @@ import type { PeopleRole } from './types.ts';
 export const PEOPLE_CHIPS: Record<PeopleRole, { label: string; names: string[] }> = {
   mom: { label: 'Mom', names: ['Mei', 'Grace', 'Hana', 'Priya', 'Nadia', 'Aiko'] },
   dad: { label: 'Dad', names: ['Ken', 'Arjun', 'Ravi', 'Sam', 'Leo', 'Hiro'] },
-  brother: { label: 'Brother', names: ['Dev', 'Kai', 'Jun', 'Ryan', 'Rafi', 'Tom'] },
+  brother: { label: 'Brother', names: ['Rohan', 'Kai', 'Jun', 'Ryan', 'Rafi', 'Tom'] },
   sister: { label: 'Sister', names: ['Lina', 'Rina', 'Ayu', 'Anya', 'Sora', 'Nina'] },
   best_friend: { label: 'Best friend', names: ['Alex', 'Mika', 'Jia', 'Zara', 'Yuki', 'Rahul'] },
   boss: { label: 'Boss', names: ['Vikram', 'Mira', 'Wei', 'Siti', 'Michael', 'Yuna'] },

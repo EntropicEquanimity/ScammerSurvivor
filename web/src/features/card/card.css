@@ -7,6 +7,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  position: relative; /* the containing block for the note's capsule and the More sheet, in both motions */
   min-height: 0;
   /* The status bar and the home indicator float (shell/frame.css); the app reaches up behind the
      time and down under the indicator, so both read as the app's own surface. */
@@ -302,44 +303,6 @@
   content: none;
 }
 
-/* The composer's place: a glass bar under the thread. The message's own buttons first, then the
-   standard four as a 2 by 2 grid of capsules. Every column is min-width 0, so 320px never overflows. */
-.actions {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 0.75rem;
-  position: relative;
-  padding: 0.625rem 1rem calc(0.5rem + var(--indicator-h, 34px));
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-}
-
-.actions::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: var(--separator);
-  transform: scaleY(var(--hairline-w));
-  transform-origin: top;
-}
-
-.actions-cta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
 .action-std,
 .cta {
   white-space: nowrap; /* one line, always; a label that needs two is too long (docs/agent-lessons.md row 11) */
@@ -347,12 +310,12 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: var(--tap);
-  padding: 0.5rem 1rem;
+  min-height: 44px; /* the compact tray: iOS's 44pt control */
+  padding: 0.375rem 0.75rem;
   border: 0;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  color: var(--accent);
+  color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
   font-size: var(--t16);
   font-weight: 600;
   line-height: 1.25;
@@ -383,13 +346,11 @@
   cursor: default;
 }
 
-/* Every offered button is a pill that shares the row; pay and install fill with the app's colour. */
-.cta {
-  flex: 1 1 8rem;
-}
+/* The message's own buttons share the primary row; pay and install fill with the app's colour. */
 
+/* The app's colour, deep enough for white words on every app (5.2:1 or more; 80% gave 3.4 to 3.7). */
 .cta-fill {
-  background: color-mix(in srgb, var(--app-colour) 80%, #000);
+  background: color-mix(in srgb, var(--app-colour) 62%, #000);
   color: var(--surface);
 }
 

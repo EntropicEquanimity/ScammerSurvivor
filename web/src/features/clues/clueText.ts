@@ -1,13 +1,13 @@
 // The words and numbers the clue faces draw, kept pure so they can be tested without a browser.
-// Nothing here makes a digit run longer than four: the clock is mm:ss, a voice note is m:ss.
+// Nothing here makes a digit run longer than four: the timer reads in whole minutes, a voice note is m:ss.
 
 const HOST = /\b([a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:example|invalid))\b/i;
 
-// The countdown's face: whole seconds left as mm:ss, floored at 00:00.
-export function mmss(msLeft: number): string {
-  const total = Math.max(0, Math.ceil(msLeft / 1000));
-  const pad = (n: number): string => String(n).padStart(2, '0');
-  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+// The countdown's face in whole minutes, the way a message says it ("29 min left"), never a
+// second clock beside the phone's own. Rounds up, so it reads "1 min left" until time is up.
+export function minutesLeft(msLeft: number): string {
+  const minutes = Math.max(0, Math.ceil(msLeft / 60_000));
+  return minutes === 0 ? 'Time is up' : `${minutes} min left`;
 }
 
 // The grey host line under a link preview, read from the clue's detail. Null when there is none.

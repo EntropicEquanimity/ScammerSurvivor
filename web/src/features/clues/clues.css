@@ -186,8 +186,12 @@
   font-weight: 600;
 }
 
-/* Countdown: a pill with the clock in the notice orange, ticking. */
-.clue-timer { border-radius: var(--radius-pill); }
+/* Countdown: the time left in words in the notice orange, the title under it on up to two lines. */
+.clue-timer-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
 .clue-timer .clue-glyph,
 .clue-clock {
@@ -361,13 +365,4 @@
 .part-with-clues {
   display: flex;
   flex-direction: column;
-}
-
-/* The timer pill keeps to one line; a long title ends in an ellipsis rather than wrapping. */
-.clue-timer .clue-title {
-  -webkit-line-clamp: 1;
-  overflow-wrap: normal;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  display: block;
 }

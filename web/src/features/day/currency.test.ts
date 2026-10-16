@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { CURRENCIES, currencyFor } from './currency.ts';
+import { CURRENCIES, currencyFor, moneyIn } from './currency.ts';
 
 const packs = new URL('../../../../content/packs/', import.meta.url);
 
@@ -14,4 +14,9 @@ test('every pack currency matches the lock widget map', () => {
 test('an unknown country shows no currency', () => {
   assert.equal(currencyFor(null), '');
   assert.equal(currencyFor('SG'), 'SGD');
+});
+
+test('an amount carries the pack currency, or stands alone without one', () => {
+  assert.equal(moneyIn(1500, 'SG'), 'SGD 1,500');
+  assert.equal(moneyIn(500, null), '500');
 });

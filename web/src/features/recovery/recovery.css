@@ -82,7 +82,7 @@
 .recovery-ring-arc {
   fill: none;
   stroke-width: 10;
-  stroke-linecap: round;
+  stroke-linecap: butt; /* round caps meet at 12 o'clock on a full ring and draw a seam there */
 }
 
 .recovery-ring-track {
@@ -119,7 +119,7 @@
   padding: 0.5rem 1rem;
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   border: 0;
-  color: var(--accent);
+  color: var(--accent-ink); /* 5.15:1 on the tint (shell.css) */
   text-align: center;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

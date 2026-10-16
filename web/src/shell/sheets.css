@@ -56,7 +56,7 @@
   padding: 0 0.75rem;
   border: 0;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-ink); /* the plain accent on the glass measured 3.55 to 3.78:1 (shell.css token) */
   font-size: var(--t17);
   font-weight: 400;
   letter-spacing: var(--track-17);
@@ -99,7 +99,7 @@
   padding: 0 1rem;
   border: 0;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-ink); /* the plain accent on the glass measured 3.55 to 3.78:1 (shell.css token) */
   font-size: var(--t17);
   font-weight: 400;
   letter-spacing: var(--track-17);
@@ -108,6 +108,7 @@
 }
 
 .action-cancel {
+  justify-content: center; /* a flex column like the group, so the word centres in its 56px row */
   background: var(--surface);
   font-weight: 600;
 }

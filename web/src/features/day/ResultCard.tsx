@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { DayScore, Tally } from '../../../../shared/types.ts';
 import type { TellInfo } from './useDay.ts';
+import { drawCard } from './resultCardArt.ts';
+import type { CardText } from './resultCardArt.ts';
 
 // The shareable result as a picture: 1080 by 1350, numbers and the tell name only, never a message,
 // a sender or a brand. Drawn on a canvas and shown as a plain image, which the phone's own
@@ -11,88 +13,32 @@ interface Props {
   score: DayScore;
   dayNumber: number;
   tells: TellInfo;
-  country: string | null;
+  points?: number; // the day's game points; without them the card leads with the share handled safely
 }
 
 const W = 1080;
 const H = 1350;
-// Candidate backgrounds in order; the first that loads wins, else a flat paper and ink card.
-// The repo ships result-card-bg.jpg; add result-card.png in front if an art agent lands one.
-const BACKGROUNDS = ['/art/result-card-bg.jpg'];
-// The mark, top-left. The glyph fills about the middle third of its 1024 box, so it is drawn large.
-const MARK = '/art/mark.png';
-const MARK_SIZE = 280;
-const MARK_INSET = 36;
-const PAPER = '#eef0f3';
-const INK = '#1c2027';
-const INK_2 = '#4a505a';
-const FONT = "-apple-system, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
-
-const loadImage = (src: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('no background'));
-    img.src = src;
-  });
-
-async function firstBackground(): Promise<HTMLImageElement | null> {
-  for (const src of BACKGROUNDS) {
-    try {
-      return await loadImage(src);
-    } catch {
-      // Try the next one.
-    }
-  }
-  return null;
-}
-
-// Cover-fit: scale to fill, crop the overflow, centred.
-function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement): void {
-  const scale = Math.max(W / img.width, H / img.height);
-  const w = img.width * scale;
-  const h = img.height * scale;
-  ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
-  // A soft paper wash so the ink stays readable on any art.
-  ctx.fillStyle = 'rgba(238, 240, 243, 0.78)';
-  ctx.fillRect(0, 0, W, H);
-}
-
 const PRODUCT = 'Scammer Survivor';
 const fraction = (t: Tally): string => `${t.handled} of ${t.total}`;
 
-interface Line {
-  text: string;
-  size: number;
-  weight: number;
-  colour: string;
-  gapAfter: number;
-}
-
-function linesFor({ score, dayNumber, tells, country }: Props): Line[] {
+// The words on the card, from the score alone. Exported for the caption and kept pure.
+export function cardText({ score, dayNumber, tells, points }: Props): CardText {
+  const safe = score.scamsCaught.handled + score.realTrusted.handled;
+  const total = score.scamsCaught.total + score.realTrusted.total;
   const missed = score.tellMostMissed;
   const missedLabel = missed ? (tells[missed]?.label ?? missed.replaceAll('_', ' ')) : null;
-  return [
-    // The block is centred; the gaps are kept tight so its top clears the mark in the corner (inset + size, 316).
-    { text: PRODUCT, size: 60, weight: 700, colour: INK_2, gapAfter: 24 },
-    { text: `Day ${dayNumber}`, size: 96, weight: 800, colour: INK, gapAfter: 60 },
-    { text: `Scams caught ${fraction(score.scamsCaught)}`, size: 64, weight: 700, colour: INK, gapAfter: 40 },
-    { text: `Real messages trusted ${fraction(score.realTrusted)}`, size: 64, weight: 700, colour: INK, gapAfter: 60 },
-    ...(missedLabel ? [{ text: `missed tell: ${missedLabel.toLowerCase()}`, size: 44, weight: 500, colour: INK_2, gapAfter: 50 }] : []),
-    ...(country ? [{ text: country, size: 44, weight: 600, colour: INK_2, gapAfter: 0 }] : []),
-  ];
-}
-
-function drawLines(ctx: CanvasRenderingContext2D, lines: Line[]): void {
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  const total = lines.reduce((sum, line) => sum + line.size * 1.2 + line.gapAfter, 0);
-  lines.reduce((y, line) => {
-    ctx.font = `${line.weight} ${line.size}px ${FONT}`;
-    ctx.fillStyle = line.colour;
-    ctx.fillText(line.text, W / 2, y, W - 120);
-    return y + line.size * 1.2 + line.gapAfter;
-  }, (H - total) / 2);
+  const percent = total > 0 ? Math.round((safe / total) * 100) : 0;
+  return {
+    product: PRODUCT,
+    day: `Day ${dayNumber}: ${safe} of ${total} safe`,
+    big: points !== undefined ? points.toLocaleString('en') : `${percent}%`,
+    bigLabel: points !== undefined ? 'points' : 'handled safely',
+    tiles: [
+      { value: fraction(score.scamsCaught), label: 'Scams caught' },
+      { value: fraction(score.realTrusted), label: 'Real ones trusted' },
+    ],
+    watch: missedLabel ? `Watch for: ${missedLabel.toLowerCase()}` : 'No tell got past you',
+  };
 }
 
 async function render(props: Props): Promise<string> {
@@ -101,31 +47,23 @@ async function render(props: Props): Promise<string> {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
-  ctx.fillStyle = PAPER;
-  ctx.fillRect(0, 0, W, H);
-  const art = await firstBackground();
-  if (art) drawCover(ctx, art);
-  const mark = await loadImage(MARK).catch(() => null);
-  if (mark) ctx.drawImage(mark, MARK_INSET, MARK_INSET, MARK_SIZE, MARK_SIZE);
-  drawLines(ctx, linesFor(props));
-  ctx.font = `500 32px ${FONT}`;
-  ctx.fillStyle = INK_2;
-  ctx.fillText('Practice. Not a real message.', W / 2, H - 90);
+  await drawCard(ctx, cardText(props));
   return canvas.toDataURL('image/png');
 }
 
 // ponytail: rendered once per mount into a data URL; a page that renders many cards would want a blob URL.
 export function ResultCard(props: Props) {
   const [src, setSrc] = useState('');
-  const { score, dayNumber, tells, country } = props;
+  const { score, dayNumber, tells, points } = props;
   useEffect(() => {
     let current = true;
-    render({ score, dayNumber, tells, country }).then((url) => current && setSrc(url), () => undefined);
+    render({ score, dayNumber, tells, points }).then((url) => current && setSrc(url), () => undefined);
     return () => {
       current = false;
     };
-  }, [score, dayNumber, tells, country]);
-  const caption = `${PRODUCT}, day ${dayNumber}: scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
+  }, [score, dayNumber, tells, points]);
+  const text = cardText(props);
+  const caption = `${PRODUCT}, ${text.day}. ${text.big} ${text.bigLabel}. Scams caught ${fraction(score.scamsCaught)}, real messages trusted ${fraction(score.realTrusted)}.`;
   return (
     <figure className="result-card">
       {src ? <img src={src} alt={caption} width={W} height={H} /> : <div className="result-card-blank" aria-hidden="true" />}

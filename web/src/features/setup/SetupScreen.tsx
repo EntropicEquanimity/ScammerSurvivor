@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PEOPLE_CHIPS } from '../../../../shared/people.ts';
 import { PEOPLE_ROLES } from '../../../../shared/types.ts';
 import type { People, PeopleRole } from '../../../../shared/types.ts';
-import { ScreenTitle } from '../../shell/PhoneShell.tsx';
+import { NavBar } from '../../shell/PhoneTools.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { getPeople, savePeople } from './storage.ts';
 import '../day.css';
@@ -66,7 +66,7 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
   return (
     <section className="page-full setup anim-sheet">
       <div className="page-body scroll">
-        <ScreenTitle className="large-title">Make it your phone</ScreenTitle>
+        <NavBar title="Make it your phone" />
         <p className="setup-lead">Pick the people scammers would pretend to be. Names only, nothing real.</p>
         {PEOPLE_ROLES.map((role) => (
           <Row key={role} role={role} chosen={people[role]} onPick={(name) => setPeople((prev) => pick(prev, role, name))} />

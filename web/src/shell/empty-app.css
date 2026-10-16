@@ -1,0 +1,42 @@
+/* An app opened from home before the day: the white surface edge to edge, no tint band. */
+.empty-app,
+.empty-app[data-look] {
+  background: var(--surface);
+  --on-wall: var(--ink);
+  --on-wall-shadow: none;
+}
+
+.empty-app .app-body {
+  padding-top: 0;
+  padding-bottom: calc(var(--tap) + var(--page-end-bottom) + 1rem);
+}
+
+.empty-app .nav {
+  margin-inline: -1rem;
+  background: var(--surface);
+}
+
+.empty-app-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.empty-app-state .app-icon {
+  border-radius: 22.37%;
+}
+
+.empty-app-title {
+  margin-top: 0.5rem;
+  font-size: var(--t20, 1.25rem);
+  font-weight: 600;
+}
+
+.empty-app-line {
+  color: var(--ink-2);
+  font-size: var(--t16);
+}

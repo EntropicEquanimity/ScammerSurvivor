@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import type { Clue, ClueKind } from '../../../../shared/clues.ts';
-import { money } from '../day/StakesBar.tsx';
-import { hostOf, mmss, voiceLength, waveBars } from './clueText.ts';
+import { initialCountry } from '../../shell/country.ts';
+import { moneyIn } from '../day/currency.ts';
+import { hostOf, minutesLeft, voiceLength, waveBars } from './clueText.ts';
 import { Glyph } from './glyphs.tsx';
+
+// Amounts in the player's pack currency ("SGD 1,500").
+const money = (amount: number): string => moneyIn(amount, initialCountry());
 
 // The front of each clue, drawn the way the phone draws the real thing. Every face is phrasing
 // content (spans only), because it sits inside the inspect button. Nothing here navigates: the
@@ -40,28 +44,35 @@ function PaymentRequest({ clue }: FaceProps) {
   );
 }
 
+// True where the day is over for this message (the real-twin note): the timer holds still there.
+export const ClueClockStopped = createContext(false);
+
+const MINUTE_MS = 60_000;
+
 // ponytail: the clock starts when the clue mounts, so a new screen (the tell picker) restarts it;
 // keep the deadline in a module Map keyed by slot if a running clock across screens matters.
-function useCountdown(minutes: number): string {
-  const [deadline] = useState(() => Date.now() + minutes * 60_000);
+function useCountdown(minutes: number, stopped: boolean): string {
+  const [deadline] = useState(() => Date.now() + minutes * MINUTE_MS);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    if (stopped) return undefined;
+    const id = window.setInterval(() => setNow(Date.now()), MINUTE_MS);
     return () => window.clearInterval(id);
-  }, []);
-  return mmss(deadline - now);
+  }, [stopped]);
+  return minutesLeft(deadline - now);
 }
 
-// A timer pill that keeps ticking. role="timer" is never announced on each tick.
+// A timer pill in words ("29 min left"), one change a minute, so it never reads as a second clock.
 function Countdown({ clue }: FaceProps) {
-  const left = useCountdown(clue.minutes ?? 10);
+  const stopped = useContext(ClueClockStopped);
+  const left = useCountdown(clue.minutes ?? 10, stopped);
   return (
     <span className="clue-face clue-front clue-timer">
       <Glyph name="timer" />
-      <span className="clue-clock" role="timer">
-        {left}
+      <span className="clue-timer-text">
+        <span className="clue-clock">{left}</span>
+        <span className="clue-title">{clue.title}</span>
       </span>
-      <span className="clue-title">{clue.title}</span>
     </span>
   );
 }

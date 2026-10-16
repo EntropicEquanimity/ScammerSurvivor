@@ -1,0 +1,60 @@
+/* The compact composer tray and its More sheet (ActionBar.tsx). The capsule looks live in card.css. */
+
+/* The composer's place, compact: the thread's own white runs under the buttons, so there is no band
+   and no hairline; the thread fades out over the 24px above them instead of cutting hard. One primary
+   row of the message's own buttons, then a 2 by 2 grid of 44px capsules (ActionBar.tsx, tray.ts).
+   The bottom padding keeps the last row 9px clear of the floating home indicator. Every column is
+   min-width 0, so 320px never overflows. */
+.actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  padding: 0.5rem 1rem calc(var(--indicator-h, 34px) - 0.75rem);
+  background: var(--surface);
+}
+
+.actions::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: var(--fade-h, 24px);
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+
+.actions-cta {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.5rem;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+/* More opens the rest in the action sheet (shell/sheets.css) over a dim scrim across the whole app. */
+.app .sheet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(20, 24, 30, 0.42);
+}
+
+.app .action-sheet {
+  bottom: calc(var(--indicator-h, 34px) - 0.75rem);
+}
+
+.app .action-group {
+  background: color-mix(in srgb, var(--surface) 94%, transparent); /* thick enough that the tray under it never reads through */
+}
+
+.app .action-row + .action-row {
+  border-top: 1px solid var(--separator);
+}

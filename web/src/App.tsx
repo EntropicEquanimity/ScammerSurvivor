@@ -11,6 +11,7 @@ import { RoomPage } from './features/room/RoomPage.tsx';
 import { joinCodeOf, setRoom } from './features/room/api.ts';
 import { SetupScreen } from './features/setup/SetupScreen.tsx';
 import { FirstOpen } from './shell/FirstOpen.tsx';
+import { EmptyApp, isLayout } from './shell/EmptyApp.tsx';
 import { HomeScreen } from './shell/HomeScreen.tsx';
 import { PracticeProgress } from './shell/PhoneTools.tsx';
 import { haptic } from './shell/feel.ts';
@@ -64,6 +65,10 @@ const roomRouteOf = (hash: string): { roomId: string | null } | null => {
   const match = ROOM_ROUTE.exec(hash);
   return match ? { roomId: match[1] ? match[1].toUpperCase() : null } : null;
 };
+
+// #/app=email opens that app from a home tile.
+const APP_ROUTE = /^#\/app=([a-z-]+)$/;
+const appRouteOf = (hash: string): string | null => APP_ROUTE.exec(hash)?.[1] ?? null;
 
 // About: the one place that explains the AI and links to it. Later agents add rows here.
 function About() {
@@ -134,9 +139,12 @@ function Screen({ route, age, country, choosing, unlocked, quick, packs, lock, o
       </>
     );
   }
+  const app = appRouteOf(route);
+  if (app && isLayout(app)) return <EmptyApp layout={app} onPlay={() => onPlay(false)} />;
   if (!unlocked) return lock;
   const pack = packs.find((row) => row.code === country);
-  return <HomeScreen country={country} pack={pack} onPlay={onPlay} onChangeCountry={onChangeCountry} />;
+  const openApp = (layout: string) => { window.location.hash = `#/app=${layout}`; };
+  return <HomeScreen country={country} pack={pack} onPlay={onPlay} onChangeCountry={onChangeCountry} onOpenApp={openApp} />;
 }
 
 // The two choices the phone remembers (age, country) and whether the country picker is open.

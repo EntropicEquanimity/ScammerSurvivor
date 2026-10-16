@@ -20,7 +20,7 @@
 .end .end-foot {
   position: absolute;
   right: 1rem;
-  bottom: 0.75rem;
+  bottom: var(--page-end-bottom); /* the shared inset (shell.css): 33px clear of the indicator */
   left: 1rem;
 }
 
@@ -125,8 +125,8 @@
   height: auto;
   aspect-ratio: 4 / 5;
   border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--paper);
+  border-radius: 24px; /* a photo-like card, rounder than a grouped row */
+  background: #06122b; /* the art's own blue while it draws, never a grey blank */
   box-shadow: var(--shadow);
 }
 

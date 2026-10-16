@@ -3,6 +3,7 @@ import type { PublicCard, SlotResult, TraceEvent } from '../../../../shared/type
 import { ScreenTitle } from '../../shell/PhoneShell.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { AppHeader } from '../card/AppHeader.tsx';
+import { ClueClockStopped } from '../clues/faces.tsx';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { MessageView, PartView } from '../layouts/MessageView.tsx';
 import { appLookFor } from '../day/appNames.ts';
@@ -122,7 +123,10 @@ export function RealNote({ card, result, busy, failed, onNext, trace, personalis
       <ScreenTitle className="visually-hidden">Message from {card.sender.displayName}</ScreenTitle>
       <AppHeader card={card} trace={trace} personalised={personalised} onBack={onBack} />
       <div className="app-body scroll" aria-live="polite">
-        <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
+        {/* The message is settled here, so its timer holds still. */}
+        <ClueClockStopped.Provider value>
+          <MessageView sender={card.sender} setup={card.setup} ask={card.ask} arrivesAt={card.arrivesAt} hideSender layout={card.layout} clues={card.clues} />
+        </ClueClockStopped.Provider>
         <p className="thread-note">{noteLine(card, result)}</p>
         {followUp && landed && (
           <div className="bubble-group bubble-later anim-pop">

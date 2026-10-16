@@ -25,9 +25,10 @@
 }
 
 /* The glyphs go ink only when a light surface sits behind them: an app, a screen that says so, or a
-   collapsed nav whose glass reaches up under the status region (settings, shell.css; tells, tells.css).
-   The country picker's collapsed nav sits below the status region, so it never turns the time. */
-.phone:has(.app, [data-surface='light'], .settings > .nav-collapsed, .tells > .nav-collapsed) .status-bar {
+   collapsed nav whose glass reaches up under the tells' status region (tells.css). Settings pages sit on
+   the grouped grey (shell.css), so the time is ink there from the top. The country picker's collapsed
+   nav sits below the status region, so it never turns the time. */
+.phone:has(.app, [data-surface='light'], .settings, .tells > .nav-collapsed) .status-bar {
   color: var(--ink);
   text-shadow: none;
 }
@@ -142,7 +143,9 @@
 }
 
 /* The bar floats 8px above the bottom edge over whatever screen is showing, as on the phone: no band.
-   White on the wallpaper, ink once an app's surface is under it. */
+   White on the wallpaper and on the dark call; ink on every light surface: an app, the tell picker,
+   the lesson, setup, the end (all .page-full but the call), recovery and the ended call
+   ([data-surface=light]), and the settings pages. */
 .home-indicator {
   position: absolute;
   right: 0;
@@ -157,6 +160,23 @@
   background: transparent;
 }
 
+/* The bar is 5px, the link's box 13px: an invisible 48px tall hit area, as wide as the bar, takes the
+   tap above it. While the compact tray or its sheet is up their bottom row sits 9px over the bar, so
+   the hit area shrinks back to the bar's band there and the visible buttons keep their taps. */
+.home-indicator::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 134px;
+  height: 48px;
+  transform: translateX(-50%);
+}
+
+.phone:has(.actions, .action-sheet) .home-indicator::before {
+  height: 100%;
+}
+
 .home-indicator span {
   width: 134px;
   height: 5px;
@@ -164,6 +184,6 @@
   background: var(--on-wall);
 }
 
-.phone:has(.app) .home-indicator span {
+.phone:has(.app, .page-full:not(.call), [data-surface='light'], .recovery-sheet, .tells, .settings) .home-indicator span {
   background: var(--ink);
 }

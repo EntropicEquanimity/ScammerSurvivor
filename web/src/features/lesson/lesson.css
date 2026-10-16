@@ -30,7 +30,7 @@
 .lesson .page-end {
   position: absolute;
   right: 1rem;
-  bottom: 0.75rem;
+  bottom: var(--page-end-bottom); /* the shared inset (shell.css): 33px clear of the indicator */
   left: 1rem;
   padding: 0;
   background: none;
@@ -48,9 +48,10 @@
 }
 
 /* The real-twin note's Continue: the app reaches under the indicator, so the capsule lifts by the
-   shared bottom inset to clear it. */
+   shared bottom inset to clear it. The app is the capsule's containing block in both motions
+   (card.css .app is position: relative), so the reduced-motion twin sits in the same place. */
 .app .page-end {
-  bottom: var(--page-end-bottom, 33px);
+  bottom: var(--page-end-bottom);
 }
 
 /* The retry note sits over content, so it gets its own glass. */
@@ -146,6 +147,6 @@
 }
 
 .lesson-link {
-  color: var(--accent);
+  color: var(--accent-ink); /* 5.43:1 on the grouped grey (shell.css) */
   font-weight: 600;
 }
