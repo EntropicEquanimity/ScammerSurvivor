@@ -39,3 +39,24 @@ Fails, ranked (fixed in the same session, before commit): the decorative back ch
 Not failed, noted: home widget 176.5 at 430 against 170 (not verified); trace drawer top radius 10 against iOS 26's larger sheet corner (not verified); glass edges on inset groups and nav capsules; the composer bar hairline; swipe hint 3.2:1 at 430; the alert overlaps the lock notification by 31 px under the scrim at 390.
 
 Verdict: **SHIP**.
+
+## 2026-10-16, live revision 8, commit 107a6f5 (bundle hashes matched a clean build), measured on the live URL
+
+Pass counts: lock 29/29, picker 11/11, home 18/18, setup 14/14, day lock 16/18, card 25/27, tells 10/10, real-twin note 10/11, recovery 12/12, lesson 12/12, call 25/27, end 14/14, lab 10/10, room 17/17, about 11/11, privacy 9/9. Total 243 of 250. Every reduced-motion twin resolves. The call measured on the real path with voiced beats from the bucket. Agent lessons: rows 1, 3, 4 pass; rows 5, 11, 12 fail (5 and 11 failed exactly where the Builder caught them by hand, so the checks work).
+
+Fails, ranked:
+1. Feature CSS overrides lose to base.css in the bundle: `main.tsx` imports App before `./base.css`, so `.glass{border:1px}` lands after `.notif,.stakes-pill{border:0}`; the outlines are back on the day's notifications and stakes pills.
+2. Call grid labels run under the End disc at 390; at 320 the End disc covers a control (`call.css .call-grid`, `.call-talk-end`).
+3. Continue on the real-twin note and Next on the ended call touch the home indicator at 390 and 320 (`lesson.css .app .page-end`, `call.css .call-ended .page-end`; the lesson's 33 px gap is the reference).
+4. Thin glass on every collapsed nav shows the wallpaper wave (row 5; fixed in 167eecb, not deployed) and faintly on the lock notification (`first-open.css .lock-notif`).
+5. Labels wrapping to two to four lines (row 11; fixed in 80f7c26, not deployed).
+6. AI chip text 3.97:1 computed (`card.css .ai-chip-pill`).
+7. "Open the link" underlined inside a capsule (`card.css .cta-link`).
+
+Also from row 12: home widgets 152 vs 137 tall at 320; lesson stamps 29, 30, 31 tall; content runs under every floating capsule with no fade; the alert covers the lock notification mid-text at 320 and 390.
+
+Three worst web-page tells: the wave through every collapsed nav; wrapped labels making uneven capsules; content under floating capsules with no fade.
+
+Not verified: the recovery request failed inside the browser in 3 of 7 live passes while curl answered 200 in 0.23 s.
+
+Verdict: **HOLD**.
