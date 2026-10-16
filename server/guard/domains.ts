@@ -76,20 +76,15 @@ const textsOf = (list: readonly { text?: string }[] | undefined): string[] => (l
 const pageTexts = (page: Draft['page']): string[] => (page ? [page.host, page.title, ...textsOf(page.lines)] : []);
 const clueTexts = (clues: Draft['clues']): string[] => (clues ?? []).flatMap((clue) => [clue.title, clue.detail]);
 
-// Every host a draft writes, reserved ones included, in order.
-export function draftHosts(draft: Draft): string[] {
+// Every registrable name a draft writes, reserved hosts left out, each once in order.
+export function draftDomains(draft: Draft): string[] {
   const twin = draft.realTwin;
   const texts = [
     ...textsOf(draft.setup), ...textsOf(draft.ask), ...textsOf(twin?.parts),
     ...textsOf(draft.history), ...textsOf(draft.twinHistory), draft.usualEnding ?? '',
     ...pageTexts(draft.page), ...pageTexts(twin?.page), ...clueTexts(draft.clues), ...clueTexts(twin?.clues),
   ];
-  return texts.flatMap((text) => hostsIn(text ?? ''));
-}
-
-// Every registrable name a draft writes, reserved hosts left out, each once in order.
-export function draftDomains(draft: Draft): string[] {
-  const hosts = draftHosts(draft).filter((host) => !isReservedHost(host));
+  const hosts = texts.flatMap((text) => hostsIn(text ?? '')).filter((host) => !isReservedHost(host));
   return [...new Set(hosts.map(registrableOf))];
 }
 

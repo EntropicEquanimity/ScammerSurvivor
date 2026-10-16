@@ -8,8 +8,8 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readAllCards, writeCards } from '../server/cache.ts';
-import { draftDomains, draftHosts, liveCheck } from '../server/guard/domains.ts';
-import { isReservedHost } from '../shared/links.ts';
+import { draftDomains, liveCheck } from '../server/guard/domains.ts';
+import { RESERVED_TLDS } from '../shared/links.ts';
 import type { CheckDomain, DomainStatus } from '../server/guard/domains.ts';
 import type { Card } from '../shared/types.ts';
 
@@ -27,9 +27,12 @@ const worst = (statuses: DomainStatus[]): Recheck['status'] =>
 
 // One card, as a new object: servable false on a registered or unchecked name, or on a reserved host
 // (.example, from before the realistic domains: the Builder, ".example gives it away"); the flag dropped otherwise.
+// Anywhere on the card, brackets included: "security.[institution].example" is filled in only at deal time.
+const RESERVED_IN_CARD = new RegExp(`[.](?:${RESERVED_TLDS.join('|')})(?![a-z0-9-])`, 'i');
+
 export async function recheckCard(card: Card, check: CheckDomain, date: string): Promise<Recheck> {
   const names = cardDomains(card);
-  const reserved = draftHosts(card).some(isReservedHost);
+  const reserved = RESERVED_IN_CARD.test(JSON.stringify(card));
   if (names.length === 0 && !reserved) return { card, changed: false, status: 'clean' };
   const statuses: DomainStatus[] = [];
   for (const name of names) statuses.push(await check(name).catch((): DomainStatus => 'error'));

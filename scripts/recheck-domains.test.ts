@@ -96,3 +96,11 @@ test('a cached card with a reserved host (.example) is held back; the fixtures k
   assert.equal(held.card.servable, false);
   assert.equal(old.servable, undefined, 'the input card is not mutated');
 });
+
+test('a reserved ending behind a deal-time placeholder is held back too; a plain .com is not', async () => {
+  const bracketed = card('x2', undefined, { ask: [{ id: 'a1', text: '[ask placeholder] security.[institution].example', tellIds: ['urgency'] }] });
+  assert.equal((await recheckCard(bracketed, fake(ANSWERS), '2026-10-17')).status, 'reserved');
+  assert.equal((await recheckCard(card('x3', 'quiet-harbour-notice.net'), fake(ANSWERS), '2026-10-17')).status, 'clean');
+  const lookalike = card('x4', undefined, { ask: [{ id: 'a1', text: '[ask placeholder] for example, today', tellIds: ['urgency'] }] });
+  assert.equal((await recheckCard(lookalike, fake(ANSWERS), '2026-10-17')).status, 'clean', 'the word example alone is not a host');
+});
