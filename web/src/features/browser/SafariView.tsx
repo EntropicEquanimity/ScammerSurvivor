@@ -13,7 +13,7 @@ import { EMPTY_FORM, fillFocused, focusRow, givenOf } from './fill.ts';
 import { NOT_PRACTICE, templatePage } from './template.ts';
 import './browser.css';
 
-// The in-app Safari view an app opens for a link: Done and the address at the top, no tabs, no
+// The in-app Safari view an app opens for a link: the address at the top with Done at the right (the team asked for it there), no tabs, no
 // share. The practice page fills the rest; the autofill bar sits where the keyboard would be.
 // Leaving with Done is always allowed; the page's own button sends the filled rows first.
 

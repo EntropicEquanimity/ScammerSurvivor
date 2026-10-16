@@ -35,7 +35,7 @@
   align-items: center;
   justify-content: center;
   min-height: 52px;
-  padding: 0 1rem 0 4.25rem; /* clear of Done; the host is a tell, so it gets all the room there is */
+  padding: 0 4.25rem 0 1rem; /* clear of Done at the right; the host is a tell, so it gets all the room there is */
   background: var(--glass-bar);
   -webkit-backdrop-filter: blur(var(--glass-bar-blur));
   backdrop-filter: blur(var(--glass-bar-blur));
@@ -44,7 +44,7 @@
 .safari-done {
   position: absolute;
   top: 2px;
-  left: 0.5rem;
+  right: 0.5rem;
   min-width: var(--tap);
   min-height: var(--tap);
   padding: 0 0.5rem;
