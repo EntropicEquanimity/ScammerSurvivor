@@ -116,16 +116,19 @@ test('the prompt holds the scored slot only: no text or tells from unscored slot
   });
 });
 
-test('the deterministic lesson names caught and missed tells, the ending and the hotline', async () => {
+test('the deterministic note is short and leaves the tells, the ending and the hotline to their own rows', async () => {
   const { result } = await scoreOne({ country: 'SG', age: 'younger' });
   const text = lessonText(result);
-  for (const tell of result.lesson.tells) assert.ok(text.includes(tell.label), tell.id);
-  assert.ok(text.includes(result.lesson.usualEnding));
-  assert.ok(text.includes(result.lesson.hotline.number));
+  for (const tell of result.lesson.tells) assert.ok(!text.includes(tell.label), tell.id);
+  assert.ok(!text.includes(result.lesson.usualEnding));
+  assert.ok(!text.includes(result.lesson.hotline.label));
+  assert.ok(text.split(/\s+/).length <= 30);
   const emDash = String.fromCharCode(0x2014);
   assert.ok(!text.includes(emDash));
   assert.ok(!COACH_SYSTEM.includes(emDash));
   assert.ok(COACH_SYSTEM.split(/\s+/).length < 200);
+  const prompt = buildPrompt({ ...result.lesson, caught: result.caught, missed: result.missed, action: 'pay', actionCorrect: false, falseAlarm: false });
+  assert.ok(!prompt.includes(result.lesson.hotline.label));
 });
 
 test('the lesson route is 404 on an unknown day, 400 on an unknown slot or before scoring', async () => {

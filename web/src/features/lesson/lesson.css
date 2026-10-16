@@ -1,9 +1,9 @@
-/* The lesson on one screen: the large title over the wallpaper (one short line), then inset groups
-   (the scam with its tells stamped in place, the Coach's note, the real one, the ending and the
-   safest move) and Next floating over the bottom as a capsule. The group and row classes are the
-   shared ones from shell.css; this file sets what goes inside a row. A stamp is a filled pill: the
-   accent when the player found the tell, the warm notice colour when they missed it; each carries
-   a word. Red appears nowhere. */
+/* The lesson on one screen: the large title and one line on what the player did, then inset groups
+   (the Coach, what gave it away with the tells stamped in place, what happens next, next time,
+   report it, the real one) and Next floating over the bottom as a capsule. The group and row classes are the
+   shared ones from shell.css; this file sets what goes inside a row. A caught tell is a filled
+   accent stamp, a missed one an outlined stamp in the warm notice colour; each carries a word, so
+   colour is never the only carrier. Red appears nowhere. */
 
 /* The containing block for the floating bar. anim-sheet's transform would do it, but the
    reduced-motion twin is opacity only. */
@@ -11,14 +11,23 @@
   position: relative;
 }
 
-/* The Coach's note leads, straight under the title, so it streams in view instead of under three
-   tell groups and the Next capsule. Visual order only: the rows take no focus, so focus order holds. */
-.lesson .page-body > .large-title {
-  order: -2;
+/* The title and one line on what the player did, as one block over the groups. */
+.lesson-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
 }
 
-.lesson .page-body > .inset-group:has(.lesson-coach) {
-  order: -1;
+.lesson-head .large-title {
+  padding-bottom: 0;
+}
+
+.lesson-did {
+  margin: 0;
+  color: var(--ink-2); /* 8.2:1 on the grouped grey */
+  font-size: var(--t18);
+  letter-spacing: var(--track-18);
+  line-height: 1.35;
 }
 
 /* The groups scroll under the capsule; the last one clears it. */
@@ -87,47 +96,144 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
+  align-items: center; /* one centre line, so the small tilt never staggers the baselines */
 }
 
-/* One height for every one-line stamp, whatever the words and the small note. The tilt makes the
-   bounding boxes differ by width; the box itself does not. */
+/* One box for every stamp: one height, one line, the label and its small note side by side. The
+   border is always there (transparent when filled) so caught and missed stamps share one height. */
 .stamp {
+  box-sizing: border-box;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.375rem;
   min-height: 1.75rem;
   max-width: 100%;
-  padding: 0.1875rem 0.625rem;
-  border: 0;
-  border-radius: var(--radius-pill);
-  color: var(--surface);
+  padding: 0.125rem 0.625rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
   font-size: var(--t15);
   font-weight: 700;
-  line-height: 1.2;
-  transform: rotate(-1.5deg);
+  line-height: 1.4;
+  white-space: nowrap;
+  transform: rotate(var(--rest-tilt));
+  --rest-tilt: calc(var(--tilt, 0deg) * 0.25); /* lands at a quarter of the slam's tilt: 1deg at most */
 }
 
 .stamp small {
   font-size: var(--t13);
-  font-weight: 400;
+  font-weight: 600;
 }
 
-/* Filled pills, two token colours: the accent when caught, the warm notice colour when missed. */
+/* Caught: the bold filled stamp, white on the accent (4.67:1). */
 .stamp-caught {
+  --stamp-ink: var(--accent);
   background: var(--accent);
+  color: var(--surface);
 }
 
+/* Missed: an outlined stamp in the warm notice colour on white (5.4:1). */
 .stamp-missed {
-  background: var(--notice);
-  transform: rotate(1.5deg);
+  --stamp-ink: var(--notice);
+  border-color: var(--notice);
+  background: var(--surface);
+  color: var(--notice);
 }
 
-/* The Coach's note grows line by line while the stream runs. */
+.stamp-missed small {
+  font-weight: 700;
+}
+
+/* Not counted this time (a page never sent): a plain label, no stamp, no tilt, no motion. */
+.stamp-plain {
+  border-color: var(--line);
+  border-width: 1px;
+  background: transparent;
+  color: var(--ink-2);
+  font-weight: 600;
+  transform: none;
+}
+
+/* The slam: in big and tilted, a short squash on impact with an ink-press ring, then settled.
+   Each stamp waits its turn: 180ms apart through --i (Stamps.tsx ticks on the same step). */
+.stamp-caught,
+.stamp-missed {
+  animation: stamp-slam 280ms cubic-bezier(0.3, 0, 0.4, 1) calc(var(--i, 0) * 180ms) both;
+}
+
+@keyframes stamp-slam {
+  0% {
+    opacity: 0;
+    filter: blur(1.5px);
+    transform: scale(1.6) rotate(var(--tilt, 0deg));
+    box-shadow: 0 10px 18px -6px rgba(20, 30, 50, 0.45);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1.06, 0.9) rotate(var(--rest-tilt));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--stamp-ink) 30%, transparent);
+  }
+  78% {
+    transform: scale(0.98, 1.03) rotate(var(--rest-tilt));
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: scale(1) rotate(var(--rest-tilt));
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes stamp-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* The reduced-motion twin: no scale, no tilt, a 160ms fade per stamp, still one after another.
+   base.css sets every animation to none under this query, so this one wins with its own !important. */
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    transform: none !important;
+  }
+
+  .stamp-caught,
+  .stamp-missed {
+    animation: stamp-fade 160ms ease-out calc(var(--i, 0) * 180ms) both !important;
+  }
+}
+
+/* The Coach's one or two sentences grow in place while the stream runs. */
 .lesson-coach {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  white-space: pre-line;
+  display: block;
+}
+
+/* A short row with a small leading glyph, the Settings recipe: 22px stroke glyph in the accent ink,
+   the text beside it, wrapping under itself, never under the glyph. */
+.lesson-glyph-row {
+  align-items: flex-start;
+}
+
+.lesson-glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5625rem; /* one 18px line at 1.4, so the glyph sits on the first line */
+  color: var(--accent-ink);
+}
+
+.lesson-glyph .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.lesson-glyph-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-strong {
+  font-weight: 700;
 }
 
 .lesson-line,

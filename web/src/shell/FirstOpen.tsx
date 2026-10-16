@@ -21,12 +21,12 @@ const NOTICE_KEY = 'noticeSeen';    // same sessionStorage key PhoneShell used: 
 const SWIPE_PX = 60;
 
 // The alert is the once-per-visit notice (rule 1): the practice line and the non-affiliation sentence
-// from shared/strings.ts in full, plus the under-18 line on the first open. Later visits get one OK.
+// from shared/strings.ts in full, plus the 18-and-over line on the first open. Later visits get one OK.
 const PRACTICE_LINE = 'Every message, call and app on this phone is made up for practice.';
 const RETURN_LINES = [PRACTICE_LINE, NON_AFFILIATION];
 const ALERT_LINES = [
   ...RETURN_LINES,
-  'Under 18 gets prepared practice: no microphone or AI conversation.',
+  'Scammer Survivor is for people 18 and over.',
 ];
 
 // Mirrors App.tsx readAge: only these values count, so a stray stored value still gets the question.

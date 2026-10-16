@@ -10,6 +10,7 @@ import { JoinBanner } from './features/room/JoinBanner.tsx';
 import { RoomPage } from './features/room/RoomPage.tsx';
 import { joinCodeOf, setRoom } from './features/room/api.ts';
 import { SetupScreen } from './features/setup/SetupScreen.tsx';
+import { AgeBlock } from './shell/AgeBlock.tsx';
 import { FirstOpen } from './shell/FirstOpen.tsx';
 import { EmptyApp, isLayout } from './shell/EmptyApp.tsx';
 import { HomeScreen } from './shell/HomeScreen.tsx';
@@ -156,16 +157,25 @@ function useChoices() {
     store(AGE_KEY, group);
     setAge(group);
   };
+  // "I picked the wrong age" on the under-18 block: forget the answer so the alert asks again.
+  const resetAge = () => {
+    try {
+      localStorage.removeItem(AGE_KEY);
+    } catch {
+      // Blocked storage held nothing; the state below still asks again.
+    }
+    setAge(null);
+  };
   // Picking a country from the home screen returns to the home screen; on first open it stays on the lock.
   const chooseCountry = (code: string) => {
     setCountry(code);
     setChoosing(false);
   };
-  return { age, country, choosing, confirmAge, chooseCountry, openChooser: () => setChoosing(true) };
+  return { age, country, choosing, confirmAge, resetAge, chooseCountry, openChooser: () => setChoosing(true) };
 }
 
 export function App() {
-  const { age, country, choosing, confirmAge, chooseCountry, openChooser } = useChoices();
+  const { age, country, choosing, confirmAge, resetAge, chooseCountry, openChooser } = useChoices();
   // The lock screen stays until the swipe up, every visit, the way the phone does. #/day has its own lock.
   const [unlocked, setUnlocked] = useState(false);
   const [quick, setQuick] = useState(false);
@@ -194,6 +204,14 @@ export function App() {
   );
 
   // PhoneShell is the only parent of every screen, so none can render without the simulation label.
+  // Under 18 cannot enter (AGENTS.md rule 9): the block replaces every route, so nothing renders behind it.
+  if (age === 'younger') {
+    return (
+      <PhoneShell>
+        <AgeBlock country={country} onReset={resetAge} />
+      </PhoneShell>
+    );
+  }
   return (
     <PhoneShell>
       <Screen

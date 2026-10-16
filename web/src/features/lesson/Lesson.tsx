@@ -11,6 +11,7 @@ import { useLater } from '../day/useArrival.ts';
 import { getPeople } from '../setup/storage.ts';
 import { twinLine } from '../../strings.ts';
 import { GaveAwayGroup, StampedScam, TwinMessage, useCoach } from './LessonGroups.tsx';
+import { NextSteps, ReportIt, didLine } from './LessonRows.tsx';
 import './lesson.css';
 
 interface StepProps {
@@ -26,8 +27,6 @@ interface LessonProps extends StepProps {
 
 // How long after the note the wronged person's message lands.
 const FOLLOW_UP_MS = 3000;
-
-const SAFEST = 'Safest move next time: block and report, or call the number you already know to check.';
 
 // Never shames. The headline names what happened, not what the player did wrong, in one short
 // line: the large title is 34px, so about 18 characters fit at 390 wide.
@@ -56,40 +55,39 @@ function NextBar({ busy, failed, onNext, label }: StepProps & { label: string })
   );
 }
 
-// The Coach's note under the stamped scam. While the stream runs the text grows in place; if it
-// fails or says nothing, the deterministic lines from the result show instead.
+// The Coach's one or two sentences on the player's exact choice, straight under the title. While the
+// stream runs the text grows in place. The tells, the ending and the hotline have their own rows, so
+// if the stream fails the group just steps aside instead of repeating them.
 function CoachNote({ dayId, result }: { dayId: string; result: SlotResult }) {
   const coach = useCoach(dayId, result.slotId);
-  const lines = coach.failed
-    ? result.lesson.tells.map((tell) => `${tell.label}: ${tell.why}`)
-    : [coach.text || 'One moment.'];
+  if (coach.failed) return null;
   return (
-    <InsetGroup header="What gave it away">
-      <li className="inset-row inset-body lesson-coach anim-pop" aria-live="polite" aria-busy={!coach.done}>
-        {lines.map((line, index) => <span key={index}>{line}</span>)}
+    <InsetGroup header="Your move">
+      <li className="inset-row inset-body lesson-coach" aria-live="polite" aria-busy={!coach.done}>
+        {coach.text || 'One moment.'}
       </li>
-      <li className="inset-row inset-body lesson-line">{result.lesson.neverAsks}</li>
     </InsetGroup>
   );
 }
 
-// One screen: the scam with its tells stamped where they sit, the Coach's note, the real twin,
-// the usual ending, the safest move. The hotline is not here; the end-of-day screen shows it once.
-// Next floats as a capsule over the scrolling groups (lesson.css), not an edge-to-edge bar.
+// One screen that reads in a glance: the title and one line on what the player did, the Coach, the
+// scam with its tells stamped where they sit, what was given away, what happens next, the one move for
+// next time, where to report it, then the real twin. Next floats as a capsule (lesson.css).
 export function Lesson({ dayId, result, busy, failed, onNext }: LessonProps) {
   const { lesson } = result;
   return (
     <section className="page-full lesson anim-sheet">
       <div className="page-body scroll">
-        <ScreenTitle className="large-title">{headline(result)}</ScreenTitle>
-        <StampedScam lesson={lesson} caught={result.caught} />
-        <GaveAwayGroup result={result} />
+        <div className="lesson-head">
+          <ScreenTitle className="large-title">{headline(result)}</ScreenTitle>
+          <p className="lesson-did">{didLine(result)}</p>
+        </div>
         <CoachNote dayId={dayId} result={result} />
+        <StampedScam lesson={lesson} caught={result.caught} missed={result.missed} />
+        <GaveAwayGroup result={result} />
+        <NextSteps lesson={lesson} />
+        <ReportIt hotline={lesson.hotline} />
         <TwinMessage lesson={lesson} />
-        <InsetGroup header="If you had complied">
-          <li className="inset-row inset-body lesson-part">{lesson.usualEnding}</li>
-          <li className="inset-row inset-body lesson-safest">{SAFEST}</li>
-        </InsetGroup>
       </div>
       <NextBar busy={busy} failed={failed} onNext={onNext} label="Next" />
     </section>
@@ -105,8 +103,10 @@ interface NoteProps extends StepProps {
 }
 
 // Role-aware: "your sister" for a picked person, "your manager" or "the buyer" for a role (strings.ts).
-const noteLine = (card: PublicCard, result: SlotResult): string =>
-  result.falseAlarm ? twinLine(card.sender, getPeople()) : 'That one was real. You trusted it.';
+const noteLine = (card: PublicCard, result: SlotResult): string => {
+  if (result.falseAlarm) return twinLine(card.sender, getPeople());
+  return result.cautious ? 'That one was real. You trusted it, but it did not need a call.' : 'That one was real. You trusted it.';
+};
 
 // The server prefixes the follow-up with its sender; inside that sender's own thread the bubble drops it.
 const followUpText = (followUp: NonNullable<SlotResult['followUp']>): string =>

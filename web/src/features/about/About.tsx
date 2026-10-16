@@ -29,7 +29,7 @@ const SERVICES = [
 ] as const;
 
 const HONEST = [
-  'The first card of a day comes from a reviewed cache so the day opens at once. If you picked people, cards two to four are rewritten live around them while card one plays; otherwise the whole day is the reviewed cache. The quick day and the younger day are cache only.',
+  'The first card of a day comes from a reviewed cache so the day opens at once. If you picked people, cards two to four are rewritten live around them while card one plays; otherwise the whole day is the reviewed cache. The quick day is cache only, and under 18 cannot enter.',
   'Every screen carries the practice label. Nothing here is a real message, and no real app is shown.',
   'No data about you is stored beyond the day: no account, no message of yours, no audio.',
   'Code keeps every score. A model never decides whether you passed.',

@@ -11,13 +11,11 @@ export const COACH_MODEL = MODELS.coach;
 
 export const COACH_SYSTEM = [
   'You are the coach on a scam-awareness practice phone. The player just handled one practice message and code has already scored it.',
-  'Write the lesson in plain English, under 120 words, as short lines.',
-  'One line for each tell the player caught, one for each tell they missed; name the tell and point at the words that gave it away.',
-  'One line on what the real message did differently.',
-  'One line on the usual ending if someone goes along with it.',
-  'One line with the single safest action next time.',
+  'Write one or two plain English sentences, 30 words at most, about the exact choice the player made and what it did.',
+  'Speak to the player as you. No lists, no line breaks.',
+  'Do not name or list the tells, do not describe the usual ending, and do not mention a hotline or reporting: the screen shows each of those in its own row.',
   'Never write a new scam message or rewrite the one shown. Never invent numbers, amounts, names, links or institutions; use only what is in the input.',
-  'No em dashes. No headings. No bullet symbols. No greetings. Do not mention a score or a percentage.',
+  'No em dashes. No headings. No greetings. Do not mention a score or a percentage.',
 ].join('\n');
 
 type Lesson = SlotResult['lesson'];
@@ -30,7 +28,7 @@ export interface LessonInput {
   action: Action;
   actionCorrect: boolean;
   falseAlarm: boolean;
-  hotline: Lesson['hotline'];
+  hotline: Lesson['hotline']; // kept for the route's shape; the lesson shows it in its own row, so the prompt leaves it out
   stream?: StreamText;
 }
 
@@ -56,7 +54,6 @@ export function buildPrompt(input: Omit<LessonInput, 'stream'>): string {
     `Tells caught: ${input.caught.map(label).join(', ') || 'none'}`,
     `Tells missed: ${input.missed.map(label).join(', ') || 'none'}`,
     `Player action: ${input.action}. ${verdict}`,
-    `Hotline: ${input.hotline.label} ${input.hotline.number}`,
   ].join('\n');
 }
 
@@ -64,25 +61,12 @@ export function lessonStream({ stream = streamText, ...input }: LessonInput): As
   return stream({ system: COACH_SYSTEM, contents: buildPrompt(input), model: COACH_MODEL });
 }
 
-// The deterministic lesson: one paragraph from the scored result alone. Served to
-// younger players, on quick days and whenever the model fails (AGENTS.md rules 5 and 9).
+// The deterministic note: one or two sentences on the player's choice, from the scored result alone.
+// The tells, the usual ending and the hotline have their own rows in the lesson, so they are not here.
+// Served to younger players, on quick days and whenever the model fails (AGENTS.md rules 5 and 9).
 export function lessonText(result: SlotResult): string {
-  const { lesson } = result;
-  const caught = result.caught.map(label);
-  const missed = result.missed.map(label);
-  const verdict = result.falseAlarm
-    ? 'This one was real. Treating it as a scam cost you a person who needed you.'
-    : result.actionCorrect
-      ? 'Your action was safe.'
-      : 'Your action was the one the scam wanted.';
-  return [
-    verdict,
-    caught.length > 0 ? `You caught: ${caught.join(', ')}.` : '',
-    missed.length > 0 ? `You missed: ${missed.join(', ')}.` : '',
-    lesson.neverAsks,
-    `Usual ending: ${lesson.usualEnding}`,
-    `Next time, check with someone you know or report it to ${lesson.hotline.label} on ${lesson.hotline.number}.`,
-  ]
-    .filter((line) => line.length > 0)
-    .join(' ');
+  if (result.falseAlarm) return 'This one was real. Treating it as a scam turned away a person who needed you.';
+  if (result.actionCorrect) return 'Your action was safe: you did not give the message what it asked for.';
+  if ((result.leaked ?? []).length > 0) return 'Your details went to a page the sender controls, which is what the message was for.';
+  return 'Your action was the one the scam wanted: going along is how this kind of message gets paid.';
 }

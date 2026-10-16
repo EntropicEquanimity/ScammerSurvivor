@@ -6,9 +6,10 @@ import { Icon } from '../../shell/Icon.tsx';
 import { haptic } from '../../shell/feel.ts';
 import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { PartView } from '../layouts/MessageView.tsx';
+import { Stamp, stampKind, useStampTicks } from './Stamps.tsx';
 
 // The pieces of the one-screen lesson: the scam with its tells stamped in place, the real twin,
-// the Coach's streamed note, and the hotline group the end-of-day screen shows once.
+// the Coach's streamed note, and the hotline group the end-of-day screen shows.
 
 type Lesson = SlotResult['lesson'];
 type Sender = Lesson['real']['sender'];
@@ -20,32 +21,31 @@ const SenderRow = ({ sender }: { sender: Sender }) => (
   </li>
 );
 
-// One stamp per tell on a part. Caught and missed differ in colour and in words, so colour is
-// never the only carrier.
-function Stamp({ label, caught }: { label: string; caught: boolean }) {
-  return (
-    <span className={caught ? 'stamp stamp-caught' : 'stamp stamp-missed'}>
-      {label}
-      <small>{caught ? 'you found this' : 'missed'}</small>
-    </span>
-  );
-}
-
-export function StampedScam({ lesson, caught }: { lesson: Lesson; caught: TellId[] }) {
+// What gave it away: the scam with each tell stamped on the part it sits in. Caught and missed come
+// from the result, so a tell the scoring left out (a page never sent) shows as a plain label, never as
+// a miss. A missed tell on no shown part gets its own row of stamps. The stamp index runs in reading
+// order across every part, so the stamps land one after another.
+export function StampedScam({ lesson, caught, missed }: { lesson: Lesson; caught: TellId[]; missed: TellId[] }) {
   const labelOf = Object.fromEntries(lesson.tells.map((tell) => [tell.id, tell.label]));
+  const kindOf = (id: TellId) => stampKind(id, caught, missed);
+  const placed = [...new Set(lesson.scam.parts.flatMap((part) => part.tellIds))];
+  const unplaced = missed.filter((id) => !placed.includes(id));
+  // A tell planted on two parts lands once in the sequence; its second stamp shares that slot.
+  const order = [...placed.filter((id) => kindOf(id) !== 'plain'), ...unplaced];
+  useStampTicks(order.length);
+  const stamp = (id: TellId) => <Stamp key={id} label={labelOf[id] ?? id} kind={kindOf(id)} index={order.indexOf(id)} />;
   return (
-    <InsetGroup header="The scam">
+    <InsetGroup header="What gave it away">
       <SenderRow sender={lesson.scam.sender} />
       {lesson.scam.parts.map((part) => (
         <li key={part.id} className="inset-row inset-body lesson-part">
           <PartView part={part} />
-          {part.tellIds.length > 0 && (
-            <span className="stamps">
-              {part.tellIds.map((id) => <Stamp key={id} label={labelOf[id] ?? id} caught={caught.includes(id)} />)}
-            </span>
-          )}
+          {part.tellIds.length > 0 && <span className="stamps">{part.tellIds.map(stamp)}</span>}
         </li>
       ))}
+      {unplaced.length > 0 && (
+        <li className="inset-row inset-body lesson-part"><span className="stamps">{unplaced.map(stamp)}</span></li>
+      )}
     </InsetGroup>
   );
 }
@@ -157,7 +157,7 @@ export function HotlineGroup({ hotline }: { hotline: Lesson['hotline'] }) {
     <InsetGroup header="Report a scam">
       <li className="inset-row inset-body lesson-value">
         <span>{hotline.label}</span>
-        <span className="lesson-detail">{hotline.number}</span>
+        {hotline.number.trim() && <span className="lesson-detail">{hotline.number}</span>}
       </li>
       <li>
         {/* The one real link in the exercise: the country's official reporting page. */}

@@ -60,8 +60,15 @@
 }
 
 /* The lock shows the big clock, so the status bar drops its own time, as the phone does. The same
-   rule covers the day's lock (features/day.css draws it). */
-.phone:has(.lock, .day-lock) .status-bar > span:first-child {
+   rule covers the day's lock (features/day.css draws it). A call layer covers the lock's clock, so
+   the time comes back over the call (banner.css colours it for the dark veil). */
+.phone:has(.lock, .day-lock):not(:has(.call-layer)) .status-bar > span:first-child {
+  visibility: hidden;
+}
+
+/* The first-open alert sits where the notification does on a short phone; while it is up the
+   notification waits, so the two never overlap, and shows once the alert closes. */
+.lock:has(.alert-scrim) .lock-notif {
   visibility: hidden;
 }
 
@@ -274,4 +281,39 @@
   gap: 1.25rem;
   min-height: 0;
   padding: 0 1rem 1.5rem;
+}
+
+/* Under 18: the full-screen block (AgeBlock.tsx), a Settings page on the grouped grey (shell.css),
+   the title and the help group high, the one way out at the bottom, clear of the home indicator. */
+.age-block {
+  flex: 1 0 auto;
+  justify-content: space-between;
+  min-height: 100%;
+  padding-top: 2.5rem;
+}
+
+.age-block-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.age-block .settings-lead {
+  margin: 0;
+}
+
+.age-block-hotline {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.age-block-hotline strong {
+  white-space: nowrap;
+}
+
+.age-block-reset {
+  align-self: center;
+  margin-bottom: 0.5rem;
+  color: var(--accent-ink);
 }
