@@ -6,6 +6,7 @@
   --muted: #6b7280;
   --paper: #eef0f3;
   --surface: #ffffff;
+  --grouped: #f2f2f7;
   --line: #d9dde3;
   --accent: #0a70e8;
   --notice: #9a5b13;
@@ -257,4 +258,7 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+
+.scroll::-webkit-scrollbar { display: none; }

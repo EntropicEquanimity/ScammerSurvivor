@@ -19,6 +19,29 @@
   min-height: 0;
 }
 
+/* Inside an app step the wallpaper is gone, as on iOS: the tell picker, the lesson, setup and the
+   end sit on the grouped background, edge to edge behind the time and the indicator. On-wall text
+   turns to ink here through its own tokens. The call keeps its own full-screen look. */
+.page-full:not(.call) {
+  margin-top: calc(-1 * var(--status-h, 54px));
+  margin-bottom: calc(-1 * var(--indicator-h, 34px));
+  padding-top: var(--status-h, 54px);
+  padding-bottom: var(--indicator-h, 34px);
+  background: var(--grouped);
+  color: var(--ink);
+  --on-wall: var(--ink);
+  --on-wall-shadow: none;
+}
+
+/* The thread keeps the app's white surface so its grey bubbles hold their contrast. */
+.page-full.tells { background: var(--surface); }
+.page-full .tells-hint { color: var(--ink-2); }
+
+.phone:has(.page-full:not(.call)) .status-bar {
+  color: var(--ink);
+  text-shadow: none;
+}
+
 .page-body {
   display: flex;
   flex: 1;
