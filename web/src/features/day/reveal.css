@@ -199,9 +199,10 @@
 }
 
 .score-bar-value {
+  color: var(--ok);
   font-size: var(--t16);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .score-bar-cost { color: var(--notice); }

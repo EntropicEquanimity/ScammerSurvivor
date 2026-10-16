@@ -35,7 +35,9 @@
   align-items: center;
   justify-content: center;
   min-height: 52px;
-  padding: 0 4.25rem 0 1rem; /* clear of Done at the right; the host is a tell, so it gets all the room there is */
+  padding: 0 4.25rem; /* equal both sides so the host sits on the screen's centre line, clear of Done at the right */
+  -webkit-user-select: none;
+  user-select: none;
   background: var(--glass-bar);
   -webkit-backdrop-filter: blur(var(--glass-bar-blur));
   backdrop-filter: blur(var(--glass-bar-blur));

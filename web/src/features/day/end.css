@@ -100,10 +100,12 @@
   font-weight: 600;
 }
 
+/* Points read as a game score: bold iOS green (text-safe --ok), plain grey when a message scored 0. */
 .ledger-points {
   grid-column: 2;
+  color: var(--ok);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
   text-align: right;
 }
 
