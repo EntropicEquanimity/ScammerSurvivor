@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import type { Clue } from '../../../../shared/clues.ts';
 import type { Layout, PublicCard } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
 import { appLookFor } from '../day/appNames.ts';
+import { ClueStack } from '../clues/ClueCard.tsx';
 
 export interface Part {
   id: string;
@@ -24,6 +26,7 @@ interface Props {
   marks?: Record<string, string[]>; // part id to the tell labels shown under it (lesson)
   layout?: Layout; // picks the look; text messages when absent
   bannerHint?: PublicCard['bannerHint']; // the phone's own "Likely scam" strip, a hint, never proof
+  clues?: Clue[]; // the card's inspectable objects, each drawn under the part it names
 }
 
 // Fixture links use .example or .invalid hosts, or a bracketed placeholder. Nothing here navigates.
@@ -68,7 +71,28 @@ function TapPart({ part, tap }: { part: Part; tap: TapMode }) {
   );
 }
 
-export function PartView({ part, tap, labels = [] }: { part: Part; tap?: TapMode; labels?: string[] }) {
+interface PartProps {
+  part: Part;
+  tap?: TapMode;
+  labels?: string[];
+  clues?: Clue[]; // this part's clues only
+  open?: boolean; // the lesson: clues start turned over
+}
+
+// A part with its clues under it. In select mode the clue is a sibling of the part's button, never
+// inside it: tapping the part marks it, tapping the clue only inspects it.
+export function PartView({ part, tap, labels, clues = [], open }: PartProps) {
+  if (clues.length === 0) return <PartBody part={part} tap={tap} labels={labels} />;
+  const Wrap = tap ? 'div' : 'span';
+  return (
+    <Wrap className={tap ? 'part-area' : 'part-with-clues'}>
+      <PartBody part={part} tap={tap} labels={labels} />
+      <ClueStack clues={clues} open={open} />
+    </Wrap>
+  );
+}
+
+function PartBody({ part, tap, labels = [] }: { part: Part; tap?: TapMode; labels?: string[] }) {
   if (tap) return <TapPart part={part} tap={tap} />;
   if (labels.length === 0) {
     return (
@@ -91,17 +115,18 @@ interface GroupProps {
   parts: Part[];
   ask?: boolean;
   tap?: TapMode;
-  marks: Record<string, string[]>;
+  marks?: Record<string, string[]>; // present in the lesson, where clues start turned over
+  clues: Clue[];
   name?: string; // the sender named inside the bubble, the group-chat convention of cloud-chat
 }
 
 // One bubble: the parts stacked, each a tappable button in tap mode.
-function BubbleGroup({ parts, ask, tap, marks, name }: GroupProps) {
+function BubbleGroup({ parts, ask, tap, marks, clues, name }: GroupProps) {
   return (
     <div className={ask ? 'bubble-group bubble-ask' : 'bubble-group'}>
       {name && <strong className="bubble-name">{name}</strong>}
       {parts.map((part) => (
-        <PartView key={part.id} part={part} tap={tap} labels={marks[part.id]} />
+        <PartView key={part.id} part={part} tap={tap} labels={marks?.[part.id]} clues={clues.filter((c) => c.partId === part.id)} open={marks !== undefined} />
       ))}
     </div>
   );
@@ -114,7 +139,7 @@ const THREADED = (layout: Layout): boolean => layout !== 'email' && layout !== '
 // One component, eight looks picked by the layout id through CSS (card.css): the bubble shape,
 // the read line and where the sender name sits differ; the words and the parts never do. Every
 // sibling of a bubble here is a <p>, so the last bubble (the one with the tail) is :last-of-type.
-export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks = {}, layout = 'sms', bannerHint }: Props) {
+export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks, layout = 'sms', bannerHint, clues = [] }: Props) {
   const nameInBubble = layout === 'cloud-chat' ? sender.displayName : undefined;
   const readLine = READ_LINE[layout];
   const palette = { '--app-colour': appLookFor(layout).colour } as CSSProperties;
@@ -137,8 +162,8 @@ export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, ma
           Likely scam. Detection is a hint, not proof.
         </p>
       )}
-      {setup.length > 0 && <BubbleGroup parts={setup} tap={tap} marks={marks} name={nameInBubble} />}
-      {ask.length > 0 && <BubbleGroup parts={ask} ask tap={tap} marks={marks} name={setup.length === 0 ? nameInBubble : undefined} />}
+      {setup.length > 0 && <BubbleGroup parts={setup} tap={tap} marks={marks} clues={clues} name={nameInBubble} />}
+      {ask.length > 0 && <BubbleGroup parts={ask} ask tap={tap} marks={marks} clues={clues} name={setup.length === 0 ? nameInBubble : undefined} />}
       {readLine && !tap && <p className="msg-read">{readLine}</p>}
     </div>
   );

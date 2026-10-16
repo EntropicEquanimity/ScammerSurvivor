@@ -1,0 +1,373 @@
+/* Clues: the objects inside a bubble the player pokes at. Each is a white card set into the grey
+   bubble the way the phone sets a rich link or a voice note, no outline. Tints mix from the app's
+   --app-colour and the base tokens; there is no clue palette of its own. */
+
+.clue-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+/* The inspect button is the whole card: a 48px-tall target at its smallest. */
+.clue {
+  display: block;
+  position: relative;
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  perspective: 900px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  transition: transform var(--dur-press) ease-out;
+}
+
+.clue:active { transform: scale(0.97); }
+
+.clue:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Both sides share one grid cell, so the card is as tall as its taller side. */
+.clue-flip {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform var(--dur-sheet) var(--spring-out);
+}
+
+.clue[aria-pressed='true'] .clue-flip { transform: rotateY(180deg); }
+
+.clue-side {
+  display: flex;
+  grid-area: 1 / 1;
+  min-width: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.clue-side-back { transform: rotateY(180deg); }
+
+.clue-face {
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0.5rem 2.75rem 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--t15);
+  line-height: 1.3;
+  letter-spacing: var(--track-15);
+}
+
+/* Mail has no grey bubble, so a clue there sits on the grouped grey instead. */
+.msg[data-look='email'] .clue-face { background: var(--grouped); }
+
+.clue-title {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.clue-sub {
+  color: var(--ink-2);
+  font-size: var(--t13);
+  letter-spacing: var(--track-13);
+  overflow-wrap: anywhere;
+}
+
+.clue-glyph {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The small inspect mark, top right, over both sides. The card itself is the target. */
+.clue-hint {
+  display: grid;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink-2) 12%, var(--surface));
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.clue-hint .clue-glyph { width: 16px; height: 16px; stroke-width: 2.4; }
+
+/* The back: what inspecting reveals, on the app's own tint. */
+.clue-back {
+  background: color-mix(in srgb, var(--app-colour) 16%, var(--surface));
+  color: var(--ink);
+}
+
+.clue-detail {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Link preview: the tinted art panel on top, the title and grey host in the strip below. */
+.clue-link {
+  flex-direction: column;
+  gap: 0;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+}
+
+.clue-link-art {
+  display: grid;
+  place-items: center;
+  height: 5.5rem;
+  background: color-mix(in srgb, var(--app-colour) 22%, var(--surface));
+  color: color-mix(in srgb, var(--app-colour) 70%, #000);
+}
+
+.clue-link-art .clue-glyph { width: 34px; height: 34px; stroke-width: 1.6; }
+
+.clue-link-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem 0.625rem;
+  background: color-mix(in srgb, var(--ink-2) 7%, var(--surface));
+}
+
+/* Payment request: the amount large, the payee, an inert Pay pill in the app's colour. */
+.clue-pay {
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: stretch;
+  padding-block: 0.75rem;
+}
+
+.clue-amount {
+  font-size: var(--t24);
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.clue-pay-pill {
+  display: grid;
+  place-items: center;
+  height: 2.25rem;
+  margin-top: 0.375rem;
+  margin-right: -2rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--app-colour) 64%, #000);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+/* Countdown: a pill with the clock in the notice orange, ticking. */
+.clue-timer { border-radius: var(--radius-pill); }
+
+.clue-timer .clue-glyph,
+.clue-clock {
+  color: var(--notice);
+}
+
+.clue-clock {
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Badge: the title, then the seal tick in the accent. */
+.clue-badge .clue-glyph { color: var(--accent); }
+
+/* Voice note: the play disc, the bars, the length; the title under them. */
+.clue-voice {
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: stretch;
+}
+
+.clue-voice-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.clue-play {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-colour) 64%, #000);
+  color: var(--surface);
+}
+
+.clue-play .clue-glyph { width: 16px; height: 16px; fill: currentColor; stroke-width: 1.5; }
+
+.clue-wave {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  align-items: center;
+  min-width: 0;
+  height: 24px;
+  overflow: hidden;
+}
+
+.clue-wave > span {
+  flex: 1 1 0;
+  min-width: 2px;
+  max-width: 3px;
+  border-radius: 2px;
+  background: var(--ink-2);
+}
+
+.clue-length {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Parcel tracker: a status dot, the status, a quiet second line. */
+.clue-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--notice);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--notice) 18%, var(--surface));
+}
+
+.clue-parcel-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Practice code: six grey cells, a dot in each, never a digit. */
+.clue-code {
+  flex-direction: column;
+  gap: 0.375rem;
+  align-items: stretch;
+}
+
+.clue-cells {
+  display: flex;
+  gap: 0.25rem;
+  margin-right: -2rem;
+}
+
+.clue-cell {
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  max-width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  background: var(--grouped);
+}
+
+.msg[data-look='email'] .clue-cell { background: var(--surface); }
+
+.clue-cell::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* Select mode: the part keeps its own button; the clues sit right under it in the same lifted area
+   when it is marked, so the clue reads as part of what was marked. */
+.part-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.375rem;
+  border-radius: var(--radius-sm);
+  transition: transform var(--dur-press) var(--spring-out), box-shadow var(--dur-press) ease-out, background-color var(--dur-press) ease-out;
+}
+
+.part-area > .clue-stack { margin: 0 0.625rem; }
+
+.part-area:has(> .part-tap[aria-pressed='true']) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+}
+
+.part-area > .part-tap[aria-pressed='true'] {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Reduced motion: no turn in space. The two sides cross-fade in place. These beat the global cut
+   in base.css by specificity and !important, so the change still reads as a change. */
+@media (prefers-reduced-motion: reduce) {
+  .clue,
+  .clue:active,
+  .clue .clue-flip,
+  .clue[aria-pressed='true'] .clue-flip,
+  .part-area,
+  .part-area:has(> .part-tap[aria-pressed='true']) {
+    transform: none !important;
+  }
+
+  .clue:active { opacity: 0.7; }
+
+  .clue .clue-side-back { transform: none !important; }
+
+  .clue .clue-side {
+    transition: opacity 200ms ease-out !important;
+  }
+
+  .clue .clue-side-back,
+  .clue[aria-pressed='true'] .clue-side-front {
+    opacity: 0;
+  }
+
+  .clue[aria-pressed='true'] .clue-side-back { opacity: 1; }
+
+  .part-area { transition: background-color 160ms ease-out !important; }
+}
+
+/* Outside select mode a part and its clues stack as one line of the bubble. */
+.part-with-clues {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The timer pill keeps to one line; a long title ends in an ellipsis rather than wrapping. */
+.clue-timer .clue-title {
+  -webkit-line-clamp: 1;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
