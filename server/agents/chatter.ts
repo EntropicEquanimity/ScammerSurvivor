@@ -7,7 +7,8 @@ import { ThinkingLevel, Type } from '@google/genai';
 import type { GoogleGenAI, Schema } from '@google/genai';
 import { GeminiError, MODELS, makeClient } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
-import { BRAND_DENYLIST } from '../guard/card.ts';
+import { BRAND_DENYLIST, DISCLAIMER } from '../guard/card.ts';
+import { bareNameSpots, stiffVoice } from '../guard/subtle.ts';
 import { identityReasons } from './caller.ts';
 import type { Generate } from './caller.ts';
 import { INSTITUTIONS, BRANDS, isInstitutionId } from '../../shared/brands.ts';
@@ -16,6 +17,7 @@ import { TELLS, TRICKS } from '../../shared/taxonomy.ts';
 import type { Card, ChatChipId, TraceEvent } from '../../shared/types.ts';
 import { ROMANCE_VOICE, SCAM_LINES, SCAM_VOICE, TWIN_LINES, TWIN_VOICE } from './chatterLines.ts';
 import type { SenderKind } from './chatterLines.ts';
+import { isEarlyStage, rapportStage } from './rapport.ts';
 
 export { CHAT_CHIPS, CHIP_LABELS, MAX_EXCHANGES, pickChips } from '../../shared/chips.ts';
 export const MAX_WORDS = 40;
@@ -26,7 +28,7 @@ export const CHAT_DEADLINE_MS = 8000;
 // A repair is only tried when at least one more call's worth of the deadline is left.
 const REPAIR_MIN_MS = 2500;
 
-export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_example' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims' | 'off_topic';
+export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_example' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims' | 'off_topic' | 'stiff_voice';
 
 const REASON_TEXT: Record<ChatReason, string> = {
   empty: 'Write one short chat message.',
@@ -40,6 +42,7 @@ const REASON_TEXT: Record<ChatReason, string> = {
   banned_word: 'Name no real country, agency or police force.',
   twin_disclaims: 'Do not say what you would never ask for or that there is no fee; just answer.',
   off_topic: 'Answer the question the player just asked, directly, in your first sentence.',
+  stiff_voice: `You are texting as a person: never "let us" or "I am unable"; use contractions like "let's" and "I can't".`,
 };
 
 // Does the line answer the chip? Loose word checks, cheap and pure: a miss is one repair, then the
@@ -84,9 +87,7 @@ const NOT_NAMES = new Set([
 ]);
 
 const EM_DASH = String.fromCharCode(0x2014);
-// The Guard's twin rule (server/guard/card.ts, not exported there): a real sender never says what it
-// does not ask for, since only someone expecting suspicion says "no fee" or "we never ask".
-const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay|nothing to pay)\b|\b(?:not|never)\s+asking\s+(?:you\s+)?for\s+(?:any\s+)?(?:money|payment|anything)\b|\b(?:do not|don't|dont)\s+need\s+to\s+pay\b/i;
+// The twin rule is the Guard's own DISCLAIMER (server/guard/card.ts), one list for the card and the chat.
 // Curly apostrophes read as straight ones, so both kinds of "it's" pass the same checks.
 const CURLY = String.fromCharCode(0x2019);
 const straight = (text: string): string => text.replaceAll(CURLY, "'");
@@ -94,13 +95,17 @@ const words = (text: string): string[] => text.trim().split(/\s+/).filter(Boolea
 const hasBrand = (text: string): boolean => (text.toLowerCase().match(/[a-z]+/g) ?? []).some((w) => BRAND_DENYLIST.includes(w));
 const offExampleLink = (text: string): boolean => [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
 
-const strangeName = (text: string, allowed: Set<string>): boolean =>
-  [...text.replace(LINK, ' ').matchAll(NAME_POSITION)]
-    .map((m) => m[1])
+// The opener positions plus the bare ones (a sign-off, "Marco here", "Marco, ..."): Oct 17, a name
+// with no opener before it passed.
+const strangeName = (text: string, allowed: Set<string>): boolean => {
+  const cleaned = text.replace(LINK, ' ');
+  return [...[...cleaned.matchAll(NAME_POSITION)].map((m) => m[1]), ...bareNameSpots(cleaned)]
     .some((w) => /^[A-Z][a-z]+$/.test(w) && !NOT_NAMES.has(w.toLowerCase()) && !allowed.has(w.toLowerCase()));
+};
 
 // Reason ids only, never the text. Pure, so the route test and the live run read the same rules.
-export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false, said?: ChatChipId): ChatReason[] {
+// person: the sender is a person texting (a relative, a friend, the boss), so a stiff line fails.
+export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false, said?: ChatChipId, person = false): ChatReason[] {
   const text = typeof raw === 'string' ? straight(raw).trim() : '';
   if (!text) return ['empty'];
   const allowed = new Set(allowedNames.flatMap((name) => name.toLowerCase().split(/\s+/)));
@@ -115,6 +120,7 @@ export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwi
     ['banned_word', identityReasons(text).includes('banned_word')],
     ['twin_disclaims', isTwin && DISCLAIMER.test(text)],
     ['off_topic', said !== undefined && !onTopic(text, said, allowedNames)],
+    ['stiff_voice', person && stiffVoice(text)],
   ];
   return checks.filter(([, failed]) => failed).map(([reason]) => reason);
 }
@@ -196,15 +202,10 @@ const TWIN_MOVE: Record<ChatChipId, string> = {
 };
 const LAST_SCAM = 'This is your last message in this chat: make one last push, then say you will wait.';
 
-// The slow add (Oct 16): a new contact who chats like anyone would, and only turns to the ask from
-// the player's second reply on. Scam side only; its twin stays an ordinary new acquaintance.
-export const SLOW_TURN = 2;
-const SLOW_EARLY = 'For this message, ignore the pressure move: stay an ordinary friendly new contact. Small talk only: no favour, no tip, no money, no link.';
-const SLOW_ASK = 'Now turn the chat, casually, to the small favour or the investment tip from your first message, as if it just came up.';
-export const slowStage = (card: Card, isTwin: boolean, thread: readonly ChatLine[]): string | null => {
-  if (isTwin || card.trickId !== 'slow_add') return null;
-  return thread.filter((line) => line.from === 'player').length < SLOW_TURN ? SLOW_EARLY : SLOW_ASK;
-};
+// The rapport arc (rapport.ts): the slow add, the wrong number and the romance turn late and casual.
+export { SLOW_TURN } from './rapport.ts';
+export const slowStage = (card: Card, isTwin: boolean, thread: readonly ChatLine[]): string | null =>
+  rapportStage(card, isTwin, thread.filter((line) => line.from === 'player').length);
 const LAST_TWIN = 'This is your last message in this chat: say a warm goodbye.';
 
 // The move line for the newest chip, plus the wrap-up on the last exchange.
@@ -349,7 +350,8 @@ ${moveLine(input.isTwin, input.said, input.last ?? false)}` : '';
 ${stage}` : '');
   // The repair goes to the fallback model: about a second faster, and its own quota under a 429.
   const ask = (extra: string, model: string) => generate({ system, contents: contents + extra, schema: CHAT_SCHEMA, model, temperature: 0.8 });
-  const check = (text: string) => chatReasons(text, input.allowedNames, input.isTwin, input.said);
+  const person = textsAsPerson(input.card, input.isTwin);
+  const check = (text: string) => chatReasons(text, input.allowedNames, input.isTwin, input.said, person);
   const first = await ask('', MODELS.director);
   const firstText = textOf(first.json);
   const reasons = check(firstText);
@@ -362,9 +364,13 @@ ${stage}` : '');
   return fallbackAttempt(input, again);
 }
 
-// Before the slow add turns, its fixed line is the plain new-contact one, not a push.
+// Senders who text as people, so a stiff "let us" fails their line.
+const PERSON_KINDS: ReadonlySet<SenderKind> = new Set(['relative', 'friend', 'boss']);
+export const textsAsPerson = (card: Card, isTwin: boolean): boolean => PERSON_KINDS.has(senderKind(card, isTwin));
+
+// Before a rapport card turns, its fixed line is the plain new-contact one, not a push.
 const slowEarlyLine = (input: ChatterInput): string | null =>
-  slowStage(input.card, input.isTwin, input.thread) === SLOW_EARLY
+  isEarlyStage(slowStage(input.card, input.isTwin, input.thread))
     ? TWIN_LINES.unknown[input.said ?? 'ok_what_do_i_do'].replace('{name}', nameOf(input.card.sender.displayName))
     : null;
 

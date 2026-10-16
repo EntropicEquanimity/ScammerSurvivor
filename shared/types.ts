@@ -389,3 +389,9 @@ export interface ChatReplyResult {
   chips: ChatChipId[]; // what the player may send next; empty once final
   final: boolean; // no more exchanges: the next pick is scored
 }
+
+// Rapport tricks (Oct 17): earlier friendly bubbles from previous days, drawn above today's message.
+// Interface merging appends the optional fields without touching Card or PublicCard above.
+export interface HistoryBubble { from: 'them' | 'you'; text: string; day: string }
+export interface Card { history?: HistoryBubble[]; twinHistory?: HistoryBubble[] }
+export interface PublicCard { history?: HistoryBubble[] }

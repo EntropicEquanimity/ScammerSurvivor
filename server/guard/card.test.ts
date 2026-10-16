@@ -242,3 +242,65 @@ test('twin_disclaims catches the contracted form too', () => {
   const twin = { ...base, realTwin: { ...base.realTwin, parts: [part('r1', "[real twin line]. You don't need to pay anything.")] } };
   expectOnly(twin, 'twin_disclaims');
 });
+
+// Oct 17, subtle scams. Long ordinary lines so the overlap rule has words to compare.
+const LONG_A = 'dinner at mine on friday, can you bring the salad and the big bowl pls';
+const LONG_B = 'dinner at mine on saturday, can you bring the salad and the big bowl pls';
+const LONG_C = 'the library returns desk closes early this week for the holiday, so drop books at the front office';
+
+test('too_many_tells: more than three tell tags across the parts is stacking', () => {
+  const base = clean();
+  const ask = [part('a1', '[ask line]', ['authority', 'urgency']), part('a2', '[ask line two]', ['urgency', 'authority'])];
+  expectOnly({ ...base, ask }, 'too_many_tells');
+});
+
+test('twin_unrelated: the twin must mirror the scam; a near-mirror passes', () => {
+  const base = clean();
+  const mirror = { ...base, setup: [part('s1', LONG_A)], realTwin: { ...base.realTwin, parts: [part('r1', LONG_B)] } };
+  assert.deepEqual(guardDraft(mirror, OPTIONS).reasons, []);
+  const apart = { ...mirror, realTwin: { ...mirror.realTwin, parts: [part('r1', LONG_C)] } };
+  expectOnly(apart, 'twin_unrelated');
+});
+
+test('stiff_voice: "let us" from a person fails; from an office, or "let us know", it passes', () => {
+  const base = clean();
+  const person = { ...base.realTwin, sender: { displayName: 'Rosa', maskedNumber: '+65 XXXX 5678' } };
+  expectOnly({ ...base, realTwin: { ...person, parts: [part('r1', '[real twin line], let us talk later')] } }, 'stiff_voice');
+  assert.deepEqual(guardDraft({ ...base, realTwin: { ...person, parts: [part('r1', '[real twin line], let us know')] } }, OPTIONS).reasons, []);
+  assert.deepEqual(guardDraft({ ...base, realTwin: { ...base.realTwin, parts: [part('r1', '[real twin line], let us talk later')] } }, OPTIONS).reasons, []);
+});
+
+test('amount_off: a capped trick names no figure above its cap, and a cap of 0 names none', () => {
+  const base = { ...clean(), ask: [part('a1', '[ask line] SGD 500', ['authority']), part('a2', '[ask line two] SGD 12.50', ['urgency'])] };
+  assert.deepEqual(guardDraft(base, OPTIONS).reasons, []);
+  assert.deepEqual(guardDraft(base, { ...OPTIONS, amountCap: 40 }).reasons, ['amount_off']);
+  assert.deepEqual(guardDraft(clean(), { ...OPTIONS, amountCap: 0 }).reasons, []);
+  assert.deepEqual(guardDraft(base, { ...OPTIONS, amountCap: 0 }).reasons, ['amount_off']);
+});
+
+const bubble = (from: 'them' | 'you', text: string, day = 'Monday') => ({ from, text, day });
+const HISTORY = [bubble('them', 'morning!'), bubble('you', 'morning'), bubble('them', 'lunch was good'), bubble('you', 'nice', 'Yesterday')];
+
+test('history_off: a rapport trick needs a friendly history on both sides, and its words pass the text rules', () => {
+  const base = clean();
+  assert.deepEqual(guardDraft(base, { ...OPTIONS, needsHistory: true }).reasons, ['history_off']);
+  const both = { ...base, history: HISTORY, twinHistory: HISTORY };
+  assert.deepEqual(guardDraft(both, { ...OPTIONS, needsHistory: true }).reasons, []);
+  const leaky = { ...both, history: [...HISTORY.slice(0, 3), bubble('them', 'ring me on 912345678')] };
+  assert.deepEqual(guardDraft(leaky, OPTIONS).reasons, ['digit_run']);
+});
+
+test('names with no opener: a sign-off, an address, or a sender name off the list fails', () => {
+  const base = clean();
+  expectOnly({ ...base, usualEnding: '[usual ending], see you soon, Marco' }, 'name_not_allowed');
+  expectOnly({ ...base, setup: [part('s1', 'Marco, can you [setup line]')] }, 'name_not_allowed');
+  expectOnly({ ...base, sender: { displayName: 'Marco', maskedNumber: '+65 XXXX 1234' } }, 'name_not_allowed');
+  assert.deepEqual(guardDraft({ ...base, sender: { displayName: 'Rosa', maskedNumber: '+65 XXXX 1234' } }, OPTIONS).reasons, []);
+});
+
+test('twin_disclaims: "I never asked for any code" and a did-not-ask line are disclaimers too', () => {
+  const base = clean();
+  for (const line of ['[real twin line]. I never asked for any code.', "[real twin line], I didn't ask for money."]) {
+    expectOnly({ ...base, realTwin: { ...base.realTwin, parts: [part('r1', line)] } }, 'twin_disclaims');
+  }
+});

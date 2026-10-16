@@ -7,6 +7,7 @@ import { PEOPLE_ROLES } from '../../shared/types.ts';
 import { cluesReasons } from '../../shared/clues.ts';
 import type { Clue, ClueReason } from '../../shared/clues.ts';
 import { asks } from '../offered.ts';
+import { MAX_TAGS, TWIN_OVERLAP_MIN, amountsIn, bareNameSpots, historyReasons, overlap, stiffVoice, tagCount } from './subtle.ts';
 
 export type GuardReason =
   | 'tells_missing_on_ask'
@@ -26,7 +27,15 @@ export type GuardReason =
   | 'name_not_allowed'
   | 'empty_ask'
   | 'unknown_tell'
+  | 'amount_off'
+  | SoftReason
   | ClueReason;
+
+// Style rules (Oct 17): they fail a draft so the repair turn fixes it, but a card whose only faults
+// after the repair are these keeps its card (director.ts keepAfterRepair), the way clue faults do.
+export type SoftReason = 'too_many_tells' | 'twin_unrelated' | 'stiff_voice' | 'history_off';
+export const SOFT_REASONS: readonly SoftReason[] = ['too_many_tells', 'twin_unrelated', 'stiff_voice', 'history_off'];
+export const isSoftReason = (reason: string): reason is SoftReason => (SOFT_REASONS as readonly string[]).includes(reason);
 
 const CLUE_REASONS: readonly ClueReason[] = ['clue_kind', 'clue_part', 'clue_grounding', 'clue_count', 'clue_text'];
 
@@ -51,6 +60,8 @@ export const GUARD_REASONS: readonly GuardReason[] = [
   'name_not_allowed',
   'empty_ask',
   'unknown_tell',
+  'amount_off',
+  ...SOFT_REASONS,
   ...CLUE_REASONS,
 ];
 
@@ -78,6 +89,8 @@ export interface Draft {
   usualEnding?: string;
   plantedTells?: string[];
   clues?: Partial<Clue>[];
+  history?: { from?: string; text?: string; day?: string }[];
+  twinHistory?: { from?: string; text?: string; day?: string }[];
   realTwin?: { sender?: DraftSender; parts?: DraftPart[]; acceptable?: string[]; clues?: Partial<Clue>[] };
 }
 
@@ -85,6 +98,8 @@ export interface GuardOptions {
   noteTells: readonly string[];
   allowedNames: readonly string[];
   allowedReplies: readonly string[];
+  amountCap?: number; // the largest figure the scam may name (a toll fine); 0 means no amount at all
+  needsHistory?: boolean; // a rapport trick: both sides carry an earlier-days history
 }
 
 export interface GuardResult {
@@ -129,7 +144,9 @@ const NAME_STOPLIST = new Set([
 // A real message never says what it does not ask for: "no fee", "no payment needed", "we never ask".
 // Money and asking words only, so "no need to reply" or "no rush" stays an ordinary twin.
 // ponytail: a short phrase list, not meaning; a new disclaimer wording slips through until it is added.
-const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|charge|charges|request|requests)\b|\b(?:free of charge|no need to pay)\b|\b(?:do not|don't|dont)\s+(?:need|have)\s+to\s+pay\b/i;
+// Shared with the Chatter (chatter.ts), so one list covers the card and the chat. "I never asked for
+// any code" (Oct 17) slipped both until asked and the did-not-ask forms were added.
+export const DISCLAIMER = /\b(?:no|without|zero)\s+(?:any\s+|extra\s+|hidden\s+)?(?:fees?|payments?|charges?|deposits?)\b|\bnever\s+(?:ask|asks|asked|asking|charge|charges|charged|request|requests|requested)\b|\b(?:didn't|did not|dont|don't|do not)\s+ask(?:ed)?\s+(?:you\s+)?for\b|\b(?:free of charge|no need to pay|nothing to pay)\b|\b(?:not|never)\s+asking\s+(?:you\s+)?for\s+(?:any\s+)?(?:money|payment|anything)\b|\b(?:do not|don't|dont)\s+(?:need|have)\s+to\s+pay\b/i;
 
 // A real twin never asks the player to share, read or enter a code or a password (Skeptic round 4):
 // that is the habit every scam in the game is built on. "never share your code" does not count.
@@ -173,7 +190,11 @@ const sameSet = (a: string[], b: string[]): boolean => {
 
 const lastFour = (masked: string): string | null => masked.match(/(\d{4})$/)?.[1] ?? null;
 
+const historyTexts = (draft: Draft): string[] =>
+  [...arr<{ text?: string }>(draft.history), ...arr<{ text?: string }>(draft.twinHistory)].map((b) => str(b?.text));
+
 const textFields = (draft: Draft): string[] => [
+  ...historyTexts(draft),
   ...parts(draft.setup).map((p) => str(p.text)),
   ...parts(draft.ask).map((p) => str(p.text)),
   ...parts(draft.realTwin?.parts).map((p) => str(p.text)),
@@ -190,11 +211,42 @@ export const hasBrand = (text: string): boolean =>
 
 export const strangeNames = (text: string, allowed: Set<string>): string[] => {
   const cleaned = text.replace(PLACEHOLDER, ' ').replace(LINK, ' ');
-  const candidates = [...cleaned.matchAll(NAME_POSITION)].map((m) => m[1]);
+  const candidates = [...[...cleaned.matchAll(NAME_POSITION)].map((m) => m[1]), ...bareNameSpots(cleaned)];
   return candidates.filter((w) => /^[A-Z][a-z]+$/.test(w)).filter((w) => {
     const lower = w.toLowerCase();
     return !NAME_STOPLIST.has(lower) && !BRAND_DENYLIST.includes(lower) && !allowed.has(lower);
   });
+};
+
+// A sender named by one bare capitalised word is a person: it must be allowed or an ordinary word
+// ("Courier", "Mom"). Business names of two words or more ("Hiring team") are left alone.
+const strangeDisplayName = (name: string, allowed: Set<string>): boolean => {
+  const word = name.replace(PLACEHOLDER, ' ').trim();
+  const lower = word.toLowerCase();
+  return /^[A-Z][a-z]+$/.test(word) && !NAME_STOPLIST.has(lower) && !BRAND_DENYLIST.includes(lower) && !allowed.has(lower);
+};
+
+// A sender who is a person: an allowed first name or a family word.
+const FAMILY = new Set(['mom', 'dad', 'sis', 'bro', 'brother', 'sister', 'grandma', 'grandpa', 'aunt', 'uncle']);
+const isPerson = (name: string, allowed: Set<string>): boolean => allowed.has(name.trim().toLowerCase()) || FAMILY.has(name.trim().toLowerCase());
+
+const joined = (list: DraftPart[]): string => list.map((p) => str(p.text)).join(' ');
+
+// The subtle-scam rules (server/guard/subtle.ts): few tell tags, a twin that mirrors the scam, no
+// stiff line from a person, a small amount kept small, and a friendly history on rapport tricks.
+const checkSubtle = (draft: Draft, options: GuardOptions): GuardReason[] => {
+  const scamParts = [...parts(draft.setup), ...parts(draft.ask)];
+  const twinParts = parts(draft.realTwin?.parts);
+  const allowed = new Set(options.allowedNames.map((n) => n.toLowerCase()));
+  const stiffScam = isPerson(str(draft.sender?.displayName), allowed) && scamParts.some((p) => stiffVoice(str(p.text)));
+  const stiffTwin = isPerson(str(draft.realTwin?.sender?.displayName), allowed) && twinParts.some((p) => stiffVoice(str(p.text)));
+  const cap = options.amountCap;
+  const out: GuardReason[] = [];
+  if (cap !== undefined && amountsIn(joined(scamParts)).some((figure) => figure > cap)) out.push('amount_off');
+  if (tagCount(scamParts) > MAX_TAGS) out.push('too_many_tells');
+  if (overlap(joined(scamParts), joined(twinParts)) < TWIN_OVERLAP_MIN) out.push('twin_unrelated');
+  if (stiffScam || stiffTwin) out.push('stiff_voice');
+  return [...out, ...historyReasons(draft.history, draft.twinHistory, options.needsHistory === true)];
 };
 
 const checkTells = (draft: Draft, noteTells: readonly string[]): GuardReason[] => {
@@ -245,7 +297,8 @@ const checkText = (draft: Draft, allowedNames: readonly string[]): GuardReason[]
   if (texts.some((t) => LAYOUT_ID.test(t))) out.push('layout_id');
   if (texts.some((t) => SCAFFOLD.test(t))) out.push('scaffold_word');
   if (texts.some(hasBrand)) out.push('brand_name');
-  if (texts.some((t) => strangeNames(t, allowed).length > 0)) out.push('name_not_allowed');
+  const strangeSender = [draft.sender, draft.realTwin?.sender].some((sender) => strangeDisplayName(str(sender?.displayName), allowed));
+  if (strangeSender || texts.some((t) => strangeNames(t, allowed).length > 0)) out.push('name_not_allowed');
   return out;
 };
 
@@ -281,6 +334,7 @@ export const guardDraft = (draft: Draft, options: GuardOptions): GuardResult => 
     ...checkTwinAndReplies(safeDraft, options.allowedReplies),
     ...checkText(safeDraft, options.allowedNames),
     ...checkClues(safeDraft, options.allowedNames),
+    ...checkSubtle(safeDraft, options),
   ]);
   const reasons = GUARD_REASONS.filter((r) => found.has(r));
   return { ok: reasons.length === 0, reasons };
@@ -304,6 +358,11 @@ const REASON_TEXT: Record<GuardReason, string> = {
   name_not_allowed: 'Only first names from the allowed list may follow a greeting, an introduction or a title; drop any other name or swap in an allowed one.',
   empty_ask: 'The ask must have at least one part.',
   unknown_tell: 'Every tellId must be one of the nine tells in the taxonomy.',
+  amount_off: 'The amount is wrong for this trick: use only the amount line the user message gives (a small fee stays small; a card that names no amount names no money at all).',
+  too_many_tells: `Tag at most ${MAX_TAGS} tells across all parts; drop the loud ones and let one small detail carry the trick.`,
+  twin_unrelated: 'The real twin must mirror the scam: the same structure, tone, length and sender style, mostly the same words; change only the one or two details that make the scam a scam.',
+  stiff_voice: `A person texting never writes "let us" or "I am unable"; use contractions: "let's", "I can't".`,
+  history_off: 'The history must be 4 to 6 earlier bubbles on each side, from "them" or "you", each with a short day label ("Monday", "Yesterday") and under 20 words of friendly small talk: no link, no money, no code, no tells.',
   clue_kind: 'Every clue kind must be one of: link_preview, payment_request, countdown, badge, voice_note, parcel_status, code_box.',
   clue_part: 'Every clue partId must name a part on its own side: s1 or a1 style for the scam, r1 style for the real twin.',
   clue_grounding:

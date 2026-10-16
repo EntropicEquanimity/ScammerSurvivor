@@ -5,6 +5,7 @@ import type { Layout, PublicCard } from '../../../../shared/types.ts';
 import { haptic } from '../../shell/feel.ts';
 import { appLookFor } from '../day/appNames.ts';
 import { ClueStack } from '../clues/ClueCard.tsx';
+import { HistoryBubbles } from './History.tsx';
 
 export interface Part {
   id: string;
@@ -27,6 +28,7 @@ interface Props {
   layout?: Layout; // picks the look; text messages when absent
   bannerHint?: PublicCard['bannerHint']; // the phone's unknown-sender line, as iOS shows it; shown on some scams and some real messages, never proof
   clues?: Clue[]; // the card's inspectable objects, each drawn under the part it names
+  history?: PublicCard['history']; // earlier days of a rapport chat, drawn above today (History.tsx)
 }
 
 // Fixture links use .example or .invalid hosts, or a bracketed placeholder. Nothing here navigates.
@@ -142,7 +144,7 @@ const THREADED = (layout: Layout): boolean => layout !== 'email' && layout !== '
 // One component, eight looks picked by the layout id through CSS (card.css): the bubble shape,
 // the read line and where the sender name sits differ; the words and the parts never do. Every
 // sibling of a bubble here is a <p>, so the last bubble (the one with the tail) is :last-of-type.
-export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks, layout = 'sms', bannerHint, clues = [] }: Props) {
+export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, marks, layout = 'sms', bannerHint, clues = [], history }: Props) {
   const nameInBubble = layout === 'cloud-chat' ? sender.displayName : undefined;
   const readLine = READ_LINE[layout];
   const palette = { '--app-colour': appLookFor(layout).colour } as CSSProperties;
@@ -155,6 +157,7 @@ export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, ma
           {arrivesAt && <span>{arrivesAt}</span>}
         </p>
       )}
+      <HistoryBubbles history={history} />
       {arrivesAt && THREADED(layout) && (
         <p className="thread-time">
           <strong>Today</strong> {arrivesAt}

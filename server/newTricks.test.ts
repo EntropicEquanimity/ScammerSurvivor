@@ -85,7 +85,7 @@ test('the Director is told a slow add opens with tell-free small talk, and no ot
   const slow = notes.find((note) => trickFor(note) === 'slow_add');
   const other = notes.find((note) => trickFor(note) === 'wrong_number');
   assert.ok(slow && other);
-  assert.match(userMessage(slow, pack, 2, ['Ren']), /setup parts are ordinary small talk/);
+  assert.match(userMessage(slow, pack, 2, ['Ren']), /slow add: a friendly new contact/);
   assert.doesNotMatch(userMessage(other, pack, 2, ['Ren']), /slow add/);
 });
 
@@ -123,10 +123,16 @@ const slowCard = (over: Partial<Card> = {}): Card => ({
 const thread = (players: number): ChatLine[] =>
   Array.from({ length: players }, (_, i): ChatLine[] => [{ from: 'player', text: `[chip ${i + 1}]` }, { from: 'sender', text: '[line]' }]).flat().slice(0, -1);
 
-test('the slow add stays small talk on the first reply and turns to the ask from the second', () => {
-  assert.equal(SLOW_TURN, 2);
+test('the rapport arc: small talk for two replies, then doing well, a mentor, and the link dropped casually', () => {
+  assert.equal(SLOW_TURN, 3);
   assert.match(slowStage(slowCard(), false, thread(1)) ?? '', /no favour, no tip, no money/);
-  assert.match(slowStage(slowCard(), false, thread(2)) ?? '', /turn the chat/);
+  assert.match(slowStage(slowCard(), false, thread(2)) ?? '', /no favour, no tip, no money/);
+  assert.match(slowStage(slowCard(), false, thread(3)) ?? '', /how well you have been doing/);
+  assert.match(slowStage(slowCard(), false, thread(4)) ?? '', /mentor, an uncle or a small trading group.*screenshot/);
+  assert.match(slowStage(slowCard(), false, thread(5)) ?? '', /drop the group link casually.*\.example/);
+  assert.match(slowStage(slowCard({ trickId: 'wrong_number' }), false, thread(5)) ?? '', /drop the group link/);
+  assert.match(slowStage(slowCard({ trickId: 'fast_romance' }), false, thread(1)) ?? '', /stay loving/);
+  assert.match(slowStage(slowCard({ trickId: 'fast_romance' }), false, thread(4)) ?? '', /out of love, never pressure/);
   assert.equal(slowStage(slowCard(), true, thread(3)), null);
   assert.equal(slowStage(BASE, false, thread(1)), null);
 });
@@ -142,8 +148,8 @@ test('the slow add stage line reaches the prompt, and its early fixed line is no
   assert.equal(early.outcome, 'fallback');
   assert.match(early.text, /Should've said who I was/);
   seen.length = 0;
-  await chatterReply({ card: slowCard(), isTwin: false, thread: thread(2), said: 'who_is_this', allowedNames: ['Ren'], modelAllowed: true, generate });
-  assert.match(seen[0], /turn the chat/);
+  await chatterReply({ card: slowCard(), isTwin: false, thread: thread(3), said: 'who_is_this', allowedNames: ['Ren'], modelAllowed: true, generate });
+  assert.match(seen[0], /how well you have been doing/);
 });
 
 test('the strangers among the real twins answer in the plain voice, the scams as a friend', () => {

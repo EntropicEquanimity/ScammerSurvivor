@@ -1,0 +1,9 @@
+/* Earlier days above today's message: iOS bubbles one step quieter (a size down), the day line in
+   the thread-time style (card.css .thread-time). No motion, so no reduced-motion twin is needed. */
+.history { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem; }
+.history-step { display: flex; flex-direction: column; gap: 0.25rem; }
+.history-day { margin: 0.5rem 0 0.25rem; color: var(--ink-2); font-size: 0.6875rem; font-weight: 600; letter-spacing: var(--track-13); text-align: center; }
+.history-in,
+.history-out { max-width: 78%; margin: 0; padding: 0.5rem 0.75rem; border-radius: 18px; font-size: var(--t16); line-height: 1.35; text-align: left; overflow-wrap: anywhere; }
+.history-in { align-self: flex-start; background: #e9e9eb; color: var(--ink); }
+.history-out { align-self: flex-end; background: var(--accent); color: #fff; }

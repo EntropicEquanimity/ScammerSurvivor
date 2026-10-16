@@ -7,7 +7,7 @@ import { Type } from '@google/genai';
 import type { Content, Schema } from '@google/genai';
 import { generateJson, MODELS } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
-import { guardDraft, isClueReason, reasonText } from '../guard/card.ts';
+import { guardDraft, isClueReason, isSoftReason, reasonText } from '../guard/card.ts';
 import type { GuardReason } from '../guard/card.ts';
 import { guardPages, isPageReason, leakReasons, pageReasonText } from '../guard/page.ts';
 import type { LeakReason, PageReason } from '../guard/page.ts';
@@ -21,52 +21,12 @@ import { ACTIONS } from '../../shared/types.ts';
 import { APP_NAME } from '../fill.ts';
 import { CLUE_KINDS } from '../../shared/clues.ts';
 import type { Clue } from '../../shared/clues.ts';
-import type { Action, Card, Category, CountryPack, Layout, MessagePart, PatternNote, People, TellId, TraceEvent, TrickId } from '../../shared/types.ts';
+import type { Action, Card, Category, CountryPack, HistoryBubble, Layout, MessagePart, PatternNote, People, TellId, TraceEvent, TrickId } from '../../shared/types.ts';
+import { RAPPORT_LINE, RAPPORT_TRICKS, amountCapFor, amountLine, levelFor, tellsFor, twinAskLine } from './directorRules.ts';
+export { NO_HONEST_ASK, RAPPORT_TRICKS, amountCapFor, amountLine, levelFor, tellsFor, twinAskLine } from './directorRules.ts';
 
-export const DIRECTOR_SYSTEM = `You write practice material for a scam-awareness training game. Players know every message is practice. Your output is shown only inside the game under the label "Practice. Not a real message." and is followed by a lesson that names each tell.
-
-Input: a pattern note (a card described in neutral words, from a public advisory), the player's country pack (currency, the apps people use there), a level, and a list of allowed first names (the player's own people first).
-Output: one card as JSON in the given schema. JSON only.
-
-Rules:
-- Write the scam as message parts. Attach to each part the tell ids it carries, from the enum only. plantedTells lists exactly the tells used on the parts.
-- Every tell listed in the pattern note must be tagged in the tellIds of at least one part in "ask" (not only in "setup"). The tag is what counts; the words never need to name the tell. Let structure carry a tell: a payee the player has never paid (payment_substitution), a familiar account asking for something unusual or a changed number (synthetic_identity), a quiet "just between us" (isolation), the code just sent to you (credential_theft). Urgency can be soft: "today", "by tonight", "before the courier leaves". One pressure per part; never stack every tell into one line.
-- Register: scam parts are short (about 15 words or fewer), one pressure per part, no literary words. Every text is written the way its sender really types. Contractions wherever a person would use them (it's, I'm, don't, can't, you're); never "It is [name]", "I am unable to" or "let us talk here" from a person. Voices by sender, as style notes only (never copy a note as a whole message):
-  - Friends and family (the player's people, and the real twin from them): texts, not letters. Short lines, often no greeting, a lowercase start now and then, shorthand like pls, lol, omw, haha, ya, rn, at most one small typo in an ordinary word per card. Style: "u home yet?", "lol ok", "grab milk on the way pls".
-  - Family trouble (someone posing as one of them): the same casual voice, panicked and short. Fragments, double "!!", no polish. Style: "pls pick up", "can't explain now", "it's bad".
-  - Fake buyers and sellers: broken, over-earnest English with missing articles and odd tense. Style: "I am genuine buyer", "pls check", "kindly confirm item".
-  - Fake bank, wallet, courier and prize desks: a copy of a corporate alert template that is slightly off: "[institution]:" in front, Random Title Case, a stiff "kindly", "Dear Customer", a dropped article. Style: "Your Parcel is On Hold", "kindly update details".
-  - Fake police and officials: stiff, formal and threatening, legal nouns, no contractions. Style: "failure to comply", "you are hereby advised", "case under investigation".
-  - Romance: warm and flowery, pet names and compliments, building over small messages; never a declaration in the first one. Style: "good morning dear", "your smile made my day".
-  - Job and task recruiters: upbeat and chatty, exclamation marks, at most two emoji on the whole card and never inside a link or an amount. Style: "Hi dear!", "easy daily income", "Congratulations!".
-  - Investment mentors: a confident, chummy teacher. Style: "my students", "today's signal". A boss: clipped and busy, no greeting. Style: "need this done today".
-  - Real institutions (the real twin from a bank, courier, office or shop): a real automated alert: terse, templated, one fact per part, a short reference of four digits or fewer where it fits ("Ref A2041"), no pleading, no "kindly", no exclamation marks.
-  - Real people never sound like a script: no greeting plus full name plus purpose in one line.
-  - English only, readable anywhere in Asia Pacific: no words from any other language and no dialect particles or slang from any one country; shorthand is the only flavour.
-  - Typos and lowercase never touch a name, an amount, a link or the word "code". Put a space after every full stop.
-- Write the real twin: an ordinary message of the same kind from the same sort of sender, with no tells, and an "acceptable" reply list. It sounds like that sender: a courier update is terse, a bank alert is one line, Mom texts warm and casual with contractions. It never mentions what it does not ask for (no "no fee", "no payment needed", "we never ask", "never charge"). It ends when its business ends. It never asks the player to share, read or enter a code, a one-time code, a PIN or a password, and its acceptable list never holds share_code or read_code: a real sender says to open their own app.
-- Every text speaks to the reader as "you" and "your". The pattern note says "the player"; never copy that word into a card.
-- Give safe replies and unsafe replies from the reply enum only.
-- usualEnding: one sentence on what happens if the player complies.
-- Institutions and app names: use "[institution]" and "[chat app name]" placeholders, never a real brand. That covers payment services and transfer systems too: say "a new account", "[bank]" or "[wallet]", never a real one.
-- People: first names only, from the allowed list. The user message says who sends the card. One of the player's people: that person by name. A stranger (recruiter, mentor, officer, buyer, courier, a new romance contact): a role or business name such as "[institution] Support" or "Hiring team", or a neutral first name from the list.
-- Spell every name exactly as the allowed list gives it, letter for letter with the same capitals; never swap in a variant or a nickname. Family words follow the game's labels: Mom and Dad, never Mum, Ma, Mother or Father.
-- maskedNumber: a plus sign, the country code, a space, X for every hidden digit, then the real last four digits (shape "+65 XXXX NNNN"). The scam sender and the real twin have different last-four digits.
-- No run of five or more digits in a row anywhere in any text field. No account numbers or codes written as digits; say "the code just sent to you" instead. A short reference of four digits or fewer is fine.
-- Amounts: the user message gives the stake and the currency. The main amount asked for is the stake, written the way people there write money: the currency code and the figure with a comma between thousands ("JPY 30,000", "IDR 2,000,000", "INR 10,000", "SGD 500"). The comma keeps every digit run under five; never write "30000". A trick that opens with a small figure (a re-delivery fee, a first task payout, an early withdrawal) may show it before the stake.
-- Links only on the .example domain, written as plain text.
-- Level 1: tells are obvious. Level 3: tells are subtle. English only. No em dashes.
-
-Clues: the things in a message the player can tap to inspect, like evidence in a detective game. Pick 0 to 2 for the scam ("clues") and 0 to 2 for the real twin ("realTwin.clues"), only where a part's own words back them. Most messages hold at least one: a link, an amount, a deadline, a code, a label, a delivery update. Give an empty list only when no part's words back any kind. Both sides get clues of the same kinds where their words allow, so a clue never gives the answer away: when the scam has a clue, write the real twin so one of its parts backs a clue of the same kind (its own amount, its own deadline, its own label, its own delivery update, its own .example link) and give it that clue. Pick the kind that fits the trick; a link is only one choice.
-- partId names the part the clue sits under, by place: setup parts are s1, s2, ask parts a1, a2, real twin parts r1, r2, in the order you write them.
-- title is the line the clue shows; detail is what inspecting reveals. Each under 60 characters, no run of five digits, never a tell id.
-- link_preview: detail names the exact .example host written in that part. Example: title "[institution] secure login", detail "Opens harbour-login.example".
-- payment_request: amount is the figure written in that part, as a plain number ("JPY 30,000" gives 30000). Example: title "Payment request", detail "To a new account", amount 500.
-- countdown: only on a part that sets a deadline inside the hour; minutes 1 to 60. A soft deadline ("today", "by tonight") gets no countdown. Example: title "Offer ends", detail "Set by the sender", minutes 30.
-- code_box: only on a part that says the word "code". Example: title "Practice code", detail "Never share this".
-- badge: a label on the message. On a scam it is a tell to inspect and the detail says who really added it. Example: title "Verified sender", detail "Added by the sender, not the app".
-- voice_note: a part that reads as a short voice message. Example: title "Voice message", detail "No caller name saved".
-- parcel_status: a delivery update in that part. Example: title "Parcel held", detail "Tracking on parcel-track.example".`;
+import { DIRECTOR_SYSTEM, HISTORY_SYSTEM } from './directorPrompt.ts';
+export { DIRECTOR_SYSTEM } from './directorPrompt.ts';
 
 const str: Schema = { type: Type.STRING };
 const list = (items: Schema): Schema => ({ type: Type.ARRAY, items });
@@ -87,7 +47,20 @@ const senderSchema = obj({ displayName: str, maskedNumber: str });
 
 // Clues are a required list that may be empty: measured on the Cup key (Oct 16), with clues
 // optional 0 of 4 cards carried any; required, 4 of 4 did. toDraft turns an empty list into no key.
-export const DIRECTOR_SCHEMA: Schema = obj({
+const bubbleSchema = obj({ from: { type: Type.STRING, enum: ['them', 'you'] }, text: str, day: str });
+// The twin is written first (DIRECTOR_SYSTEM: write the twin, then mirror it), so it leads the output.
+const twinFirst = (schema: Schema): Schema => {
+  const keys = Object.keys(schema.properties ?? {});
+  const lead = ['difficulty', 'realTwin', 'twinHistory', 'history'].filter((key) => keys.includes(key));
+  return { ...schema, propertyOrdering: [...lead, ...keys.filter((key) => !lead.includes(key))] };
+};
+const withHistory = (base: Schema): Schema => ({
+  ...base,
+  properties: { ...base.properties, history: list(bubbleSchema), twinHistory: list(bubbleSchema) },
+  required: [...(base.required ?? []), 'history', 'twinHistory'],
+});
+
+const BASE_SCHEMA: Schema = obj({
   difficulty: { type: Type.INTEGER, minimum: 1, maximum: 3 },
   sender: senderSchema,
   setup: list(partSchema),
@@ -99,7 +72,12 @@ export const DIRECTOR_SCHEMA: Schema = obj({
   realTwin: obj({ sender: senderSchema, parts: list(obj({ text: str })), acceptable: replies, clues: clueList }),
   clues: clueList,
 });
-const PAGE_SCHEMA = withPages(DIRECTOR_SCHEMA);
+export const DIRECTOR_SCHEMA: Schema = twinFirst(BASE_SCHEMA);
+const PAGE_SCHEMA = twinFirst(withPages(BASE_SCHEMA));
+const schemaFor = (paged: boolean, rapport: boolean): Schema => {
+  const base = paged ? withPages(BASE_SCHEMA) : BASE_SCHEMA;
+  return paged && !rapport ? PAGE_SCHEMA : rapport ? twinFirst(withHistory(base)) : DIRECTOR_SCHEMA;
+};
 
 export type Generate = (req: JsonRequest) => Promise<{ json: unknown; trace: TraceEvent }>;
 
@@ -114,6 +92,8 @@ export interface WriteCardInput {
   level: 1 | 2 | 3;
   allowedNames?: string[];
   leaked?: FieldId[]; // a rewrite after a fake page: what the player gave away (ids only)
+  opener?: boolean; // the first card of a first-ever day: the only card that may be level 1
+  rand?: () => number; // the level coin, for tests
   generate?: Generate;
 }
 
@@ -171,29 +151,29 @@ const SENDER_LINE = {
 
 const hasPages = (note: PatternNote): boolean => PAGE_TRICKS.includes(trickFor(note));
 
-// Per-trick notes (Oct 16): the slow add's opening must read, and score, as an ordinary new contact;
-// a toll fine stays small and a SIM swap names no amount, since the live run wrote the stake in as a
-// hundredfold late fee and as an order on a card that only asks for a code.
-const TRICK_LINE: Partial<Record<TrickId, string>> = {
-  slow_add: 'This card is a slow add: the setup parts are ordinary small talk from a new contact and carry no tellIds at all; every tell sits on the ask, which turns to the favour or the tip as if it just came up.',
-  toll_fine: 'This card is a toll or parking fine: the charge and any late fee are small figures for one trip; never write the stake as a fine or a penalty.',
-  sim_swap: 'This card is a SIM swap: it asks only for the code and names no amount of money anywhere.',
-};
+// Per-trick notes: the rapport tricks (directorRules.ts). The toll fine and the SIM swap moved to
+// the amount line (Oct 17), since the live run wrote the stake in as a hundredfold late fee.
+const trickLine = (trick: TrickId): string[] => (RAPPORT_LINE[trick] ? [RAPPORT_LINE[trick] as string] : []);
 
 export function userMessage(note: PatternNote, pack: CountryPack, level: number, allowedNames: string[], leaked: readonly FieldId[] = []): string {
-  const peopleSender = PEOPLE_TRICKS.includes(trickFor(note));
+  const trick = trickFor(note);
+  const peopleSender = PEOPLE_TRICKS.includes(trick);
   const leak = leakLine(leaked);
+  const tells = tellsFor(trick, note.tells, levelOf(level));
   return [
-    `Pattern note (JSON): ${JSON.stringify(note)}`,
+    // The note goes with only this card's tells, so the model never sees the rest to stack.
+    `Pattern note (JSON): ${JSON.stringify({ ...note, tells })}`,
     // App names, never look ids: a look id in the prompt came back in the copy ("talk here on green-chat").
     `Country pack: ${pack.code}, currency ${pack.currency}, apps ${[...new Set(pack.layouts.map((look) => APP_NAME[look]))].join(', ')}, this card arrives in ${APP_NAME[note.app]}.`,
-    `Stake: ${pack.currency} ${stakeFor(pack.walletStart).toLocaleString('en-US')}. This is the main amount the scam asks for.`,
+    amountLine(trick, pack, stakeFor(pack.walletStart)),
     `Level: ${level}.`,
+    `Tells for this card: ${tells.join(', ')}.`,
     `Allowed first names: ${allowedNames.join(', ')}.`,
     peopleSender ? SENDER_LINE.people : SENDER_LINE.stranger,
     'The real twin has exactly as many parts as setup and ask together.',
+    twinAskLine(trick),
     ...(hasPages(note) ? [pageLines(trickFor(note))] : []),
-    ...(TRICK_LINE[trickFor(note)] ? [TRICK_LINE[trickFor(note)] as string] : []),
+    ...trickLine(trick),
     ...(leak ? [leak] : []),
   ].join('\n');
 }
@@ -247,11 +227,20 @@ const cluesField = (items: unknown): { clues?: Clue[] } => {
   return clues.length > 0 ? { clues } : {};
 };
 
+// Only the bubble fields, straight apostrophes; an empty or missing list is no key (Firestore).
+const historyField = (key: 'history' | 'twinHistory', items: unknown): Partial<Record<'history' | 'twinHistory', HistoryBubble[]>> => {
+  const bubbles = asList<Record<string, unknown>>(items)
+    .filter((raw) => raw && typeof raw === 'object')
+    .map((raw) => ({ from: raw.from === 'you' ? ('you' as const) : ('them' as const), text: asText(raw.text), day: asText(raw.day) }));
+  return bubbles.length > 0 ? { [key]: bubbles } : {};
+};
+
 const pageField = (value: unknown, withTells: boolean): { page?: CardPage } => {
   const page = toPage(value, withTells);
   return page ? { page } : {};
 };
 
+const levelOf = (value: number): 1 | 2 | 3 => (value <= 1 ? 1 : value >= 3 ? 3 : 2);
 const clampLevel = (value: unknown): 1 | 2 | 3 => (typeof value !== 'number' || value <= 1 ? 1 : value >= 3 ? 3 : 2);
 
 // Garbage in gives an empty draft out, which the Guard rejects, never a throw.
@@ -269,6 +258,8 @@ export function toDraft(json: unknown, note: PatternNote): Draft {
     unsafeReplies: asList<Action>(raw.unsafeReplies),
     usualEnding: asText(raw.usualEnding),
     plantedTells: asList<TellId>(raw.plantedTells),
+    ...historyField('history', raw.history),
+    ...historyField('twinHistory', raw.twinHistory),
     ...cluesField(raw.clues),
     ...pageField(raw.page, true),
     realTwin: {
@@ -309,19 +300,30 @@ interface Pass {
   trace: TraceEvent[];
 }
 
-// The card Guard, the page Guard on page tricks, and the leak check on every card.
+const isRapport = (note: PatternNote): boolean => RAPPORT_TRICKS.includes(trickFor(note));
+
+// The card Guard (held to this card's tells, its amount cap and, on rapport tricks, a history), the
+// page Guard on page tricks, and the leak check on every card. input.level is the level in force.
 const guardAll = (draft: Draft, input: WriteCardInput, allowedNames: string[]): DirectorReason[] => [
-  ...guardDraft(draft, { noteTells: input.note.tells, allowedNames, allowedReplies: [...ACTIONS] }).reasons,
+  ...guardDraft(draft, {
+    noteTells: tellsFor(trickFor(input.note), input.note.tells, levelOf(input.level)),
+    allowedNames,
+    allowedReplies: [...ACTIONS],
+    amountCap: amountCapFor(trickFor(input.note), input.pack.currency),
+    needsHistory: isRapport(input.note),
+  }).reasons,
   ...(hasPages(input.note) ? guardPages(draft, { realHost: realHostFor(trickFor(input.note)), allowedNames, trickId: trickFor(input.note) }) : []),
   ...leakReasons(draftTexts(draft), input.leaked ?? []),
 ];
 
 async function pass(generate: Generate, contents: Content[], input: WriteCardInput, allowedNames: string[]): Promise<Pass> {
   const paged = hasPages(input.note);
-  const request = { system: paged ? DIRECTOR_SYSTEM + PAGE_SYSTEM : DIRECTOR_SYSTEM, schema: paged ? PAGE_SCHEMA : DIRECTOR_SCHEMA };
-  const { json, trace } = await generate({ ...request, contents, model: MODELS.director });
+  const rapport = isRapport(input.note);
+  const system = DIRECTOR_SYSTEM + (paged ? PAGE_SYSTEM : '') + (rapport ? HISTORY_SYSTEM : '');
+  const { json, trace } = await generate({ system, schema: schemaFor(paged, rapport), contents, model: MODELS.director });
   const started = performance.now();
-  const draft = toDraft(json, input.note);
+  // The level is code's, never the model's own report of it.
+  const draft = { ...toDraft(json, input.note), difficulty: levelOf(input.level) };
   const reasons = guardAll(draft, input, allowedNames);
   const ms = Math.round(performance.now() - started);
   const guard: TraceEvent = reasons.length === 0 ? { agent: 'guard', ms, outcome: 'ok' } : { agent: 'guard', ms, outcome: 'rejected', reasons };
@@ -331,26 +333,34 @@ async function pass(generate: Generate, contents: Content[], input: WriteCardInp
 const withOutcome = (events: TraceEvent[], outcome: TraceEvent['outcome']): TraceEvent[] =>
   events.map((event) => (event.agent === 'director' ? { ...event, outcome } : event));
 
-// Clue or page faults alone after the repair: drop the clues or the pages, keep the card (a card is
-// never lost to a clue or a page; without its page the link behaves as it does today).
+// Clue, page or style faults alone after the repair: drop the clues, the pages or the history and
+// keep the card (a card is never lost to a clue, a page or a style rule; card.ts SOFT_REASONS).
 function keepAfterRepair(draft: Draft, reasons: DirectorReason[]): Draft | null {
-  if (!reasons.every((reason) => isClueReason(reason) || isPageReason(reason))) return null;
+  if (!reasons.every((reason) => isClueReason(reason) || isPageReason(reason) || isSoftReason(reason))) return null;
   const clueless = reasons.some(isClueReason) ? withoutClues(draft) : draft;
-  return reasons.some(isPageReason) ? withoutPages(clueless) : clueless;
+  const plain = reasons.includes('history_off') ? withoutHistory(clueless) : clueless;
+  return reasons.some(isPageReason) ? withoutPages(plain) : plain;
 }
+
+const withoutHistory = (draft: Draft): Draft => {
+  const { history: _scam, twinHistory: _twin, ...rest } = draft;
+  return rest;
+};
 
 // One generate, one Guard, at most one repair turn that quotes the Guard's
 // reasons, one more Guard. A refusal or error never throws: card is null and the
 // caller serves a cached card (AGENTS.md rule 5).
 export async function writeCard(input: WriteCardInput): Promise<{ card: Card | null; trace: TraceEvent[] }> {
-  const { note, pack, people, level, generate = generateJson } = input;
+  const { note, pack, people, generate = generateJson } = input;
+  const level = levelFor(input.level, input.opener, input.rand);
   const allowedNames = namesFor(people, input.allowedNames, PEOPLE_TRICKS.includes(trickFor(note)));
   const user = turn('user', userMessage(note, pack, level, allowedNames, input.leaked));
+  const held = { ...input, level };
   try {
-    const first = await pass(generate, [user], input, allowedNames);
+    const first = await pass(generate, [user], held, allowedNames);
     if (first.reasons.length === 0) return { card: toCard(first.draft, note, pack), trace: first.trace };
     const contents = [user, turn('model', JSON.stringify(first.json)), turn('user', repairMessage(first.reasons))];
-    const second = await pass(generate, contents, input, allowedNames);
+    const second = await pass(generate, contents, held, allowedNames);
     const kept = keepAfterRepair(second.draft, second.reasons);
     const trace = [...withOutcome(first.trace, 'rejected'), ...withOutcome(second.trace, kept ? 'repaired' : 'rejected')];
     return { card: kept ? toCard(kept, note, pack) : null, trace };

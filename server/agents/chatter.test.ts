@@ -230,3 +230,13 @@ test('fixed lines read like texts: people use contractions, no stiff "it is" or 
     }
   }
 });
+
+test('Oct 17 gaps: a name with no opener, "I never asked for any code", and "let us" from a person', () => {
+  assert.deepEqual(chatReasons('ok see you soon, Marco', NAMES), ['name_not_allowed']);
+  assert.deepEqual(chatReasons('Marco, can you call me later', NAMES), ['name_not_allowed']);
+  assert.deepEqual(chatReasons('Received, thanks. Please wait.', NAMES), []);
+  assert.deepEqual(chatReasons('lol I never asked for any code', NAMES, true), ['twin_disclaims']);
+  assert.deepEqual(chatReasons('ok let us talk later', NAMES, true, undefined, true), ['stiff_voice']);
+  assert.deepEqual(chatReasons('ok let us talk later', NAMES, true), []);
+  assert.deepEqual(chatReasons('ok let us know when you land', NAMES, true, undefined, true), []);
+});

@@ -54,12 +54,12 @@ const sender = { displayName: 'Mira', maskedNumber: '+65 XXXX 2210' };
 const clean: ModelDraft = {
   difficulty: 1,
   sender,
-  setup: [{ text: 'Mira here. [borrowed number line]', tellIds: ['synthetic_identity'] }],
+  setup: [{ text: 'Mira here. [borrowed number line]', tellIds: [] }],
   ask: [
-    { text: '[a bill due in 30 minutes, 500 to a different account, right now]', tellIds: ['urgency', 'payment_substitution'] },
+    { text: '[a bill due in 30 minutes, 500 to a different account, right now]', tellIds: ['payment_substitution'] },
     { text: 'Do not tell Tomas yet. [keep it quiet line]', tellIds: ['isolation'] },
   ],
-  plantedTells: ['synthetic_identity', 'urgency', 'payment_substitution', 'isolation'],
+  plantedTells: ['payment_substitution', 'isolation'],
   safeReplies: ['verify_known_number', 'block_report', 'ignore'],
   unsafeReplies: ['send_money', 'keep_secret'],
   usualEnding: '[the transfer reaches a stranger and the borrowed number stops answering]',
@@ -79,7 +79,8 @@ const broken: ModelDraft = {
   plantedTells: ['synthetic_identity', 'urgency'],
 };
 
-const OPTIONS = { noteTells: note.tells, allowedNames: namesFor(people), allowedReplies: [...ACTIONS] };
+// Level 2 plants the two most structural of the note's three tells (directorRules.ts tellsFor).
+const OPTIONS = { noteTells: ['payment_substitution', 'isolation'] as TellId[], allowedNames: namesFor(people), allowedReplies: [...ACTIONS] };
 
 function fakeGenerate(drafts: ModelDraft[]): Generate & { requests: JsonRequest[] } {
   const requests: JsonRequest[] = [];
@@ -144,7 +145,7 @@ test('the fixtures stand where the test needs them: clean passes the guard, brok
 
 test('a clean first draft takes one generate call', async () => {
   const generate = fakeGenerate([clean]);
-  const { card, trace } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card, trace } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.equal(generate.requests.length, 1);
   assert.ok(card);
   assert.deepEqual(trace.map((event) => [event.agent, event.outcome]), [['director', 'ok'], ['guard', 'ok']]);
@@ -156,7 +157,7 @@ test('a broken draft gets exactly one repair turn that quotes the guard reasons'
   const generate = fakeGenerate([broken, clean]);
   const { reasons } = guardDraft(toDraft(broken, note), OPTIONS);
 
-  const { value, logged } = await silenced(() => writeCard({ note, pack, people, level: 2, generate }));
+  const { value, logged } = await silenced(() => writeCard({ note, pack, people, level: 2, rand: () => 0, generate }));
   const { card, trace } = value;
   assert.equal(logged.length, 0, 'nothing is logged');
   assert.equal(generate.requests.length, 2);
@@ -191,7 +192,7 @@ test('the mapped card satisfies the Card shape and carries no tell ids in its te
   assert.equal(card.trickId, 'family_trouble');
   assert.equal(card.country, 'SG');
   assert.equal(card.layout, 'green-chat');
-  assert.equal(card.difficulty, 1);
+  assert.equal(card.difficulty, 3); // the level in force, never the model's own report
   assert.equal(card.stake, 500);
   assert.equal(card.language, 'en');
   assert.equal(card.approved, true); // the note is approved, the Guard passed (rule 4 as amended)
@@ -211,7 +212,7 @@ test('the mapped card satisfies the Card shape and carries no tell ids in its te
 
 test('a draft that fails twice gives null and no third call', async () => {
   const generate = fakeGenerate([broken, broken]);
-  const { card, trace } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card, trace } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.equal(card, null);
   assert.equal(generate.requests.length, 2);
   assert.deepEqual(trace.map((event) => event.outcome), ['rejected', 'rejected', 'rejected', 'rejected']);
@@ -220,7 +221,7 @@ test('a draft that fails twice gives null and no third call', async () => {
 
 test('garbage from the model is rejected, never thrown on', async () => {
   const generate = fakeGenerate([null as unknown as ModelDraft, 'not json' as unknown as ModelDraft]);
-  const { card } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.equal(card, null);
   assert.equal(generate.requests.length, 2);
 });
@@ -229,7 +230,7 @@ test('a refusal or error never throws', async () => {
   const generate: Generate = async () => {
     throw new Error('model refused');
   };
-  const { card, trace } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card, trace } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.equal(card, null);
   assert.deepEqual(trace.map((event) => [event.agent, event.outcome]), [['director', 'rejected']]);
 });
@@ -261,7 +262,7 @@ const ungrounded: ModelDraft = {
 
 test('grounded clues on both sides pass the Guard and reach the card with their part ids', async () => {
   const generate = fakeGenerate([withClues]);
-  const { card } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.ok(card);
   assert.deepEqual(card.clues, withClues.clues);
   assert.deepEqual(card.realTwin.clues, withClues.realTwin.clues);
@@ -272,7 +273,7 @@ test('grounded clues on both sides pass the Guard and reach the card with their 
 
 test('a card without clues, or with empty clue lists, has no clues key at all', async () => {
   const empty = { ...clean, clues: [], realTwin: { ...clean.realTwin, clues: [] } };
-  const { card } = await writeCard({ note, pack, people, level: 1, generate: fakeGenerate([empty]) });
+  const { card } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate: fakeGenerate([empty]) });
   assert.ok(card);
   assert.ok(!('clues' in card));
   assert.ok(!('clues' in card.realTwin));
@@ -281,7 +282,7 @@ test('a card without clues, or with empty clue lists, has no clues key at all', 
 test('an ungrounded clue is refused and the repair turn quotes the clue rule', async () => {
   assert.deepEqual(guardDraft(toDraft(ungrounded, note), OPTIONS).reasons, ['clue_grounding']);
   const generate = fakeGenerate([ungrounded, withClues]);
-  const { card, trace } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card, trace } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.ok(textOf(generate.requests[1], 2).includes(reasonText('clue_grounding')));
   assert.ok(card?.clues);
   assert.deepEqual(trace[1]?.reasons, ['clue_grounding']);
@@ -289,7 +290,7 @@ test('an ungrounded clue is refused and the repair turn quotes the clue rule', a
 
 test('clues that still fail after the repair are dropped and the card is kept', async () => {
   const generate = fakeGenerate([ungrounded, ungrounded]);
-  const { card, trace } = await writeCard({ note, pack, people, level: 1, generate });
+  const { card, trace } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate });
   assert.equal(generate.requests.length, 2);
   assert.ok(card, 'a card is never lost to a clue');
   assert.ok(!('clues' in card));
@@ -305,7 +306,7 @@ test('clues that still fail after the repair are dropped and the card is kept', 
 
 test('card faults next to clue faults after the repair still drop the card', async () => {
   const brokenWithBadClue: ModelDraft = { ...broken, clues: ungrounded.clues };
-  const { card } = await writeCard({ note, pack, people, level: 1, generate: fakeGenerate([brokenWithBadClue, brokenWithBadClue]) });
+  const { card } = await writeCard({ note, pack, people, level: 2, rand: () => 0, generate: fakeGenerate([brokenWithBadClue, brokenWithBadClue]) });
   assert.equal(card, null);
 });
 
@@ -322,7 +323,7 @@ test('strangers never carry the player\'s people\'s names; people tricks still d
 test('a stranger trick reaches the model and the Guard without the people\'s names', async () => {
   const romance: PatternNote = { ...note, id: 'fast-romance', category: 'E' };
   const generate = fakeGenerate([clean]);
-  await writeCard({ note: romance, pack, people, level: 1, generate });
+  await writeCard({ note: romance, pack, people, level: 2, rand: () => 0, generate });
   const sent = textOf(generate.requests[0], 0);
   assert.ok(/Allowed first names: Ren, Lena\./.test(sent), sent);
   assert.ok(sent.includes('Sender: a stranger'));

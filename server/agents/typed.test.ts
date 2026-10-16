@@ -6,7 +6,7 @@ import type { Generate } from './caller.ts';
 import { chatReasons } from './chatter.ts';
 import { startDay } from '../routes/day.ts';
 import { readDay } from '../store.ts';
-import { SafetyBlock, guessIntent, isAbuse, quoteTyped, typedReply } from './typed.ts';
+import { SafetyBlock, contentsOf, guessIntent, isAbuse, quoteTyped, typedReply } from './typed.ts';
 import type { TypedInput } from './typed.ts';
 import { TYPED_KEYS, TYPED_KINDS, typedLine } from './typedLines.ts';
 
@@ -126,4 +126,13 @@ test('every fixed line passes the Guard text checks', () => {
       }
     }
   }
+});
+
+test('a typed reply on a slow add hears the rapport arc: small talk first, the turn on the third reply', () => {
+  const base = input(false, 'hi there', answers(OK));
+  const card: Card = { ...base.card, trickId: 'slow_add' };
+  const players = (n: number) => Array.from({ length: n }, () => [{ from: 'player' as const, text: '[a]' }, { from: 'sender' as const, text: '[b]' }]).flat();
+  assert.match(contentsOf({ ...base, card, thread: players(0) }), /Small talk only/);
+  assert.match(contentsOf({ ...base, card, thread: players(2) }), /how well you have been doing/);
+  assert.doesNotMatch(contentsOf({ ...base, card, isTwin: true, thread: players(2) }), /how well/);
 });

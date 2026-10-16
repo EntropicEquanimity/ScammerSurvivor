@@ -388,3 +388,6 @@
 .app-body:has(.real-note) {
   padding-bottom: calc(var(--tap) + 3rem);
 }
+/* Spot the difference: the real twin's words that differ from the scam, as iOS marks a found word. */
+.lesson-diff { background: #ffe58f; color: var(--ink); border-radius: 4px; padding: 0 2px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.lesson-diff-key { color: var(--ink-2); font-size: var(--t16); line-height: 1.4; }

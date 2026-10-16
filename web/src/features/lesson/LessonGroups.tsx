@@ -9,6 +9,8 @@ import { InsetGroup } from '../layouts/InsetGroup.tsx';
 import { PartView } from '../layouts/MessageView.tsx';
 import { Stamp, stampKind, useStampTicks } from './Stamps.tsx';
 import { parseNotes, tellOrder, tellRows } from './title.ts';
+import { twinDiffs } from './diff.ts';
+import type { TwinDiff } from './diff.ts';
 
 // The pieces of the one-screen lesson: each tell with its line, stamp and why, the real twin, the
 // Coach's notes, and the hotline group the end-of-day screen shows.
@@ -60,15 +62,30 @@ export function TellsGroup({ result, notes }: { result: SlotResult; notes: Coach
 export const realLines = (notes: CoachNotes | null, trickId?: TrickId): readonly string[] =>
   notes && notes.real.length > 0 ? notes.real.slice(0, 2) : realWhyFor(trickId);
 
+// The real twin with the spot-the-difference marked: the words that differ from the scam's line in
+// the same place, or the whole line when most of it differs (diff.ts). A twin that mirrors nothing
+// (an older card, every line different) shows plain, since marking all of it teaches nothing.
+function TwinPart({ segments, wholeLine }: TwinDiff) {
+  if (wholeLine) return <span className="part"><mark className="lesson-diff">{segments.map((s) => s.text).join('')}</mark></span>;
+  return (
+    <span className="part">
+      {segments.map((segment, index) => (segment.changed ? <mark key={index} className="lesson-diff">{segment.text}</mark> : <span key={index}>{segment.text}</span>))}
+    </span>
+  );
+}
+
 export function TwinMessage({ lesson, notes }: { lesson: Lesson; notes: CoachNotes | null }) {
+  const diffs = twinDiffs(lesson.scam.parts, lesson.real.parts);
+  const marked = diffs.some((diff) => !diff.wholeLine);
   return (
     <InsetGroup header="What the real one looked like">
       <SenderRow sender={lesson.real.sender} />
-      {lesson.real.parts.map((part) => (
+      {lesson.real.parts.map((part, index) => (
         <li key={part.id} className="inset-row inset-body lesson-part">
-          <PartView part={part} />
+          {marked ? <TwinPart {...diffs[index]} /> : <PartView part={part} />}
         </li>
       ))}
+      {marked && <li className="inset-row inset-body lesson-diff-key"><span><mark className="lesson-diff">Highlighted</mark> is where the scam was different.</span></li>}
       <li className="inset-row inset-body lesson-why">{realLines(notes, lesson.trickId)[0]}</li>
     </InsetGroup>
   );
