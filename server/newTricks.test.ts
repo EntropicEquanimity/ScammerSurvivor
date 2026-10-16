@@ -49,8 +49,9 @@ test('every note keeps the shape: known tells, replies and app, no long digits, 
 
 // Rule 4: a person approves notes. Every card path reads approved notes only (pregenerate, the lab,
 // trace, the cache's readCards), so a note left false never deals.
-test('the five new notes wait for the Content lead', () => {
-  for (const trick of NEW) assert.equal(notes.find((note) => trickFor(note) === trick)?.approved, false, trick);
+// Approved by the Content lead on 17 Oct 2026, relayed by the Builder in chat.
+test('the five new notes are approved by the Content lead', () => {
+  for (const trick of NEW) assert.equal(notes.find((note) => trickFor(note) === trick)?.approved, true, trick);
 });
 
 test('the toll fine and the pre-order open a paying page; their real twins ask nothing', () => {

@@ -1,5 +1,7 @@
 # Five new scams, for the Content lead
 
+Approved by the Content lead, relayed by the Builder in chat, 2026-10-17.
+
 Drafted 16 Oct 2026. Each note is in `content/notes/` with `"approved": false`, so none of them deals yet. Read each one, then tell the Builder "approve", "change" (with what), or "drop". Approving flips `approved` to `true` in that one file; the next cache run then writes its cards.
 
 The notes describe tactics only. There is no message text in them. Every note is country-neutral: the pack supplies the app, the currency and the hotline.
