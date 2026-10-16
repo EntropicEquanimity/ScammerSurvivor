@@ -25,7 +25,7 @@ interface Props {
   tap?: TapMode; // every part becomes a tappable span that lifts and takes a stamp
   marks?: Record<string, string[]>; // part id to the tell labels shown under it (lesson)
   layout?: Layout; // picks the look; text messages when absent
-  bannerHint?: PublicCard['bannerHint']; // the phone's own "Likely scam" strip, a hint, never proof
+  bannerHint?: PublicCard['bannerHint']; // the phone's unknown-sender line, as iOS shows it; shown on some scams and some real messages, never proof
   clues?: Clue[]; // the card's inspectable objects, each drawn under the part it names
 }
 
@@ -159,7 +159,7 @@ export function MessageView({ sender, setup, ask, arrivesAt, hideSender, tap, ma
       )}
       {bannerHint === 'likely_scam' && (
         <p className="sys-banner" role="note">
-          Likely scam. Detection is a hint, not proof.
+          The sender is not in your contact list.
         </p>
       )}
       {setup.length > 0 && <BubbleGroup parts={setup} tap={tap} marks={marks} clues={clues} name={nameInBubble} />}
