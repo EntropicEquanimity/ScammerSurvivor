@@ -138,9 +138,9 @@ test('the board carries counts and ids only, with one row per trick and per miss
   const board = reply.body;
   assert.equal(board.players, 2);
   assert.equal(board.reports, 2);
-  assert.deepEqual(board.rates.caught, { handled: 2, total: 4 });
-  assert.deepEqual(board.rates.trusted, { handled: 4, total: 4 });
-  const scams = bad.slots.filter((slot) => !slot.isTwin);
+  const scams = bad.slots.filter((slot) => !slot.isTwin); // 1 to 3 from the room's seed, the same on both phones
+  assert.deepEqual(board.rates.caught, { handled: scams.length, total: 2 * scams.length });
+  assert.deepEqual(board.rates.trusted, { handled: 2 * (4 - scams.length), total: 2 * (4 - scams.length) });
   for (const slot of scams) {
     assert.deepEqual(board.byTrick[slot.card.trickId], { caught: 1, fell: 1 });
     for (const tell of slot.card.plantedTells) assert.ok((board.byTell[tell] ?? 0) >= 1);

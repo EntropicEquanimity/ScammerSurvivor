@@ -5,9 +5,11 @@ import type { Action, Card, Category, CountryPack, DayPayload, DayScore, Layout,
 import type { Clue } from '../shared/clues.ts';
 import { offeredFor } from './offered.ts';
 import { NEEDS, pageTells, publicPage } from '../shared/page.ts';
+import { isPageScam, placePage } from './arc.ts';
 import { PROFILE_TOKENS } from '../shared/profile.ts';
 
 export { asks, offeredFor } from './offered.ts';
+export { isPageScam, placePage } from './arc.ts';
 
 export const PEOPLE_START = 3;
 // The protected first scam on first play, rotated by the day seed so every new player does not meet
@@ -255,11 +257,16 @@ export function firstTrickFor(cards: readonly Card[], seed: number): TrickId | u
   return held.length > 0 ? held[(seed >>> 0) % held.length] : undefined;
 }
 
-// Picks the cards for the day: the first-play trick first, the rest at random.
-function pickCards(cards: Card[], count: number, first: TrickId | undefined, random: () => number): Card[] {
+// Picks the cards for the day: the first-play trick first, the rest at random. On a full day with a
+// page card in the deck, one page card is always picked: it takes the last pick that is not the lead.
+function pickCards(cards: Card[], count: number, first: TrickId | undefined, random: () => number, arc: boolean): Card[] {
   const lead = first ? cards.find((card) => card.trickId === first) : undefined;
   const rest = shuffle(cards.filter((card) => card !== lead), random);
-  return spreadApps([...(lead ? [lead] : []), ...rest], count);
+  const picked = spreadApps([...(lead ? [lead] : []), ...rest], count);
+  const page = rest.find(isPageScam);
+  if (!arc || !page || picked.some(isPageScam)) return picked;
+  const at = picked.findLastIndex((card) => card !== lead);
+  return at < 0 ? picked : picked.map((card, index) => (index === at ? page : card));
 }
 
 // A real phone gets its messages across apps: take the next card from an app the day has not used,
@@ -285,36 +292,55 @@ export interface DealInput {
   firstPlay?: boolean;
 }
 
-// Pure given the seed. A full day deals 4 slots with 2 twins, a quick day 2 with 1.
-// The first-play card is always dealt as the scam, so the player meets the trick.
+const FULL_DAY = 4;
+const SCAM_SALT = 0x5ca3; // its own stream, so the count never moves the shuffle's numbers
+
+// The scams among a day's cards. A full day draws 1 to 3 from the seed, so a player reads every card
+// instead of counting to two; never fewer than the cards that must be scams (the protected first
+// trick, the page scam), and with a page scam at least 2, so a later scam is left for the rewrite.
+// Any other day keeps one scam per two cards.
+export function scamCountFor(seed: number, count: number, forced: number): number {
+  if (count !== FULL_DAY) return count - Math.floor(count / 2);
+  const drawn = 1 + Math.floor(seededRandom((seed ^ SCAM_SALT) >>> 0)() * 3);
+  return Math.min(count, Math.max(drawn, forced));
+}
+
+// Pure given the seed. A full day deals 4 slots with 1 to 3 scams, a quick day 2 with 1 twin.
+// The first-play card is always dealt as the scam, so the player meets the trick; on a full day a
+// page card in the deck is dealt as a scam in the first two slots with a later scam after it.
 export function dealDay({ dayId, pack, cards, quick, seed, firstPlay = true }: DealInput): Deal {
   const random = seededRandom(seed);
-  const count = Math.min(quick ? 2 : 4, cards.length);
+  const count = Math.min(quick ? 2 : FULL_DAY, cards.length);
+  const arc = !quick && count === FULL_DAY;
   const first = firstPlay ? firstTrickFor(cards, seed) : undefined;
-  const picked = pickCards(cards.map((card) => fillCard(fitLayout(card, pack.layouts))), count, first, random);
-  const twinCount = Math.floor(count / 2);
-  const protect = first !== undefined && picked[0]?.trickId === first ? 1 : 0;
-  const twinIds = new Set(shuffle(picked.slice(protect), random).slice(0, twinCount).map((card) => card.id));
-  const ordered = shuffle(picked, random);
+  const picked = pickCards(cards.map((card) => fillCard(fitLayout(card, pack.layouts))), count, first, random, arc);
+  const lead = first !== undefined && picked[0]?.trickId === first ? picked[0] : undefined;
+  const page = arc ? picked.find((card) => card !== lead && isPageScam(card)) ?? (lead && isPageScam(lead) ? lead : undefined) : undefined;
+  const forced = new Set([lead, page].filter((card): card is Card => card !== undefined));
+  const scamCount = scamCountFor(seed, count, page ? Math.max(2, forced.size) : forced.size);
+  // The same draw as before (one number per card after the lead); forced scams are skipped after it.
+  const twinIds = new Set(
+    shuffle(picked.slice(lead ? 1 : 0), random).filter((card) => !forced.has(card)).slice(0, count - scamCount).map((card) => card.id),
+  );
+  const ordered = placePage(shuffle(picked, random), page, (card) => !twinIds.has(card.id));
   const slots = ordered.map((card, index): DealtSlot => {
     const isTwin = twinIds.has(card.id);
     const slotId = `slot-${index + 1}`;
     const arrivesAt = CLOCK[index] ?? CLOCK[CLOCK.length - 1];
     return { slotId, card, isTwin, public: toPublic(card, isTwin, slotId, arrivesAt, drawHint(isTwin, random)), key: toKey(card, isTwin) };
   });
-  return {
-    payload: {
-      dayId,
-      country: pack.code,
-      quick,
-      wallet: pack.walletStart,
-      people: PEOPLE_START,
-      pack: { layouts: pack.layouts, confidence: pack.confidence, hotline: pack.hotline },
-      cards: slots.map((slot) => slot.public),
-    },
-    slots,
-  };
+  return { payload: payloadOf(dayId, pack, quick, slots), slots };
 }
+
+const payloadOf = (dayId: string, pack: CountryPack, quick: boolean, slots: DealtSlot[]): DayPayload => ({
+  dayId,
+  country: pack.code,
+  quick,
+  wallet: pack.walletStart,
+  people: PEOPLE_START,
+  pack: { layouts: pack.layouts, confidence: pack.confidence, hotline: pack.hotline },
+  cards: slots.map((slot) => slot.public),
+});
 
 // One slot re-dealt with a new card: the slot id, the clock label and the
 // scam-or-twin choice stay; the message, buttons and answer key come from the card.

@@ -44,15 +44,16 @@ function playPerfect(dayId: string) {
 test('a perfect day gives both rates in full and a full wallet', () => {
   const payload = startDay({ country: 'SG', age: 'adult' });
   assert.equal(payload.cards.length, 4);
+  const scams = readDay(payload.dayId)?.slots.filter((slot) => !slot.isTwin).length ?? 0; // 1 to 3 from the seed
   const score = playPerfect(payload.dayId);
   assert.equal(score.status, 200);
   if (score.status !== 200) return;
-  assert.deepEqual(score.body.scamsCaught, { handled: 2, total: 2 });
-  assert.deepEqual(score.body.realTrusted, { handled: 2, total: 2 });
+  assert.deepEqual(score.body.scamsCaught, { handled: scams, total: scams });
+  assert.deepEqual(score.body.realTrusted, { handled: 4 - scams, total: 4 - scams });
   assert.equal(score.body.wallet, score.body.walletStart);
   assert.equal(score.body.people, score.body.peopleStart);
   assert.equal(score.body.tellMostMissed, null);
-  assert.equal(score.body.collected.length, 2);
+  assert.equal(score.body.collected.length, scams);
 });
 
 test('blocking a real twin costs one person and nothing from the wallet', () => {
@@ -100,7 +101,8 @@ test('the payload holds no answer key anywhere, and the twin mirrors the scam', 
     const { pack, cards } = resolveCountry('SG');
     const { payload, slots } = dealDay({ dayId: `d${seed}`, pack, cards, quick: seed % 2 === 0, seed });
     walk(payload, (key) => assert.ok(!KEY_FIELDS.includes(key), `${key} leaked`));
-    assert.equal(slots.filter((slot) => slot.isTwin).length, payload.quick ? 1 : 2);
+    const twins = slots.filter((slot) => slot.isTwin).length;
+    assert.ok(payload.quick ? twins === 1 : twins >= 1 && twins <= 3, `twins ${twins}`); // a full day holds 1 to 3 scams
     for (const slot of slots) {
       assert.equal(slot.public.setup.length, slot.card.setup.length);
       assert.equal(slot.public.ask.length, slot.card.ask.length);

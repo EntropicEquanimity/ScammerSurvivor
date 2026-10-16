@@ -68,11 +68,16 @@ test('the day wallet matches the running total when a recovery lands before a la
   const MONEY = ['pay', 'send_money', 'share_code', 'read_code'];
   const moneySlip = (card: { unsafeReplies: string[] }) => card.unsafeReplies.find((action) => MONEY.includes(action));
   const big = resolveCountry('SG').cards.filter((card) => card.stake >= 2000 && moneySlip(card));
-  const { payload } = await beginDay({ country: 'SG' }, { cards: () => big });
-  const state = readDay(payload.dayId);
+  // A full day holds 1 to 3 scams from the seed; this test needs two slips, so it deals until it has them.
+  const dealt = async () => {
+    const { payload } = await beginDay({ country: 'SG' }, { cards: () => big });
+    return { payload, state: readDay(payload.dayId) };
+  };
+  let { payload, state } = await dealt();
+  for (let tries = 0; tries < 30 && (state?.slots.filter((slot) => !slot.isTwin).length ?? 0) < 2; tries += 1) ({ payload, state } = await dealt());
   assert.ok(state);
   const scams = state.slots.filter((slot) => !slot.isTwin);
-  assert.equal(scams.length, 2);
+  assert.ok(scams.length >= 2);
   assert.ok(scams[0].card.stake + scams[1].card.stake >= state.walletStart);
   let last = 0;
   let recoveredOnFirst = false;

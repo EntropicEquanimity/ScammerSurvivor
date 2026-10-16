@@ -28,6 +28,15 @@ const beatsFor = (trickId: TrickId): Beat[] => [
 const BEATS = beatsFor('parcel_fee');
 
 const withBeats = async (trickId: TrickId): Promise<Beat[]> => beatsFor(trickId);
+
+// A full day holds 1 to 3 scams from the seed; tests that rank two scams deal until the day has two.
+const dayWithTwoScams = (): string => {
+  for (let tries = 0; tries < 30; tries += 1) {
+    const { dayId } = startDay({ country: 'SG' });
+    if ((readDay(dayId)?.slots.filter((slot) => !slot.isTwin).length ?? 0) >= 2) return dayId;
+  }
+  throw new Error('no two-scam day in 30 deals');
+};
 const noBeats = async (): Promise<Beat[] | null> => null;
 const modelDown: Generate = async () => {
   throw new Error('model down');
@@ -84,7 +93,7 @@ test('a full three-pushback call: the meter drops 15 a time by code, then the co
 });
 
 test('read_code fills the meter and ends the call; the record names the card of the worst-handled scam', async () => {
-  const { dayId } = startDay({ country: 'SG' });
+  const dayId = dayWithTwoScams();
   const state = readDay(dayId);
   assert.ok(state);
   const scams = state.slots.filter((slot) => !slot.isTwin);
@@ -124,7 +133,7 @@ test('the file backend round-trips beats and gives null when a trick has none', 
 const silent = BEATS.map((b) => ({ ...b, audioUrl: null }));
 
 test('the call passes over a silent worst trick for the next worst one with audio, and names its caller', async () => {
-  const { dayId } = startDay({ country: 'SG' });
+  const dayId = dayWithTwoScams();
   const state = readDay(dayId);
   assert.ok(state);
   const worst = state.slots.filter((slot) => !slot.isTwin)[1];

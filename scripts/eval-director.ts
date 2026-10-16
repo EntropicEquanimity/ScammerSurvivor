@@ -5,26 +5,28 @@
 // Usage: node scripts/eval-director.ts [--n 50] [--country SG] [--seed 1] [--dry]
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { GUARD_REASONS } from '../server/guard/card.ts';
+import { PAGE_REASONS } from '../server/guard/page.ts';
 import type { GuardReason } from '../server/guard/card.ts';
+import type { PageReason } from '../server/guard/page.ts';
 import type { CountryPack, PatternNote, TraceEvent } from '../shared/types.ts';
+
+type RuleId = GuardReason | PageReason;
 
 const ROOT = join(import.meta.dirname, '..');
 const OUT = join(ROOT, 'web', 'public', 'eval.json');
 const POOL = 5;
 const DEFAULT_N = 50;
 const DEFAULT_SEED = 1;
-const ALLOWED_NAMES = ['Mira', 'Dev', 'Lena', 'Tomas', 'Ari', 'Kai', 'Nadia', 'Theo', 'Sam', 'Rina'];
+// The Skip names the day route allows (SKIP_NAMES in server/routes/trace.ts); no tech words as names.
+const ALLOWED_NAMES = ['Mira', 'Ren', 'Lena', 'Tomas', 'Ari', 'Kai', 'Nadia', 'Theo', 'Sam', 'Rina'];
 
 // Gemini 3.8 Flash, Standard tier, USD per 1M tokens, read at ai.google.dev/gemini-api/docs/pricing
 // on 16 Oct 2026: 0.75 in, 3.75 out, through 31 Dec 2026. Vertex pricing not verified (docs/eval.md).
 const PRICE_PER_MILLION = { input: 0.75, output: 3.75 };
 
-// Restated so a misspelt id is a compile error; the Guard keeps its own list private.
-const GUARD_RULES: readonly GuardReason[] = [
-  'tells_missing_on_ask', 'planted_mismatch', 'digit_run', 'mask_format', 'same_last_four',
-  'twin_has_tells', 'twin_no_acceptable', 'reply_not_allowed', 'link_not_example', 'brand_name',
-  'name_not_allowed', 'empty_ask', 'unknown_tell',
-];
+// The Guard's own lists: the card rules (twin_disclaims and the clue rules included) and the page rules.
+const GUARD_RULES: readonly RuleId[] = [...GUARD_REASONS, ...PAGE_REASONS];
 
 interface Args { n: number; country?: string; seed: number; dry: boolean }
 interface Job { index: number; pack: CountryPack; note: PatternNote; level: 1 | 2 }
@@ -43,7 +45,7 @@ export interface EvalReport {
   meanMs: number;
   p95Ms: number;
   meanTokens: number;
-  failReasons: Record<GuardReason, number>;
+  failReasons: Record<RuleId, number>;
   costEstimateUsd: number | null;
 }
 
@@ -136,11 +138,11 @@ async function runJob(job: Job, writeCard: WriteCard): Promise<Result> {
   }
 }
 
-const isRule = (reason: string): reason is GuardReason => GUARD_RULES.includes(reason as GuardReason);
+const isRule = (reason: string): reason is RuleId => GUARD_RULES.includes(reason as RuleId);
 
 // Only guard events, only known rule ids: a Director error row carries a message, never counted.
-function countReasons(results: Result[]): Record<GuardReason, number> {
-  const zero = Object.fromEntries(GUARD_RULES.map((id) => [id, 0])) as Record<GuardReason, number>;
+function countReasons(results: Result[]): Record<RuleId, number> {
+  const zero = Object.fromEntries(GUARD_RULES.map((id) => [id, 0])) as Record<RuleId, number>;
   return results
     .flatMap((r) => r.trace.filter((e) => e.agent === 'guard').flatMap((e) => (e.reasons ?? []).filter(isRule)))
     .reduce((acc, id) => ({ ...acc, [id]: acc[id] + 1 }), zero);
