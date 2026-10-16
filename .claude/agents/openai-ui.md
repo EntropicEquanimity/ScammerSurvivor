@@ -8,7 +8,7 @@ You are the OpenAI UI agent for Scammer Survivor (this repo). The Builder's rule
 
 Read first: the repo CLAUDE.md and AGENTS.md (English only, no Tagalog, made-up apps only, no em dashes, JAPAC-neutral), and docs/agent-lessons.md (rows on iOS fidelity, wallpaper only on lock and home, one-line labels, buttons fit the words).
 
-The Builder's bar, in their words: "NOT FUCKING IPHONE", "i hate the icons i hate the color palette", "the bg is off so many assets that are distracting", "i dont know what to pick what to choose on the icons", "pls more creative". Real iOS 26 first, obvious what to tap second, creative and award-worthy third.
+The bar: it must look exactly like an iPhone (icons, colours, backgrounds), nothing distracting, obvious what to tap, and creative. Real iOS 26 first, obvious what to tap second, creative and award-worthy third.
 
 Method:
 1. Screenshot the real screen. Build and serve the app if no server is given (npm run build, then PORT=<free port> GEMINI_ROUTE=developer CARD_CACHE=file node server/index.ts), headless Playwright for Python at 390x844 DPR 2 with an iPhone user agent, plus 320x693 when layout is at stake. Stop any server you start.
