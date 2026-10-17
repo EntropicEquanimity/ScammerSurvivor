@@ -14,6 +14,7 @@ import { identityReasons } from './caller.ts';
 import type { Generate } from './caller.ts';
 import { INSTITUTIONS, BRANDS, isInstitutionId } from '../../shared/brands.ts';
 import { CHIP_LABELS } from '../../shared/chips.ts';
+import { hostsIn } from '../../shared/links.ts';
 import { TELLS, TRICKS } from '../../shared/taxonomy.ts';
 import type { Card, ChatChipId, TraceEvent } from '../../shared/types.ts';
 import { ROMANCE_VOICE, SCAM_LINES, SCAM_VOICE, TWIN_LINES, TWIN_VOICE } from './chatterLines.ts';
@@ -29,7 +30,7 @@ export const CHAT_DEADLINE_MS = 8000;
 // A repair is only tried when at least one more call's worth of the deadline is left.
 const REPAIR_MIN_MS = 2500;
 
-export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_example' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims' | 'off_topic' | 'stiff_voice';
+export type ChatReason = 'empty' | 'too_long' | 'digit_run' | 'em_dash' | 'bracket' | 'brand_name' | 'link_not_on_card' | 'name_not_allowed' | 'banned_word' | 'twin_disclaims' | 'off_topic' | 'stiff_voice';
 
 const REASON_TEXT: Record<ChatReason, string> = {
   empty: 'Write one short chat message.',
@@ -38,7 +39,7 @@ const REASON_TEXT: Record<ChatReason, string> = {
   em_dash: 'No em dash; use a comma or a full stop.',
   bracket: 'No square brackets or placeholders; write the words.',
   brand_name: 'No real company, app or bank name; use the made-up names you were given.',
-  link_not_example: 'Any link must be on a host ending in .example, like pay.example/now.',
+  link_not_on_card: 'Write no new link. Name only the link already in the message, exactly as it is written there.',
   name_not_allowed: 'Use no personal name except the ones you were given.',
   banned_word: 'Name no real country, agency or police force.',
   twin_disclaims: 'Do not say what you would never ask for or that there is no fee; just answer.',
@@ -93,7 +94,11 @@ const EM_DASH = String.fromCharCode(0x2014);
 const CURLY = String.fromCharCode(0x2019);
 const straight = (text: string): string => text.replaceAll(CURLY, "'");
 const words = (text: string): string[] => text.trim().split(/\s+/).filter(Boolean);
-const offExampleLink = (text: string): boolean => [...text.matchAll(LINK)].some((m) => !/\.example$/i.test(m[1]));
+// The links a reply may name: the hosts already on the card, each checked unregistered when the card
+// was written (the Builder, ".example gives it away"). A new host in a reply was never checked.
+export const cardHosts = (card: Card): string[] => hostsIn(JSON.stringify(card));
+const offCardLink = (text: string, hosts: readonly string[]): boolean =>
+  [...text.matchAll(LINK)].some((m) => !hosts.includes(m[1].toLowerCase()));
 
 // The opener positions plus the bare ones (a sign-off, "Marco here", "Marco, ..."): Oct 17, a name
 // with no opener before it passed.
@@ -105,7 +110,8 @@ const strangeName = (text: string, allowed: Set<string>): boolean => {
 
 // Reason ids only, never the text. Pure, so the route test and the live run read the same rules.
 // person: the sender is a person texting (a relative, a friend, the boss), so a stiff line fails.
-export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false, said?: ChatChipId, person = false): ChatReason[] {
+// hosts: the links the reply may name (cardHosts); none by default, so any link fails.
+export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwin = false, said?: ChatChipId, person = false, hosts: readonly string[] = []): ChatReason[] {
   const text = typeof raw === 'string' ? straight(raw).trim() : '';
   if (!text) return ['empty'];
   const allowed = new Set(allowedNames.flatMap((name) => name.toLowerCase().split(/\s+/)));
@@ -115,7 +121,7 @@ export function chatReasons(raw: unknown, allowedNames: readonly string[], isTwi
     ['em_dash', text.includes(EM_DASH)],
     ['bracket', /[[\]]/.test(text)],
     ['brand_name', hasBrand(text)],
-    ['link_not_example', offExampleLink(text)],
+    ['link_not_on_card', offCardLink(text, hosts)],
     ['name_not_allowed', strangeName(text, allowed)],
     ['banned_word', identityReasons(text).includes('banned_word')],
     ['twin_disclaims', isTwin && DISCLAIMER.test(text)],
@@ -351,7 +357,8 @@ ${stage}` : '');
   // The repair goes to the fallback model: about a second faster, and its own quota under a 429.
   const ask = (extra: string, model: string) => generate({ system, contents: contents + extra, schema: CHAT_SCHEMA, model, temperature: 0.8 });
   const person = textsAsPerson(input.card, input.isTwin);
-  const check = (text: string) => chatReasons(text, input.allowedNames, input.isTwin, input.said, person);
+  const hosts = cardHosts(input.card);
+  const check = (text: string) => chatReasons(text, input.allowedNames, input.isTwin, input.said, person, hosts);
   const first = await ask('', MODELS.director);
   const firstText = textOf(first.json);
   const reasons = check(firstText);

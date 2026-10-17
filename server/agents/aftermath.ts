@@ -12,7 +12,7 @@ import type { AftermathItem } from '../../shared/aftermath.ts';
 import type { FieldId } from '../../shared/page.ts';
 import type { Action, Card } from '../../shared/types.ts';
 import type { Generate } from './caller.ts';
-import { chatPrompt, chatReasons, hedge, quickGenerate, senderKind } from './chatter.ts';
+import { cardHosts, chatPrompt, chatReasons, hedge, quickGenerate, senderKind } from './chatter.ts';
 import { ACTION_GROUP, FALLBACK, PINNED, PLANS, voiceFor } from './aftermathLines.ts';
 import type { Beat, Group } from './aftermathLines.ts';
 
@@ -119,7 +119,7 @@ export const writtenBeats = (input: Pick<AftermathInput, 'action' | 'isTwin' | '
 const wordCount = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
 
 function lineReasons(text: string, beat: Beat, input: AftermathInput): string[] {
-  const reasons: string[] = chatReasons(text, input.allowedNames, input.isTwin);
+  const reasons: string[] = chatReasons(text, input.allowedNames, input.isTwin, undefined, false, cardHosts(input.card));
   if (wordCount(text) > MAX_ITEM_WORDS) reasons.push('too_long');
   if (/\bthe player\b/i.test(text)) reasons.push('the_player');
   if (groupFor(input.action, input.isTwin, input.leaked) === 'page' && beat.kind === 'system') {

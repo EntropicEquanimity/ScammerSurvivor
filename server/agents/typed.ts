@@ -9,7 +9,7 @@ import { HarmBlockThreshold, HarmCategory, ThinkingLevel, Type } from '@google/g
 import type { GoogleGenAI, Schema } from '@google/genai';
 import { GeminiError, MODELS, makeClient } from '../gemini.ts';
 import type { JsonRequest } from '../gemini.ts';
-import { CHAT_DEADLINE_MS, MAX_WORDS, chatPrompt, chatReasons, hedge, senderKind, slowStage, textsAsPerson } from './chatter.ts';
+import { CHAT_DEADLINE_MS, MAX_WORDS, cardHosts, chatPrompt, chatReasons, hedge, senderKind, slowStage, textsAsPerson } from './chatter.ts';
 import type { ChatLine, ChatReason } from './chatter.ts';
 import type { Generate } from './caller.ts';
 import type { Card, TraceEvent, TypedAsks, TypedIntent, TypedTactic } from '../../shared/types.ts';
@@ -105,7 +105,7 @@ const REPAIR_TEXT: Partial<Record<TypedReason, string>> = {
   em_dash: 'No em dash; use a comma or a full stop.',
   bracket: 'No square brackets or placeholders; write the words.',
   brand_name: 'No real company, app or bank name; use the made-up names you were given.',
-  link_not_example: 'Any link must be on a host ending in .example, like pay.example/now.',
+  link_not_on_card: 'Write no new link. Name only the link already in the message, exactly as it is written there.',
   name_not_allowed: 'Use no personal name except the ones you were given.',
   banned_word: 'Name no real country, agency or police force.',
   twin_disclaims: 'Do not say what you would never ask for or that there is no fee; just answer.',
@@ -143,7 +143,7 @@ function readAnswer(json: unknown, input: TypedInput): Omit<Attempt, 'outcome' |
 function reasonsOf(answer: Omit<Attempt, 'outcome' | 'reasons'>, input: TypedInput): TypedReason[] {
   const echo = input.text.length >= 12 && answer.text.toLowerCase().includes(input.text.toLowerCase());
   const extra: TypedReason[] = [...(input.isTwin && answer.asks !== 'none' ? ['twin_asks' as const] : []), ...(echo ? ['echo' as const] : [])];
-  return [...chatReasons(answer.text, input.allowedNames, input.isTwin, undefined, textsAsPerson(input.card, input.isTwin)), ...extra];
+  return [...chatReasons(answer.text, input.allowedNames, input.isTwin, undefined, textsAsPerson(input.card, input.isTwin), cardHosts(input.card)), ...extra];
 }
 
 const keyFor = (intent: TypedIntent, before: number): TypedKey => ((intent === 'nonsense' || intent === 'offtopic') && before > 0 ? 'again' : intent);

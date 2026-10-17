@@ -101,7 +101,7 @@ test('the check: count, kind, "the player", word cap, digit runs and made-up nam
   assert.ok(aftermathReasons(one('bubble', 'Tell the player to wait.'), at).includes('the_player'));
   assert.ok(aftermathReasons(one('bubble', Array(30).fill('word').join(' ')), at).includes('too_long'));
   assert.ok(aftermathReasons(one('bubble', 'Your ref is 123456.'), at).includes('digit_run'));
-  assert.ok(aftermathReasons(one('bubble', 'Open pay.shop.com now.'), at).includes('link_not_example'));
+  assert.ok(aftermathReasons(one('bubble', 'Open pay.shop.com now.'), at).includes('link_not_on_card'));
   assert.deepEqual(aftermathReasons(one('bubble', 'Thanks! Just one more small step.'), at), []);
 });
 

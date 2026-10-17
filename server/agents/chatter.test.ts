@@ -4,7 +4,7 @@ import type { JsonRequest } from '../gemini.ts';
 import type { Card, TraceEvent } from '../../shared/types.ts';
 import { fixturesFor } from '../country.ts';
 import { BRAND_DENYLIST } from '../guard/card.ts';
-import { CHAT_CHIPS, CHAT_DEADLINE_MS, MAX_WORDS, chatPrompt, chatReasons, chatterReply, fallbackLine, hedge, moveLine, onTopic, senderKind } from './chatter.ts';
+import { CHAT_CHIPS, CHAT_DEADLINE_MS, MAX_WORDS, cardHosts, chatPrompt, chatReasons, chatterReply, fallbackLine, hedge, moveLine, onTopic, senderKind } from './chatter.ts';
 import type { SenderKind } from './chatterLines.ts';
 import { INSTITUTIONS } from '../../shared/brands.ts';
 import { MODELS } from '../gemini.ts';
@@ -36,7 +36,7 @@ const input = (over: Partial<ChatterInput>): ChatterInput => ({
 
 test('the check: word cap, digit runs, em dash, brackets, brands, links off .example, names, agency words', () => {
   assert.deepEqual(chatReasons('Sure, talk soon.', NAMES), []);
-  assert.deepEqual(chatReasons('Hi, it is Mira. See pay.example/now soon.', NAMES), []);
+  assert.deepEqual(chatReasons('Hi, it is Mira. See pay-desk-help.com/now soon.', NAMES, false, undefined, false, ['pay-desk-help.com']), []);
   assert.deepEqual(chatReasons('', NAMES), ['empty']);
   assert.deepEqual(chatReasons(Array(MAX_WORDS + 1).fill('word').join(' '), NAMES), ['too_long']);
   assert.deepEqual(chatReasons('Ring 12345 later.', NAMES), ['digit_run']);
@@ -44,7 +44,9 @@ test('the check: word cap, digit runs, em dash, brackets, brands, links off .exa
   assert.deepEqual(chatReasons(`Wait ${String.fromCharCode(0x2014)} later.`, NAMES), ['em_dash']);
   assert.deepEqual(chatReasons('Hello [name].', NAMES), ['bracket']);
   assert.deepEqual(chatReasons(`Open ${BRAND_DENYLIST[0]} later.`, NAMES), ['brand_name']);
-  assert.deepEqual(chatReasons('See pay.com later.', NAMES), ['link_not_example']);
+  assert.deepEqual(chatReasons('See pay.com later.', NAMES), ['link_not_on_card']);
+  assert.deepEqual(chatReasons('See pay.example/now later.', NAMES), ['link_not_on_card'], 'a reserved host is not on the card either');
+  assert.deepEqual(chatReasons('See pay-desk-help.net now.', NAMES, false, undefined, false, ['pay-desk-help.com']), ['link_not_on_card'], 'a look-alike of the card link is new');
   assert.deepEqual(chatReasons('Hi, this is Tarnak.', NAMES), ['name_not_allowed']);
   assert.deepEqual(chatReasons('This is the ministry.', NAMES), ['banned_word']);
   assert.deepEqual(chatReasons(42, NAMES), ['empty']);
@@ -239,4 +241,12 @@ test('Oct 17 gaps: a name with no opener, "I never asked for any code", and "let
   assert.deepEqual(chatReasons('ok let us talk later', NAMES, true, undefined, true), ['stiff_voice']);
   assert.deepEqual(chatReasons('ok let us talk later', NAMES, true), []);
   assert.deepEqual(chatReasons('ok let us know when you land', NAMES, true, undefined, true), []);
+});
+
+test('a reply may name the link already on the card, and only that one', () => {
+  const card = { ask: [{ id: 'a1', text: '[ask placeholder] Track at harbour-desk-help.com/abc', tellIds: [] }] } as unknown as Card;
+  const hosts = cardHosts(card);
+  assert.deepEqual(hosts, ['harbour-desk-help.com']);
+  assert.deepEqual(chatReasons('Use harbour-desk-help.com/abc now.', NAMES, false, undefined, false, hosts), []);
+  assert.deepEqual(chatReasons('Use harbour-desk-pay.com now.', NAMES, false, undefined, false, hosts), ['link_not_on_card']);
 });
